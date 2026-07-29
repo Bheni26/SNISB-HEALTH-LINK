@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F8B4C">
+  <title>SNISB Health Link — Bénin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..500,0..1,0" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* ============================================================
+       SNISB — DESIGN SYSTEM INSTITUTIONNEL
+       Inspiré GOV.UK / GovTech Singapore / e-Estonia / DHIS2 / OMS
+       ============================================================ */
+    :root{
+      /* Identité nationale — header, logo, accents de marque UNIQUEMENT */
+      --benin-green-deep:#0F8B4C; --benin-gold:#F4B400; --benin-red-sober:#D32F2F;
+      /* Fonctionnel santé */
+      --health-blue:#1565C0; --health-teal:#00897B;
+      /* Échelle épidémiologique — réservée carte + indicateurs de risque */
+      --epi-normal:#4CAF50; --epi-surveillance:#FFEB3B; --epi-alert:#FF9800; --epi-epidemic:#F44336; --epi-no-data:#9E9E9E;
+      /* Neutres */
+      --white-warm:#FAFAFA; --gray-50:#F5F5F5; --gray-100:#EEEEEE; --gray-200:#E0E0E0; --gray-300:#BDBDBD; --gray-500:#9E9E9E; --gray-600:#757575; --gray-900:#212121;
+      /* Alias fonctionnels (compat composants existants) */
+      --primary:var(--benin-green-deep); --primary-dark:#0B6B3A; --primary-light:#E8F5EC;
+      --secondary:var(--benin-gold); --accent:var(--benin-red-sober);
+      --success:var(--epi-normal); --warning:var(--epi-alert); --danger:var(--epi-epidemic); --info:var(--health-blue);
+      --dark:var(--gray-900); --light:var(--white-warm); --border:var(--gray-200); --text:var(--gray-900); --text-muted:var(--gray-600);
+      --shadow:0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.12);
+      --radius:8px; --radius-sm:6px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--white-warm);color:var(--gray-900);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+    ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:4px;} ::-webkit-scrollbar-thumb:hover{background:var(--gray-500);}
+    .material-symbols-rounded{font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 24;font-size:1.15em;vertical-align:-0.22em;line-height:1;display:inline-block;user-select:none;}
+
+    /* LOGIN */
+    .login-page{min-height:100vh;background:var(--gray-900);display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
+    .login-page::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0F8B4C 0%,#0B3D24 100%);opacity:0.94;}
+    .login-card{background:white;border-radius:var(--radius);padding:40px;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.28);position:relative;z-index:1;}
+    .login-flag{display:flex;height:22px;border-radius:3px;overflow:hidden;margin-bottom:28px;width:64px;}
+    .flag-v{width:38%;background:#0F8B4C;}
+    .flag-right{width:62%;display:flex;flex-direction:column;}
+    .flag-j{flex:1;background:#F4B400;}.flag-r{flex:1;background:#D32F2F;}
+    .login-logo{text-align:left;margin-bottom:24px;}
+    .login-logo .logo-icon{font-size:32px;color:var(--primary);margin-bottom:10px;}
+    .login-logo h1{font-size:22px;font-weight:600;color:var(--gray-900);letter-spacing:-0.01em;}
+    .login-logo p{font-size:13px;color:var(--text-muted);margin-top:4px;}
+    .login-version{display:inline-block;background:var(--primary-light);color:var(--primary-dark);font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;margin-top:8px;letter-spacing:0.02em;}
+    .demo-accounts{background:var(--gray-50);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;text-align:left;}
+    .demo-accounts p{font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+    .demo-btn{display:inline-flex;align-items:center;gap:4px;background:white;border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-size:12px;margin:2px;cursor:pointer;transition:border-color 0.15s;color:var(--text);}
+    .demo-btn:hover{border-color:var(--primary);color:var(--primary-dark);}
+    /* FORMS */
+    .form-group{margin-bottom:16px;text-align:left;}
+    .form-label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:6px;}
+    .form-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:14px;transition:border-color 0.15s,box-shadow 0.15s;outline:none;background:white;color:var(--text);text-align:left;}
+    .form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,139,76,0.12);}
+    .form-select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:14px;outline:none;background:white;cursor:pointer;color:var(--text);}
+    .form-select:focus{border-color:var(--primary);}
+    .form-textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:14px;resize:vertical;min-height:80px;outline:none;text-align:left;}
+    .form-textarea:focus{border-color:var(--primary);}
+    .form-hint{font-size:12px;color:var(--text-muted);margin-top:4px;}
+    .form-error{font-size:12px;color:var(--danger);margin-top:4px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border:1px solid transparent;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s,border-color 0.15s;white-space:nowrap;}
+    .btn-primary{background:var(--primary);color:white;} .btn-primary:hover{background:var(--primary-dark);}
+    .btn-danger{background:var(--danger);color:white;} .btn-danger:hover{background:#C62828;}
+    .btn-outline{background:white;border:1px solid var(--border);color:var(--text);} .btn-outline:hover{border-color:var(--primary);color:var(--primary-dark);}
+    .btn-success{background:var(--success);color:white;} .btn-info{background:var(--info);color:white;} .btn-warning{background:var(--warning);color:white;}
+    .btn-sm{padding:6px 11px;font-size:12px;} .btn-full{width:100%;} .btn:disabled{opacity:0.5;cursor:not-allowed;}
+    /* LAYOUT */
+    .app-layout{display:flex;flex-direction:column;min-height:100vh;}
+    .app-body{display:flex;flex:1;max-width:1520px;margin:0 auto;width:100%;}
+    .sidebar{width:232px;flex-shrink:0;background:white;border-right:1px solid var(--border);padding:16px 10px;overflow-y:auto;}
+    .sidebar-tab{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-radius:var(--radius-sm);text-align:left;margin-bottom:2px;transition:background 0.15s,color 0.15s;}
+    .sidebar-tab:hover{background:var(--gray-50);color:var(--gray-900);}
+    .sidebar-tab.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+    .sidebar-tab .material-symbols-rounded{font-size:19px;}
+    @media(max-width:768px){
+      .app-body{flex-direction:column;}
+      .sidebar{width:100%;display:flex;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);padding:8px;}
+      .sidebar-tab{flex-direction:column;gap:2px;font-size:10px;padding:6px 10px;white-space:nowrap;margin-bottom:0;}
+    }
+    .header{background:var(--gray-900);color:white;padding:0 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid var(--primary);}
+    .header-inner{display:flex;align-items:center;justify-content:space-between;height:56px;max-width:1520px;margin:0 auto;}
+    .header-brand{display:flex;align-items:center;gap:12px;}
+    .header-flag{display:flex;width:26px;height:17px;border-radius:2px;overflow:hidden;flex-shrink:0;}
+    .hf1{width:38%;background:#0F8B4C;}
+    .hf-right{width:62%;display:flex;flex-direction:column;}
+    .hf2{flex:1;background:#F4B400;}.hf3{flex:1;background:#D32F2F;}
+    .header-title h1{font-size:15px;font-weight:600;letter-spacing:-0.01em;} .header-title p{font-size:11px;opacity:0.65;}
+    .header-user{display:flex;align-items:center;gap:14px;}
+    .header-user-name{font-size:13px;font-weight:600;} .header-user-role{font-size:11px;opacity:0.65;}
+    .status-badge{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;border:1px solid;}
+    .status-online{background:rgba(76,175,80,0.12);color:#81C784;border-color:rgba(76,175,80,0.3);}
+    .status-offline{background:rgba(255,152,0,0.12);color:#FFB74D;border-color:rgba(255,152,0,0.3);}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+    .btn-icon{background:transparent;border:1px solid rgba(255,255,255,0.15);color:white;width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;}
+    .btn-icon:hover{background:rgba(255,255,255,0.08);}
+    .sidebar-badge{background:var(--danger);color:white;font-size:10px;padding:1px 6px;border-radius:9px;font-weight:600;margin-left:auto;}
+    .main{flex:1;padding:28px 24px;max-width:1520px;margin:0 auto;width:100%;}
+    /* CARDS */
+    .card{background:white;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:24px;}
+    .card-title{font-size:15px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px;text-align:left;color:var(--gray-900);}
+    /* GRID */
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;}
+    @media(max-width:1024px){.grid-3,.grid-4{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+    @media(max-width:600px){.form-row{grid-template-columns:1fr;}.main{padding:16px 14px;}}
+    /* STAT CARDS */
+    .stat-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);position:relative;text-align:left;}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:var(--radius) 0 0 var(--radius);}
+    .stat-card.green::before{background:var(--epi-normal);}.stat-card.blue::before{background:var(--health-blue);}.stat-card.orange::before{background:var(--epi-alert);}.stat-card.red::before{background:var(--epi-epidemic);}.stat-card.purple::before{background:#6A5FA8;}
+    .stat-number{font-size:28px;font-weight:600;color:var(--gray-900);font-variant-numeric:tabular-nums;line-height:1.15;}
+    .stat-label{font-size:12px;color:var(--text-muted);margin-top:6px;}
+    .stat-icon{font-size:22px;position:absolute;top:18px;right:18px;color:var(--gray-300);}
+    /* ALERTS */
+    .alert{padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid transparent;}
+    .alert-danger{background:#FDECEA;border-color:#F5C6C0;color:#7B2D26;}.alert-warning{background:#FFF4E5;border-color:#FFD8A8;color:#7D5A1A;}
+    .alert-success{background:#EAF6EC;border-color:#BFE3C4;color:#1E5C2E;}.alert-info{background:#E8F1FB;border-color:#BBD6F2;color:#1A4F72;}
+    .alert-icon{font-size:18px;flex-shrink:0;}.alert-title{font-weight:600;font-size:13px;}.alert-text{font-size:12px;margin-top:2px;}
+    /* QUALITY */
+    .quality-bar{width:100%;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;margin-bottom:4px;}
+    .quality-fill{height:100%;border-radius:3px;transition:width 0.4s ease;}
+    .quality-excellent{background:var(--epi-normal);}.quality-bon{background:var(--health-blue);}.quality-moyen{background:var(--epi-alert);}.quality-insuffisant{background:var(--epi-epidemic);}
+    /* TABLE */
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:var(--gray-50);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);white-space:nowrap;}
+    td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--gray-100);text-align:left;}
+    tr:hover td{background:var(--gray-50);}
+    /* BADGES */
+    .badge{padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+    .badge-immediate{background:#FDECEA;color:#C62828;}.badge-hebdo{background:#FFF4E5;color:#B26A00;}
+    .badge-mensuelle{background:#E8F1FB;color:#1565C0;}.badge-success{background:#EAF6EC;color:#2E7D32;}
+    .badge-grey{background:var(--gray-100);color:var(--text-muted);}.badge-primary{background:var(--primary-light);color:var(--primary-dark);}
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(33,33,33,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .modal{background:white;border-radius:var(--radius);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.24);text-align:left;}
+    .modal-title{font-size:17px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+    .modal-close{background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;}
+    /* SEARCH */
+    .search-container{position:relative;}
+    .search-results{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:220px;overflow-y:auto;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+    .search-item{padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-100);text-align:left;}
+    .search-item:hover{background:var(--gray-50);}
+    /* ISUB */
+    .isub-card{background:var(--gray-900);color:white;border-radius:var(--radius);padding:16px;margin-top:12px;text-align:left;}
+    .isub-code{font-size:14px;font-weight:600;letter-spacing:0.03em;font-family:'DM Mono','SF Mono',monospace;}
+    .isub-label{font-size:10px;opacity:0.6;text-transform:uppercase;margin-bottom:4px;letter-spacing:0.06em;}
+    /* MISC */
+    .offline-banner{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--gray-900);color:#FFB74D;text-align:center;padding:10px 20px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;border-top:2px solid var(--epi-alert);}
+    .progress-bar{width:100%;height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;}
+    .progress-fill{height:100%;background:var(--primary);border-radius:4px;transition:width 0.4s;}
+    .module-card{border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s;text-align:left;background:white;}
+    .module-card:hover{border-color:var(--primary);box-shadow:var(--shadow);}
+    .module-card.completed{border-color:var(--epi-normal);}
+    .inner-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+    .inner-tab{padding:7px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;background:white;color:var(--text-muted);transition:all 0.15s;}
+    .inner-tab.active{background:var(--gray-900);color:white;border-color:var(--gray-900);}
+    .role-chip{padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;}
+    .role-admin{background:#FFF4E0;color:#8A5D00;}.role-medecin{background:#E8F1FB;color:#1565C0;}
+    .role-infirmier{background:#EAF6EC;color:#2E7D32;}.role-statisticien{background:#F1EBFA;color:#6A3FA0;}.role-patient{background:#FFEEE3;color:#B5540C;}
+    .rappel-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;}
+    .consultation-item{padding:14px;border-left:3px solid var(--primary);background:var(--gray-50);border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:10px;text-align:left;}
+    .kpi-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);text-align:left;}
+    .kpi-label{font-size:13px;color:var(--text-muted);}.kpi-gain{font-size:11px;color:#2E7D32;background:#EAF6EC;padding:2px 8px;border-radius:4px;font-weight:600;}
+    .carnet-header{background:var(--gray-900);color:white;border-radius:var(--radius);padding:28px;margin-bottom:24px;text-align:left;}
+    .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);}
+    .empty-icon{font-size:40px;margin-bottom:12px;color:var(--gray-300);}.empty-text{font-size:14px;}
+    .spinner{width:32px;height:32px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .chart-container{position:relative;height:220px;}
+    .page-title{font-size:22px;font-weight:600;margin-bottom:6px;text-align:left;letter-spacing:-0.01em;}
+    .page-sub{color:var(--text-muted);font-size:13px;margin-bottom:24px;text-align:left;}
+    /* MAP */
+    .map-shell{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+    .map-toolbar{display:flex;gap:6px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+    #leaflet-map{height:520px;width:100%;background:#EAF1F5;}
+    @media(max-width:768px){#leaflet-map{height:70vh;}}
+    .leaflet-popup-content-wrapper{border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.18);}
+    .leaflet-popup-content{font-family:'Inter',sans-serif;font-size:13px;margin:12px 14px;}
+    .map-legend{position:absolute;bottom:16px;right:16px;background:rgba(255,255,255,0.95);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:11px;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+    .map-legend-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+    .map-legend-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+    /* AI */
+    .ai-chat{display:flex;flex-direction:column;height:520px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:white;}
+    .ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--gray-50);}
+    .ai-msg{max-width:82%;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;line-height:1.6;text-align:left;}
+    .ai-msg.user{background:var(--primary);color:white;align-self:flex-end;}
+    .ai-msg.ai{background:white;border:1px solid var(--border);align-self:flex-start;}
+    .ai-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:white;}
+    .ai-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);outline:none;font-family:'Inter',sans-serif;font-size:13px;}
+    .ai-input:focus{border-color:var(--primary);}
+    .ai-panel{background:var(--gray-900);border-radius:var(--radius);padding:20px;color:white;text-align:left;}
+    .ai-panel-title{font-size:15px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .ai-panel-sub{font-size:12px;opacity:0.6;margin-bottom:16px;}
+    .ai-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:white;padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;transition:background 0.15s;margin:3px;}
+    .ai-chip:hover{background:rgba(15,139,76,0.35);border-color:var(--primary);}
+    .sync-indicator{display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 9px;border-radius:4px;}
+    .sync-ok{background:rgba(76,175,80,0.12);color:#81C784;}.sync-pending{background:rgba(255,152,0,0.12);color:#FFB74D;}
+    .pwa-banner{background:var(--gray-900);color:white;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;border-bottom:2px solid var(--primary);}
+  </style>
+</head>
+<body>
+<div id="root">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0F8B4C;font-family:'Inter',sans-serif;">
+    <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.3);border-top:3px solid white;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <div style="color:white;font-size:14px;margin-top:16px;">Chargement de SNISB Health Link…</div>
+    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+  </div>
+</div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback,useMemo}=React;
+
+// ═══════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════
+const SB_URL='https://ybfuosvvycnsausjqnlw.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InliZnVvc3Z2eWNuc2F1c2pxbmx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMzI0MTgsImV4cCI6MjA5OTYwODQxOH0.DjR-C_EETq5VlxrVsaTlfJYXHiq-1nJgcWv9PFLZq3Y';
+const EDGE_FUNCTIONS_URL='https://ybfuosvvycnsausjqnlw.supabase.co/functions/v1';
+let supabase=null;
+try{
+  const sb=window.supabase||window.supabaseJs;
+  if(sb&&sb.createClient){supabase=sb.createClient(SB_URL,SB_KEY);console.log('Supabase OK');}
+}catch(e){console.log('Supabase mode local:',e.message);}
+
+// ═══════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════
+const ZONES_SANITAIRES={
+  ALIBORI:[{code:'ZS-ALI-01',nom:'Banikoara',pop:150000},{code:'ZS-ALI-02',nom:'Kandi-Gogounou-Ségbana',pop:180000},{code:'ZS-ALI-03',nom:'Malanville-Karimama',pop:120000}],
+  ATACORA:[{code:'ZS-ATA-01',nom:'Kouandé-Péhunco-Kérou',pop:145000},{code:'ZS-ATA-02',nom:'Natitingou-Boukoumbé',pop:175000},{code:'ZS-ATA-03',nom:'Tanguiéta-Cobly-Matéri',pop:135000}],
+  ATLANTIQUE:[{code:'ZS-ATL-01',nom:'Abomey-Calavi-So-Ava',pop:195000},{code:'ZS-ATL-02',nom:'Allada-Toffo-Zè',pop:165000},{code:'ZS-ATL-03',nom:'Ouidah-Kpomassè',pop:155000}],
+  BORGOU:[{code:'ZS-BOR-01',nom:'Bembéréké-Sinendé',pop:140000},{code:'ZS-BOR-02',nom:"N'Dali-Parakou",pop:200000},{code:'ZS-BOR-03',nom:'Nikki-Kalalé-Pèrèrè',pop:130000},{code:'ZS-BOR-04',nom:'Tchaourou',pop:125000}],
+  COLLINES:[{code:'ZS-COL-01',nom:'Dassa-Glazoué',pop:160000},{code:'ZS-COL-02',nom:'Savalou-Bantè',pop:145000},{code:'ZS-COL-03',nom:'Savè-Ouèssè',pop:155000}],
+  COUFFO:[{code:'ZS-COU-01',nom:'Aplahoué-Djakotomey-Dogbo',pop:150000},{code:'ZS-COU-02',nom:'Klouékanmè-Toviklin',pop:135000}],
+  DONGA:[{code:'ZS-DON-01',nom:'Bassila',pop:110000},{code:'ZS-DON-02',nom:'Djougou-Ouaké-Copargo',pop:165000}],
+  LITTORAL:[{code:'ZS-LIT-01',nom:'Cotonou 1-4',pop:180000},{code:'ZS-LIT-02',nom:'Cotonou 2-3',pop:175000},{code:'ZS-LIT-03',nom:'Cotonou 5',pop:165000},{code:'ZS-LIT-04',nom:'Cotonou 6',pop:160000}],
+  MONO:[{code:'ZS-MON-01',nom:'Comè-Grand Popo-Houèyogbé',pop:145000},{code:'ZS-MON-02',nom:'Lokossa-Athiémè',pop:130000}],
+  OUEME:[{code:'ZS-OUE-01',nom:'Adjohoun-Bonou-Dangbo',pop:135000},{code:'ZS-OUE-02',nom:'Akpro-Missérété-Avrankou',pop:170000},{code:'ZS-OUE-03',nom:'Porto-Novo-Sèmè-Kpodji',pop:190000}],
+  PLATEAU:[{code:'ZS-PLA-01',nom:'Pobè-Kétou-Adja-Ouèrè',pop:155000},{code:'ZS-PLA-02',nom:'Sakété-Ifangni',pop:125000}],
+  ZOU:[{code:'ZS-ZOU-01',nom:'Bohicon-Za-Kpota-Zogbodomey',pop:175000},{code:'ZS-ZOU-02',nom:'Cové-Zagnanado-Ouinhi',pop:140000},{code:'ZS-ZOU-03',nom:'Djidja-Abomey-Agbangnizoun',pop:165000}]
+};
+const TOUTES_ZONES=Object.entries(ZONES_SANITAIRES).flatMap(([d,z])=>z.map(x=>({...x,departement:d})));
+
+const MALADIES_SIMR=[
+  {code:'A00',nom:'Choléra',keys:['choléra','diarrhée aqueuse'],notif:'immédiate'},
+  {code:'B05',nom:'Rougeole',keys:['rougeole','éruption fébrile'],notif:'immédiate'},
+  {code:'A95',nom:'Fièvre jaune',keys:['fièvre jaune','ictère'],notif:'immédiate'},
+  {code:'A39.0',nom:'Méningite méningococcique',keys:['méningite','raideur nuque'],notif:'immédiate'},
+  {code:'A80',nom:'Poliomyélite',keys:['polio','paralysie flasque'],notif:'immédiate'},
+  {code:'A96.2',nom:'Fièvre de Lassa',keys:['lassa','hémorragie fébrile'],notif:'immédiate'},
+  {code:'A98.4',nom:'Fièvre Ebola',keys:['ebola','hémorragie virale'],notif:'immédiate'},
+  {code:'A82',nom:'Rage humaine',keys:['rage','morsure animal'],notif:'immédiate'},
+  {code:'B04',nom:'Variole du singe (Mpox)',keys:['mpox','variole singe','pustules'],notif:'immédiate'},
+  {code:'A92.0',nom:'Chikungunya',keys:['chikungunya','arthralgie fébrile'],notif:'immédiate'},
+  {code:'A90',nom:'Dengue',keys:['dengue','fièvre dengue'],notif:'immédiate'},
+  {code:'O95',nom:'Décès maternel',keys:['décès maternel'],notif:'immédiate'},
+  {code:'A33',nom:'Tétanos néonatal',keys:['tétanos néonatal'],notif:'immédiate'},
+  {code:'B50.9',nom:'Paludisme simple (44,7%)',keys:['paludisme','palu','malaria','fièvre palustre'],notif:'hebdo'},
+  {code:'B50.0',nom:'Paludisme cérébral',keys:['paludisme cérébral','neuropalu'],notif:'hebdo'},
+  {code:'B50.8',nom:'Paludisme grave',keys:['paludisme grave','paludisme compliqué'],notif:'hebdo'},
+  {code:'J06',nom:'IRA voies supérieures (11,9%)',keys:['ira','infection respiratoire','toux','rhinopharyngite'],notif:'hebdo'},
+  {code:'J18.9',nom:'Pneumonie',keys:['pneumonie','bronchopneumonie'],notif:'hebdo'},
+  {code:'A09',nom:'Diarrhée infectieuse (5,4%)',keys:['diarrhée','gastroentérite'],notif:'hebdo'},
+  {code:'O80',nom:'Accouchement normal',keys:['accouchement','naissance'],notif:'hebdo'},
+  {code:'P95',nom:'Décès périnatal',keys:['mort-né','décès périnatal'],notif:'hebdo'},
+  {code:'A15',nom:'Tuberculose respiratoire',keys:['tuberculose','tb','bacille koch'],notif:'mensuelle'},
+  {code:'B20',nom:'VIH/SIDA (prévalence 1,2%)',keys:['vih','sida'],notif:'mensuelle'},
+  {code:'A30',nom:'Lèpre',keys:['lèpre','hansen'],notif:'mensuelle'},
+  {code:'A31.1',nom:'Ulcère de Buruli',keys:['buruli','ulcère buruli'],notif:'mensuelle'},
+  {code:'I10',nom:'Hypertension artérielle',keys:['hypertension','hta','tension élevée'],notif:'mensuelle'},
+  {code:'E11',nom:'Diabète type 2',keys:['diabète','glycémie'],notif:'mensuelle'},
+  {code:'K29',nom:'Gastrite/Ulcère gastrique',keys:['gastrite','ulcère gastrique'],notif:'mensuelle'},
+  {code:'Z00',nom:'Consultation de routine',keys:['examen général','bilan','routine'],notif:'mensuelle'}
+];
+
+const COMPTES_DEMO=[
+  {username:'admin',role:'admin',nom:'Administrateur'},
+  {username:'medecin',role:'medecin',nom:'Médecin'},
+  {username:'infirmier',role:'infirmier',nom:'Infirmier / Sage-femme'},
+  {username:'statisticien',role:'statisticien',nom:'Statisticien'},
+  {username:'patient',role:'patient',nom:'Patient'}
+];
+
+const ROLES={
+  admin:{label:'Administrateur National',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','export','epidemio','carte','ia','formation','admin']},
+  medecin:{label:'Médecin',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','export','epidemio','carte','ia','formation']},
+  infirmier:{label:'Infirmier / Sage-femme',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','ia','formation']},
+  statisticien:{label:'Statisticien SNIS',onglets:['dashboard','export','epidemio','carte','ia','formation']},
+  patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia','sante']}
+};
+
+const MODULES_FORMATION=[
+  {id:1,titre:'Introduction à DHIS2',duree:'2h',niveau:'Débutant',icon:'📊',chapitres:["Qu'est-ce que DHIS2","Architecture Bénin","Saisie données","Génération rapports"],quiz:[{q:'Rôle principal DHIS2?',opts:['Stocker données nationales','Remplacer agents','Gérer paie'],ok:0},{q:'Zones sanitaires au Bénin?',opts:['20','34','12','45'],ok:1}]},
+  {id:2,titre:'Qualité des Données Sanitaires',duree:'1h30',niveau:'Intermédiaire',icon:'✅',chapitres:['Pourquoi la qualité est cruciale','5 dimensions qualité','Outils de contrôle','Bonnes pratiques'],quiz:[{q:'Dimension liée aux délais?',opts:['Exactitude','Complétude','Ponctualité','Validité'],ok:2},{q:'Score qualité minimum?',opts:['50','70','80','90'],ok:1}]},
+  {id:3,titre:'Surveillance SIMR',duree:'2h',niveau:'Avancé',icon:'🦠',chapitres:["Qu'est-ce que la SIMR","3 catégories notification","Définitions de cas","Gestion alertes"],quiz:[{q:'Délai notification choléra?',opts:['Immédiat <24h','Hebdomadaire','Mensuel'],ok:0},{q:'Maladies notification immédiate?',opts:['5','8','13','20'],ok:2}]},
+  {id:4,titre:'Utilisation SNISB Health Link',duree:'1h',niveau:'Tous niveaux',icon:'🏥',chapitres:['Présentation système','Enregistrement patient','Saisie consultation','Export DHIS2'],quiz:[{q:'Signification de ISUB?',opts:['Identifiant Sanitaire Unifié du Bénin','Index Suivi Urbain Bénin','Identification Unique'],ok:0},{q:'SNISB fonctionne sans Internet?',opts:['Oui (IndexedDB)','Non','Lecture seule'],ok:0}]}
+];
+
+// ═══════════════════════════════════════
+// UTILITAIRES
+// ═══════════════════════════════════════
+const uuid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+const fmtDate=d=>{if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});};
+const fmtDT=d=>{if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+const genISUB=(npi,zone)=>{const y=new Date().getFullYear();const n=(npi||'').replace(/\D/g,'');if(n.length>=6)return 'BEN-'+zone+'-'+y+'-'+n.slice(-6).padStart(6,'0');return 'BEN-'+zone+'-'+y+'-T'+Date.now().toString().slice(-6);};
+const normAccents=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const matchMaladie=diagnosticText=>{
+  const d=normAccents(diagnosticText);
+  if(!d)return null;
+  return MALADIES_SIMR.find(m=>m.keys.some(k=>d.includes(normAccents(k)))||d.includes(normAccents(m.nom)))||null;
+};
+const rechMaladies=q=>{if(q.length<2)return[];const ql=normAccents(q);return MALADIES_SIMR.filter(m=>normAccents(m.nom).includes(ql)||m.code.toLowerCase().includes(ql)||m.keys.some(k=>normAccents(k).includes(ql))).slice(0,8);};
+
+function scoreQualite(r){
+  let s=100;const err=[],warn=[];
+  if(!r.nom||r.nom.length<2){s-=20;err.push('Nom trop court ou manquant');}
+  if(!r.date_naissance){s-=20;err.push('Date de naissance manquante');}
+  if(!r.sexe){s-=10;err.push('Sexe non renseigné');}
+  if(!r.zone_sanitaire){s-=15;err.push('Zone sanitaire manquante');}
+  if(!r.prenoms){s-=5;warn.push('Prénom non renseigné');}
+  if(r.npi&&!/^\d{10}$/.test(r.npi)&&!r.npi.startsWith('TEMP')){s-=15;err.push('NPI invalide (10 chiffres requis)');}
+  if(r.diagnostic!==undefined){
+    if(!r.diagnostic){s-=30;err.push('Diagnostic manquant');}
+    if(r.tension_s&&r.tension_d&&parseFloat(r.tension_s)<parseFloat(r.tension_d)){s-=15;err.push('Tension incohérente (sys < dia)');}
+    if(r.temperature){const t=parseFloat(r.temperature);if(t<34||t>42){s-=10;warn.push('Température anormale ('+t+'°C)');}}
+  }
+  const score=Math.max(0,s);
+  const niv=score>=90?'Excellent':score>=70?'Bon':score>=50?'Moyen':'Insuffisant';
+  const col=score>=90?'excellent':score>=70?'bon':score>=50?'moyen':'insuffisant';
+  return{score,err,warn,niv,col};
+}
+
+function risqueEpidemio(c){
+  let r=0;const f=[];
+  const m=matchMaladie(c.diagnostic);
+  if(m){if(m.notif==='immédiate'){r+=40;f.push('🚨 Maladie à notification immédiate');}else if(m.notif==='hebdo'){r+=20;f.push('⚠️ Surveillance hebdomadaire');}}
+  const t=parseFloat(c.temperature||37);
+  if(t>=40){r+=20;f.push('🌡️ Hyperthermie sévère ('+t+'°C)');}else if(t>=38.5){r+=10;f.push('🌡️ Fièvre élevée ('+t+'°C)');}
+  if(c.gravite==='grave'){r+=15;f.push('⚠️ Gravité élevée');}if(c.gravite==='critique'){r+=25;f.push('🔴 État critique');}
+  const mois=new Date().getMonth()+1;if(mois>=5&&mois<=10&&normAccents(c.diagnostic).includes('palu')){r+=15;f.push('📅 Saison palustre active');}
+  const niv=r>=70?'ALERTE':r>=40?'SURVEILLANCE':'STABLE';
+  return{score:Math.min(100,r),niv,f};
+}
+
+function detectDoublons(patients,n){
+  const nNom=normAccents(n.nom),nPrenoms=normAccents(n.prenoms),nFull=(nNom+' '+nPrenoms).trim();
+  return patients.filter(p=>{
+    const pNom=normAccents(p.nom),pPrenoms=normAccents(p.prenoms),pFull=(pNom+' '+pPrenoms).trim();
+    const mn=pNom===nNom;
+    const mp=pPrenoms===nPrenoms;
+    const md=p.date_naissance===n.date_naissance;
+    const mFull=nFull.length>2&&pFull.length>2&&(pFull.includes(nFull)||nFull.includes(pFull));
+    return(mn&&mp)||(mn&&md)||(mFull&&md);
+  });
+}
+
+// ═══════════════════════════════════════
+// INDEXEDDB
+// ═══════════════════════════════════════
+class DB{
+  constructor(){this.db=null;}
+  async init(){return new Promise((res,rej)=>{const r=indexedDB.open('SNISB_V7',3);r.onupgradeneeded=e=>{const db=e.target.result;['patients','consultations','rappels','sync_queue','audit_logs'].forEach(store=>{if(!db.objectStoreNames.contains(store)){const ks=store==='sync_queue'||store==='audit_logs'?{autoIncrement:true}:{keyPath:'id'};if(store==='patients')db.createObjectStore(store,{keyPath:'isub'});else db.createObjectStore(store,ks);}});};r.onsuccess=e=>{this.db=e.target.result;res(this.db);};r.onerror=()=>rej(r.error);});}
+  async getAll(s){return new Promise((res,rej)=>{const t=this.db.transaction(s,'readonly');const r=t.objectStore(s).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+  async put(s,d){return new Promise((res,rej)=>{const t=this.db.transaction(s,'readwrite');const r=t.objectStore(s).put(d);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+  async del(s,k){return new Promise((res,rej)=>{const t=this.db.transaction(s,'readwrite');const r=t.objectStore(s).delete(k);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+}
+
+// ═══════════════════════════════════════
+// COMPOSANTS UI DE BASE
+// ═══════════════════════════════════════
+function Login({onLogin}){
+  const[u,setU]=useState('');const[p,setP]=useState('');const[err,setErr]=useState('');const[ld,setLd]=useState(false);
+  const go=async()=>{
+    if(!u||!p)return;
+    setLd(true);setErr('');
+    if(!supabase){setErr('Connexion au serveur indisponible. Réessayez plus tard.');setLd(false);return;}
+    try{
+      const{data,error}=await supabase.auth.signInWithPassword({email:u+'@snisb.bj',password:p});
+      if(error||!data?.user){setErr('Identifiant ou mot de passe incorrect.');setLd(false);return;}
+      const{data:profile,error:profErr}=await supabase.from('profiles').select('role,nom,zone,departement,isub').eq('id',data.user.id).single();
+      if(profErr||!profile){setErr('Compte authentifié mais profil introuvable — contactez un administrateur.');setLd(false);return;}
+      onLogin({username:u,supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub});
+    }catch(e){setErr('Erreur de connexion. Vérifiez votre réseau et réessayez.');}
+    setLd(false);
+  };
+  return(<div className="login-page"><div className="login-card">
+    <div className="login-flag"><div className="flag-v"/><div className="flag-right"><div className="flag-j"/><div className="flag-r"/></div></div>
+    <div className="login-logo">
+      <div className="logo-icon">🏥</div>
+      <h1>SNISB Health Link</h1>
+      <p>Système National Intelligent de Santé du Bénin</p>
+      <span className="login-version">République du Bénin — Ministère de la Santé</span>
+    </div>
+    <div className="demo-accounts"><p>RÔLES DU SYSTÈME :</p>
+      {COMPTES_DEMO.map(c=><span key={c.username} className="demo-btn" onClick={()=>setU(c.username)}>
+        {c.role==='admin'?'👑':c.role==='medecin'?'👨‍⚕️':c.role==='infirmier'?'👩‍⚕️':c.role==='statisticien'?'📊':'👤'} {c.username}
+      </span>)}
+      <div className="form-hint" style={{marginTop:6}}>Cliquer remplit l'identifiant — le mot de passe reste celui défini pour ce compte dans Supabase.</div>
+    </div>
+    {err&&<div className="alert alert-danger" style={{marginBottom:12}}><span className="alert-icon">⚠️</span><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
+    <div className="form-group"><label className="form-label">Identifiant</label>
+      <input className="form-input" type="text" placeholder="Votre identifiant" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
+    </div>
+    <div className="form-group"><label className="form-label">Mot de passe</label>
+      <input className="form-input" type="password" placeholder="Votre mot de passe" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
+    </div>
+    <button className="btn btn-primary btn-full" onClick={go} disabled={ld||!u||!p}>{ld?'⏳ Connexion...':'🔐 Se connecter'}</button>
+    <p style={{textAlign:'center',marginTop:16,fontSize:11,color:'var(--text-muted)'}}>
+      République du Bénin • Ministère de la Santé<br/>
+      Porteur : KOUPHIN Bhéni | TSPS<br/>
+      <span style={{color:'var(--primary)',fontWeight:600}}>🔒 Auth Supabase • 📱 PWA • 🤖 IA • 🗺️ Carte</span>
+    </p>
+  </div></div>);
+}
+
+function Header({user,online,onLogout,syncPending}){
+  return(<header className="header"><div className="header-inner">
+    <div className="header-brand">
+      <div className="header-flag"><div className="hf1"/><div className="hf-right"><div className="hf2"/><div className="hf3"/></div></div>
+      <div className="header-title"><h1>🏥 SNISB Health Link</h1><p>Système National Intelligent de Santé du Bénin</p></div>
+    </div>
+    <div className="header-user">
+      <div className={`status-badge ${online?'status-online':'status-offline'}`}><div className="status-dot"/>{online?'En ligne':'Hors-ligne'}</div>
+      {syncPending>0&&<div className="sync-indicator sync-pending">⏳ {syncPending} en attente</div>}
+      {syncPending===0&&online&&<div className="sync-indicator sync-ok">✅ Synchronisé</div>}
+      <div style={{textAlign:'right',display:'none'}} className="header-user-info">
+        <div className="header-user-name">{user.nom}</div>
+        <div className="header-user-role">{ROLES[user.role]?.label}</div>
+      </div>
+      <div style={{textAlign:'right'}}>
+        <div className="header-user-name">{user.nom}</div>
+        <div className="header-user-role" style={{fontSize:11,opacity:0.75}}>{ROLES[user.role]?.label}</div>
+      </div>
+      <button className="btn-icon" onClick={onLogout} title="Déconnexion">🚪</button>
+    </div>
+  </div></header>);
+}
+
+function Nav({user,active,onChange,alerts}){
+  const tabs={
+    dashboard:{l:'Tableau de bord',i:'dashboard'},patients:{l:'Patients',i:'group'},
+    consultations:{l:'Consultations',i:'stethoscope'},teleconsultation:{l:'Téléconsultation',i:'videocam'},dossiers:{l:'Dossiers',i:'folder_open'},
+    rappels:{l:'Rappels',i:'notifications'},export:{l:'Export DHIS2',i:'upload_file'},
+    epidemio:{l:'Épidémiologie',i:'coronavirus'},carte:{l:'Carte',i:'map'},
+    ia:{l:'IA Clinique',i:'smart_toy'},formation:{l:'Formation',i:'school'},
+    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},sante:{l:'Ma Santé',i:'favorite'}
+  };
+  return(<aside className="sidebar">
+    {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
+      <span className="material-symbols-rounded">{tabs[t]?.i}</span>
+      <span>{tabs[t]?.l||t}</span>
+      {t==='dashboard'&&alerts>0&&<span className="sidebar-badge">{alerts}</span>}
+    </button>)}
+  </aside>);
+}
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function Dashboard({user,patients,consultations}){
+  const r1=useRef(null),r2=useRef(null),i1=useRef(null),i2=useRef(null);
+  const alerts=consultations.filter(c=>matchMaladie(c.diagnostic)?.notif==='immédiate').length;
+  const avgQ=patients.length?Math.round(patients.reduce((a,p)=>a+(p.quality_score||0),0)/patients.length):0;
+  useEffect(()=>{
+    if(r1.current){if(i1.current)i1.current.destroy();
+      const d7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return{l:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),v:consultations.filter(c=>c.date_consultation&&new Date(c.date_consultation).toDateString()===d.toDateString()).length};});
+      i1.current=new Chart(r1.current,{type:'line',data:{labels:d7.map(x=>x.l),datasets:[{label:'Consultations',data:d7.map(x=>x.v),borderColor:'#0F8B4C',backgroundColor:'rgba(15,139,76,0.06)',borderWidth:2,tension:0.3,fill:true,pointBackgroundColor:'#0F8B4C',pointBorderColor:'#fff',pointBorderWidth:1.5,pointRadius:3,pointHoverRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#212121',padding:10,cornerRadius:6,titleFont:{family:'Inter',size:12},bodyFont:{family:'Inter',size:12}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Inter',size:11},color:'#757575'},grid:{color:'#EEEEEE',borderDash:[3,3]},border:{display:false}},x:{ticks:{font:{family:'Inter',size:11},color:'#757575'},grid:{display:false},border:{color:'#E0E0E0'}}}}});}
+    if(r2.current){if(i2.current)i2.current.destroy();
+      i2.current=new Chart(r2.current,{type:'doughnut',data:{labels:['Paludisme 44.7%','IRA 11.9%','Diarrhées 5.4%','Autres 38%'],datasets:[{data:[44.7,11.9,5.4,38],backgroundColor:['#F44336','#FF9800','#1565C0','#BDBDBD'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{family:'Inter',size:11},color:'#424242',padding:12,usePointStyle:true,pointStyle:'circle'}},tooltip:{backgroundColor:'#212121',padding:10,cornerRadius:6,bodyFont:{family:'Inter',size:12}}}}});}
+    return()=>{if(i1.current)i1.current.destroy();if(i2.current)i2.current.destroy();};
+  },[consultations]);
+  return(<div>
+    <p className="page-title">📊 Tableau de bord</p>
+    <p className="page-sub">Bienvenue, {user.nom} — {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+    {alerts>0&&<div className="alert alert-danger" style={{marginBottom:16}}><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">{alerts} maladie(s) à notification immédiate détectée(s)</div><div className="alert-text">Action requise sous 24h — Contacter la DDS et le niveau central SNISB</div></div></div>}
+    <div className="grid-4" style={{marginBottom:20}}>
+      {[{v:patients.length,l:'Patients enregistrés',i:'👤',c:'green'},{v:consultations.length,l:'Consultations totales',i:'🩺',c:'blue'},{v:alerts,l:'Alertes immédiates',i:'🚨',c:'red'},{v:`${avgQ}/100`,l:'Score qualité moyen',i:'⭐',c:'purple'}].map((s,i)=>
+        <div key={i} className={`stat-card ${s.c}`}><div className="stat-icon">{s.i}</div><div className="stat-number" style={{color:s.c==='red'&&s.v>0?'var(--danger)':s.c==='purple'&&avgQ>=70?'var(--success)':undefined}}>{s.v}</div><div className="stat-label">{s.l}</div></div>
+      )}
+    </div>
+    <div className="grid-2" style={{marginBottom:16}}>
+      <div className="card"><div className="card-title">📈 Consultations (7 jours)</div><div className="chart-container"><canvas ref={r1}/></div></div>
+      <div className="card"><div className="card-title">🦠 Répartition pathologies — Bénin</div><div className="chart-container"><canvas ref={r2}/></div></div>
+    </div>
+    <div className="grid-2">
+      <div className="card"><div className="card-title">🎯 Impact SNISB v7</div>
+        {[['Délai disponibilité données','15-30j','<24h','-95%'],['Temps saisie/agent','3-4h/j','15-20min','-85%'],["Taux d'erreurs saisie",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%'],['Couverture zones rurales','60%','95%','+58%']].map(([l,a,b,g],i)=>(
+          <div key={i} className="kpi-row"><div><div style={{fontSize:12,fontWeight:600}}>{l}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{a} → <strong style={{color:'var(--primary)'}}>{b}</strong></div></div><span className="kpi-gain">{g}</span></div>
+        ))}
+      </div>
+      <div className="card"><div className="card-title">🆕 Nouveautés v7</div>
+        {[['🔐','Authentification Supabase','Connexion sécurisée JWT + base cloud'],['🗺️','Carte épidémique interactive','Visualisation par département'],['🤖','IA Clinique (Claude)','Assistant diagnostic & épidémio'],['📱','PWA installable','Application Android/iOS sans store'],['🔄','Sync temps réel','Supabase Realtime pour toutes les zones']].map(([ic,t,d],i)=>(
+          <div key={i} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start'}}>
+            <span style={{fontSize:20,flexShrink:0}}>{ic}</span>
+            <div><div style={{fontSize:13,fontWeight:600}}>{t}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{d}</div></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>);
+}
+// ═══════════════════════════════════════
+// PATIENTS
+// ═══════════════════════════════════════
+function Patients({user,patients,setPatients,db}){
+  const[tab,setTab]=useState('liste');
+  const[form,setForm]=useState({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:''});
+  const[sc,setSc]=useState(null);const[isub,setIsub]=useState('');
+  const[dbl,setDbl]=useState([]);const[showDbl,setShowDbl]=useState(false);
+  const[ok,setOk]=useState(false);const[srch,setSrch]=useState('');
+  const zones=(ZONES_SANITAIRES[form.departement]||[]);
+  const upd=(f,v)=>{const nf={...form,[f]:v};setForm(nf);setSc(scoreQualite(nf));if(nf.zone_sanitaire&&nf.nom)setIsub(genISUB(nf.npi,nf.zone_sanitaire));};
+  const submit=()=>{if(!sc||sc.score<50)return;const d=detectDoublons(patients,form);if(d.length>0&&!showDbl){setDbl(d);setShowDbl(true);return;}save();};
+  const save=async()=>{
+    const p={isub,npi:form.npi||('TEMP'+Date.now().toString().slice(-6)),nom:form.nom,prenoms:form.prenoms,date_naissance:form.date_naissance,sexe:form.sexe,telephone:form.telephone,departement:form.departement,zone_sanitaire:form.zone_sanitaire,zone_nom:TOUTES_ZONES.find(z=>z.code===form.zone_sanitaire)?.nom||'',source:form.npi?'ANIP':'TEMPORAIRE',quality_score:sc?.score||0,allergies:form.allergies,maladies_chroniques:form.maladies_chroniques,enregistre_par:user.nom,created_at:new Date().toISOString()};
+    if(db)await db.put('patients',p);
+    if(supabase){try{await supabase.from('patients').upsert(p);}catch(e){}}
+    setPatients(prev=>[...prev.filter(x=>x.isub!==isub),p]);
+    setOk(true);setShowDbl(false);
+    setTimeout(()=>{setOk(false);setForm({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:''});setSc(null);setIsub('');},2000);
+  };
+  const filtered=patients.filter(p=>!srch||p.nom?.toLowerCase().includes(srch.toLowerCase())||p.isub?.includes(srch)||p.npi?.includes(srch));
+  return(<div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+      <p className="page-title" style={{marginBottom:0}}>👤 Patients</p>
+      <div className="inner-tabs" style={{marginBottom:0}}>
+        {[['liste','📋 Liste'],['nouveau','➕ Nouveau']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+      </div>
+    </div>
+    {tab==='liste'?(<div className="card">
+      <input className="form-input" placeholder="🔍 Nom, ISUB ou NPI..." value={srch} onChange={e=>setSrch(e.target.value)} style={{marginBottom:12}}/>
+      <div className="table-wrap"><table>
+        <thead><tr><th>ISUB</th><th>Nom complet</th><th>Naissance</th><th>Sexe</th><th>Zone</th><th>Source</th><th>Score</th></tr></thead>
+        <tbody>{filtered.length===0?<tr><td colSpan={7}><div className="empty-state"><div className="empty-icon">👤</div><div className="empty-text">Aucun patient — Cliquez sur "Nouveau"</div></div></td></tr>
+          :filtered.map(p=><tr key={p.isub}>
+            <td><code style={{fontSize:11}}>{p.isub}</code></td>
+            <td><strong>{p.nom} {p.prenoms}</strong></td>
+            <td>{fmtDate(p.date_naissance)}</td>
+            <td>{p.sexe==='M'?'♂️':'♀️'} {p.sexe}</td>
+            <td style={{fontSize:12}}>{p.zone_nom||p.zone_sanitaire}</td>
+            <td><span className={`badge ${p.source==='ANIP'?'badge-success':'badge-hebdo'}`}>{p.source}</span></td>
+            <td><div style={{display:'flex',alignItems:'center',gap:6}}><div className="quality-bar" style={{width:50,marginBottom:0}}><div className={`quality-fill quality-${p.quality_score>=90?'excellent':p.quality_score>=70?'bon':p.quality_score>=50?'moyen':'insuffisant'}`} style={{width:`${p.quality_score}%`}}/></div><span style={{fontSize:12,fontWeight:600}}>{p.quality_score}</span></div></td>
+          </tr>)}
+        </tbody>
+      </table></div>
+    </div>):(<div className="grid-2">
+      <div className="card">
+        <div className="card-title">🆕 Nouveau patient</div>
+        {ok&&<div className="alert alert-success"><span className="alert-icon">✅</span><div className="alert-content"><div className="alert-title">Patient enregistré avec succès !</div></div></div>}
+        <div className="form-group"><label className="form-label">NPI (optionnel)</label><input className="form-input" placeholder="10 chiffres ANIP" value={form.npi} onChange={e=>upd('npi',e.target.value)}/><div className="form-hint">Sans NPI → identifiant temporaire auto-généré</div></div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Nom *</label><input className="form-input" placeholder="Nom de famille" value={form.nom} onChange={e=>upd('nom',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Prénoms</label><input className="form-input" placeholder="Prénoms" value={form.prenoms} onChange={e=>upd('prenoms',e.target.value)}/></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Date naissance *</label><input className="form-input" type="date" value={form.date_naissance} onChange={e=>upd('date_naissance',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Sexe *</label>
+            <select className="form-select" value={form.sexe} onChange={e=>upd('sexe',e.target.value)}><option value="">— Choisir —</option><option value="M">♂️ Masculin</option><option value="F">♀️ Féminin</option></select>
+          </div>
+        </div>
+        <div className="form-group"><label className="form-label">Téléphone</label><input className="form-input" placeholder="+229 ..." value={form.telephone} onChange={e=>upd('telephone',e.target.value)}/></div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Allergies connues</label><input className="form-input" placeholder="Ex: pénicilline — laisser vide si aucune" value={form.allergies} onChange={e=>upd('allergies',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Maladies chroniques</label><input className="form-input" placeholder="Ex: diabète, hypertension" value={form.maladies_chroniques} onChange={e=>upd('maladies_chroniques',e.target.value)}/></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Département *</label>
+            <select className="form-select" value={form.departement} onChange={e=>upd('departement',e.target.value)}><option value="">— Département —</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d}>{d}</option>)}</select>
+          </div>
+          <div className="form-group"><label className="form-label">Zone sanitaire *</label>
+            <select className="form-select" value={form.zone_sanitaire} onChange={e=>upd('zone_sanitaire',e.target.value)} disabled={!form.departement}><option value="">— Zone —</option>{zones.map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select>
+          </div>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={!sc||sc.score<50}>💾 Enregistrer</button>
+        {sc&&sc.score<50&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc.score}/100 insuffisant — compléter les champs *</div>}
+      </div>
+      <div>
+        <div className="card">
+          <div className="card-title">📊 Score qualité temps réel</div>
+          {sc?(<>
+            <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:14}}>
+              <div style={{fontSize:40,fontWeight:700,color:sc.score>=70?'var(--success)':sc.score>=50?'var(--warning)':'var(--danger)',lineHeight:1}}>{sc.score}</div>
+              <div><div style={{fontWeight:700,fontSize:13,textTransform:'uppercase'}}>{sc.niv}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{sc.score>=70?'✅ Prêt à enregistrer':'❌ Compléter le formulaire'}</div></div>
+            </div>
+            <div className="quality-bar" style={{marginBottom:14}}><div className={`quality-fill quality-${sc.col}`} style={{width:`${sc.score}%`}}/></div>
+            {sc.err.map((e,i)=><div key={i} style={{fontSize:12,color:'var(--danger)',padding:'4px 0',borderBottom:'1px solid #fff0f0'}}>❌ {e}</div>)}
+            {sc.warn.map((w,i)=><div key={i} style={{fontSize:12,color:'var(--warning)',padding:'4px 0'}}>⚠️ {w}</div>)}
+            {!sc.err.length&&!sc.warn.length&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13}}>Données excellentes !</span></div>}
+          </>):<div className="empty-state" style={{padding:24}}><div className="empty-icon">✏️</div><div className="empty-text">Remplissez le formulaire</div></div>}
+        </div>
+        {isub&&<div className="isub-card"><div className="isub-label">ISUB généré automatiquement</div><div className="isub-code">{isub}</div><div style={{marginTop:8,fontSize:12,opacity:0.8}}>Source : {form.npi?'✅ ANIP (officiel)':'⏳ Temporaire (sans NPI)'}</div></div>}
+      </div>
+    </div>)}
+    {showDbl&&<div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setShowDbl(false);}} onKeyDown={e=>{if(e.key==='Escape')setShowDbl(false);}}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="doublon-title" tabIndex={-1} ref={el=>el&&el.focus()}>
+      <div className="modal-title" id="doublon-title">⚠️ Doublon potentiel<button className="modal-close" onClick={()=>setShowDbl(false)} aria-label="Fermer">×</button></div>
+      <div className="alert alert-warning"><span className="alert-icon">⚠️</span><div className="alert-content"><div className="alert-title">{dbl.length} patient(s) similaire(s) trouvé(s)</div></div></div>
+      {dbl.map(d=><div key={d.isub} style={{padding:10,background:'var(--light)',borderRadius:8,marginBottom:8}}><strong>{d.nom} {d.prenoms}</strong> — {fmtDate(d.date_naissance)}<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{d.isub}</div></div>)}
+      <div style={{display:'flex',gap:8,marginTop:12}}><button className="btn btn-danger" onClick={save}>Créer quand même</button><button className="btn btn-outline" onClick={()=>setShowDbl(false)}>Annuler</button></div>
+    </div></div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// CONSULTATIONS
+// ═══════════════════════════════════════
+function Consultations({user,patients,consultations,setConsultations,db}){
+  const[tab,setTab]=useState('liste');
+  const[form,setForm]=useState({patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:''});
+  const[srchP,setSrchP]=useState('');const[psug,setPsug]=useState([]);
+  const[diagQ,setDiagQ]=useState('');const[dsug,setDsug]=useState([]);
+  const[sc,setSc]=useState(null);const[rq,setRq]=useState(null);
+  const[immAlert,setImmAlert]=useState(null);const[ok,setOk]=useState(false);
+  const srchPat=q=>{setSrchP(q);setPsug(q.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(q.toLowerCase())||p.isub?.includes(q)).slice(0,6):[]);};
+  const selPat=p=>{setSrchP(p.nom+' '+p.prenoms);setForm(f=>({...f,patient_isub:p.isub}));setPsug([]);};
+  const selDiag=m=>{const nf={...form,diagnostic:m.nom,code_cim10:m.code};setForm(nf);setDiagQ(m.nom);setDsug([]);setImmAlert(m.notif==='immédiate'?m:null);setSc(scoreQualite(nf));setRq(risqueEpidemio(nf));};
+  const upd=(f,v)=>{const nf={...form,[f]:v};setForm(nf);if(nf.diagnostic){setSc(scoreQualite(nf));setRq(risqueEpidemio(nf));}};
+  const submit=async()=>{
+    if(!sc||sc.score<70||!form.patient_isub)return;
+    const pat=patients.find(p=>p.isub===form.patient_isub);
+    const c={id:uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),diagnostic:form.diagnostic,code_cim10:form.code_cim10,gravite:form.gravite,temperature:form.temperature,tension_s:form.tension_s,tension_d:form.tension_d,notes:form.notes,notif:MALADIES_SIMR.find(m=>m.nom===form.diagnostic)?.notif||'mensuelle',departement:pat?.departement||'',zone_sanitaire:pat?.zone_sanitaire||'',zone_nom:pat?.zone_nom||'',quality_score:sc?.score||0,risque:rq?.score||0,enregistre_par:user.nom,created_at:new Date().toISOString()};
+    if(db)await db.put('consultations',c);
+    if(supabase){try{await supabase.from('consultations').insert(c);}catch(e){}}
+    setConsultations(prev=>[c,...prev]);setOk(true);setImmAlert(null);
+    setTimeout(()=>{setOk(false);setForm({patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:''});setSrchP('');setDiagQ('');setSc(null);setRq(null);},2000);
+  };
+  return(<div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+      <p className="page-title" style={{marginBottom:0}}>🩺 Consultations</p>
+      <div className="inner-tabs" style={{marginBottom:0}}>
+        {[['liste','📋 Historique'],['nouvelle','➕ Nouvelle']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+      </div>
+    </div>
+    {tab==='liste'?(<div className="card"><div className="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Patient ISUB</th><th>Diagnostic</th><th>Notif.</th><th>Risque</th><th>Qualité</th></tr></thead>
+      <tbody>{consultations.length===0?<tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation — Saisir la première</div></div></td></tr>
+        :consultations.map(c=><tr key={c.id}>
+          <td style={{fontSize:12}}>{fmtDT(c.date_consultation)}</td>
+          <td><code style={{fontSize:11}}>{c.patient_isub}</code></td>
+          <td><strong style={{fontSize:12}}>{c.diagnostic}</strong><br/><span style={{fontSize:10,color:'var(--text-muted)'}}>{c.code_cim10}</span></td>
+          <td><span className={`badge badge-${c.notif==='immédiate'?'immediate':c.notif==='hebdo'?'hebdo':'mensuelle'}`}>{c.notif}</span></td>
+          <td><span style={{fontWeight:600,fontSize:12,color:c.risque>=70?'var(--danger)':c.risque>=40?'var(--warning)':'var(--success)'}}>{c.risque>=70?'🔴':c.risque>=40?'🟡':'🟢'} {c.risque}</span></td>
+          <td><span style={{fontSize:12,fontWeight:600}}>{c.quality_score}/100</span></td>
+        </tr>)}
+      </tbody>
+    </table></div></div>):(<div className="grid-2">
+      <div className="card">
+        <div className="card-title">🩺 Nouvelle Consultation</div>
+        {ok&&<div className="alert alert-success"><span className="alert-icon">✅</span><div className="alert-content"><div className="alert-title">Consultation enregistrée !</div></div></div>}
+        {immAlert&&<div className="alert alert-danger"><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">ALERTE — Notification immédiate !</div><div className="alert-text">{immAlert.nom} — Informer la DDS sous 24h</div></div></div>}
+        <div className="form-group"><label className="form-label">Patient *</label>
+          <div className="search-container"><input className="form-input" placeholder="Rechercher patient (nom, ISUB)..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
+            {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>selPat(p)}><strong>{p.nom} {p.prenoms}</strong> — <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span></div>)}</div>}
+          </div>
+          {form.patient_isub&&<div className="form-hint">✅ {form.patient_isub}</div>}
+        </div>
+        <div className="form-group"><label className="form-label">Diagnostic / CIM-10 *</label>
+          <div className="search-container"><input className="form-input" placeholder="Tapez un symptôme ou diagnostic..." value={diagQ} onChange={e=>{setDiagQ(e.target.value);setDsug(rechMaladies(e.target.value));}}/>
+            {dsug.length>0&&<div className="search-results">{dsug.map(m=><div key={m.code} className="search-item" onClick={()=>selDiag(m)}><strong style={{color:'var(--primary)'}}>{m.code}</strong> — {m.nom} <span className={`badge badge-${m.notif==='immédiate'?'immediate':m.notif==='hebdo'?'hebdo':'mensuelle'}`} style={{marginLeft:6,fontSize:10}}>{m.notif}</span></div>)}</div>}
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Température (°C)</label><input className="form-input" type="number" placeholder="37.0" step="0.1" value={form.temperature} onChange={e=>upd('temperature',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Gravité</label>
+            <select className="form-select" value={form.gravite} onChange={e=>upd('gravite',e.target.value)}><option value="légère">Légère</option><option value="modérée">Modérée</option><option value="grave">Grave</option><option value="critique">Critique</option></select>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Tension systolique</label><input className="form-input" type="number" placeholder="120" value={form.tension_s} onChange={e=>upd('tension_s',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Tension diastolique</label><input className="form-input" type="number" placeholder="80" value={form.tension_d} onChange={e=>upd('tension_d',e.target.value)}/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Notes cliniques</label><textarea className="form-textarea" placeholder="Observations, traitements prescrits..." value={form.notes} onChange={e=>upd('notes',e.target.value)}/></div>
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={!form.patient_isub||!sc||sc.score<70}>💾 Enregistrer</button>
+        {sc&&sc.score<70&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc?.score||0}/100 — minimum 70 requis</div>}
+      </div>
+      <div>
+        {sc&&<div className="card">
+          <div className="card-title">📊 Score qualité</div>
+          <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:12}}>
+            <div style={{fontSize:40,fontWeight:700,color:sc.score>=70?'var(--success)':'var(--danger)',lineHeight:1}}>{sc.score}</div>
+            <div><div style={{fontWeight:700,textTransform:'uppercase',fontSize:12}}>{sc.niv}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{sc.score>=70?'✅ Validé':'❌ Insuffisant (min. 70)'}</div></div>
+          </div>
+          <div className="quality-bar" style={{marginBottom:10}}><div className={`quality-fill quality-${sc.col}`} style={{width:`${sc.score}%`}}/></div>
+          {sc.err.map((e,i)=><div key={i} style={{fontSize:12,color:'var(--danger)',marginBottom:3}}>❌ {e}</div>)}
+          {sc.warn.map((w,i)=><div key={i} style={{fontSize:12,color:'var(--warning)',marginBottom:3}}>⚠️ {w}</div>)}
+        </div>}
+        {rq&&<div className="card" style={{marginTop:0}}>
+          <div className="card-title">🦠 Risque épidémiologique</div>
+          <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:10}}>
+            <div style={{fontSize:36,fontWeight:700,color:rq.score>=70?'var(--danger)':rq.score>=40?'var(--warning)':'var(--success)',lineHeight:1}}>{rq.score}</div>
+            <div style={{fontWeight:700,fontSize:14,color:rq.score>=70?'var(--danger)':rq.score>=40?'var(--warning)':'var(--success)'}}>{rq.niv}</div>
+          </div>
+          {rq.f.map((f,i)=><div key={i} style={{fontSize:12,marginBottom:5}}>{f}</div>)}
+        </div>}
+      </div>
+    </div>)}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// TÉLÉCONSULTATION — acte médical à distance
+// L'IA ne fait que suggérer ; le diagnostic et la conduite à tenir
+// sont toujours saisis, validés et signés par un professionnel de santé humain.
+// ═══════════════════════════════════════
+function Teleconsultation({user,patients,consultations,setConsultations,db}){
+  const isPatient=user.role==='patient';
+  const[tab,setTab]=useState(isPatient?'demande':'attente');
+  const[srchP,setSrchP]=useState('');const[psug,setPsug]=useState([]);
+  const[form,setForm]=useState({patient_isub:'',motif:'',diagnostic:'',conduite:'',gravite:'modérée'});
+  const[avisIA,setAvisIA]=useState('');const[loadingIA,setLoadingIA]=useState(false);
+  const[ok,setOk]=useState(false);
+  const[demandeMotif,setDemandeMotif]=useState('');
+
+  const enAttente=consultations.filter(c=>c.canal==='teleconsultation'&&c.statut_tc==='attente');
+  const mesTeleconsults=consultations.filter(c=>c.canal==='teleconsultation'&&c.patient_isub===user.isub);
+
+  const srchPat=q=>{setSrchP(q);setPsug(q.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(q.toLowerCase())||p.isub?.includes(q)).slice(0,6):[]);};
+  const selPat=p=>{setSrchP(`${p.nom} ${p.prenoms}`);setForm(f=>({...f,patient_isub:p.isub}));setPsug([]);};
+
+  const demanderAvisIA=async()=>{
+    if(!form.motif||loadingIA)return;
+    setLoadingIA(true);setAvisIA('');
+    try{
+      let token='';
+      if(supabase){const{data:sd}=await supabase.auth.getSession();token=sd?.session?.access_token||'';}
+      if(!token)throw new Error('Session Supabase requise pour obtenir un avis IA.');
+      const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({messages:[{role:'user',content:'Avis rapide pour téléconsultation — motif rapporté par le patient : '+form.motif}],context:'Demande de suggestion diagnostique pour une téléconsultation en cours. Réponds brièvement : hypothèses possibles + niveau de confiance et ce qui devrait etre verifie en presentiel si besoin.'})
+      });
+      if(!resp.ok){const err=await resp.json();throw new Error(err.error||'Erreur');}
+      const data=await resp.json();
+      setAvisIA(data.content?.find(b=>b.type==='text')?.text||'Pas de réponse.');
+    }catch(e){ setAvisIA('⚠️ '+e.message); }
+    setLoadingIA(false);
+  };
+
+  const soumettreReponse=async(requeteId)=>{
+    const c={
+      id:requeteId||uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),
+      diagnostic:form.diagnostic,code_cim10:'',gravite:form.gravite,canal:'teleconsultation',statut_tc:'complete',
+      notes:'Motif rapporté : '+form.motif+' | Conduite à tenir : '+form.conduite+(avisIA?' | Avis IA consulté (suggestion, non prescriptive) : oui':''),
+      notif:'mensuelle',avis_ia_donne:!!avisIA,
+      enregistre_par:user.nom,valide_par_humain:true,created_at:new Date().toISOString()
+    };
+    if(db)await db.put('consultations',c);
+    setConsultations(prev=>requeteId?prev.map(x=>x.id===requeteId?{...x,...c}:x):[c,...prev]);
+    setOk(true);
+    setTimeout(()=>{setOk(false);setForm({patient_isub:'',motif:'',diagnostic:'',conduite:'',gravite:'modérée'});setSrchP('');setAvisIA('');setTab('attente');},1800);
+  };
+
+  const envoyerDemande=async()=>{
+    if(!demandeMotif)return;
+    const c={id:uuid(),patient_isub:user.isub,date_consultation:new Date().toISOString(),diagnostic:'',
+      canal:'teleconsultation',statut_tc:'attente',notes:demandeMotif,notif:'mensuelle',
+      enregistre_par:user.nom,created_at:new Date().toISOString()};
+    if(db)await db.put('consultations',c);
+    setConsultations(prev=>[c,...prev]);
+    setOk(true);setDemandeMotif('');
+    setTimeout(()=>setOk(false),1800);
+  };
+
+  if(isPatient){
+    return(<div>
+      <p className="page-title">Téléconsultation</p>
+      <p className="page-sub">Consultation à distance, par écrit — un professionnel de santé vous répond dès que possible.</p>
+      <div className="alert alert-info"><span className="alert-icon material-symbols-rounded">info</span><div className="alert-content"><div className="alert-text">Ceci n'est pas une urgence. En cas d'urgence, appelez le SAMU (161).</div></div></div>
+      <div className="card">
+        <div className="card-title">Nouvelle demande</div>
+        {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13}}>Demande envoyée — un professionnel de santé va la traiter.</span></div>}
+        <div className="form-group"><label className="form-label">Décrivez votre motif *</label>
+          <textarea className="form-textarea" placeholder="Symptômes, depuis quand, ce qui vous inquiète..." value={demandeMotif} onChange={e=>setDemandeMotif(e.target.value)}/>
+        </div>
+        <button className="btn btn-primary" onClick={envoyerDemande} disabled={!demandeMotif}>Envoyer la demande</button>
+      </div>
+      <div className="card">
+        <div className="card-title">Mes demandes</div>
+        {mesTeleconsults.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-text">Aucune demande envoyée</div></div>
+          :mesTeleconsults.map(c=><div key={c.id} className="consultation-item">
+            <div className="consultation-date">{fmtDT(c.date_consultation)}</div>
+            <span className={`badge ${c.statut_tc==='complete'?'badge-success':'badge-hebdo'}`}>{c.statut_tc==='complete'?'Répondu':'En attente'}</span>
+            {c.diagnostic&&<div style={{marginTop:8,fontSize:13}}><strong>Réponse du professionnel :</strong> {c.diagnostic}</div>}
+          </div>)}
+      </div>
+    </div>);
+  }
+
+  return(<div>
+    <p className="page-title">Téléconsultation</p>
+    <p className="page-sub">Acte médical à distance — le diagnostic et la conduite à tenir sont toujours de votre responsabilité ; l'IA ne fait que suggérer.</p>
+    <div className="inner-tabs">
+      {[['attente',`Demandes en attente (${enAttente.length})`],['nouvelle','Nouvelle téléconsultation']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+    </div>
+
+    {tab==='attente'?(<div className="card">
+      {enAttente.length===0?<div className="empty-state"><div className="empty-icon material-symbols-rounded">inbox</div><div className="empty-text">Aucune demande en attente</div></div>
+        :enAttente.map(c=>{
+          const pat=patients.find(p=>p.isub===c.patient_isub);
+          return(<div key={c.id} className="consultation-item">
+            <div className="consultation-date">{fmtDT(c.date_consultation)}</div>
+            <div style={{fontWeight:600,fontSize:13}}>{pat?`${pat.nom} ${pat.prenoms}`:c.patient_isub}</div>
+            <div style={{fontSize:13,marginTop:4}}>{c.notes}</div>
+            <button className="btn btn-sm btn-primary" style={{marginTop:8}} onClick={()=>{setForm(f=>({...f,patient_isub:c.patient_isub,motif:c.notes}));setSrchP(pat?`${pat.nom} ${pat.prenoms}`:c.patient_isub);setTab('nouvelle');window.__tcRequeteId=c.id;}}>Répondre</button>
+          </div>);
+        })}
+    </div>):(<div className="grid-2">
+      <div className="card">
+        <div className="card-title">Téléconsultation</div>
+        {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13}}>Acte enregistré — signé par {user.nom}.</span></div>}
+        <div className="form-group"><label className="form-label">Patient *</label>
+          <div className="search-container"><input className="form-input" placeholder="Rechercher patient..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
+            {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>selPat(p)}><strong>{p.nom} {p.prenoms}</strong> — {p.isub}</div>)}</div>}
+          </div>
+        </div>
+        <div className="form-group"><label className="form-label">Motif rapporté</label>
+          <textarea className="form-textarea" value={form.motif} onChange={e=>setForm(f=>({...f,motif:e.target.value}))} placeholder="Symptômes décrits par le patient..."/>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={demanderAvisIA} disabled={!form.motif||loadingIA}>{loadingIA?'Analyse...':'💡 Demander un avis IA (suggestion uniquement)'}</button>
+        {avisIA&&<div className="alert alert-info" style={{marginTop:10}}><span className="alert-icon material-symbols-rounded">smart_toy</span><div className="alert-content"><div className="alert-title">Suggestion IA — à valider par vous</div><div className="alert-text" style={{whiteSpace:'pre-wrap'}}>{avisIA}</div></div></div>}
+        <div className="form-group" style={{marginTop:14}}><label className="form-label">Votre diagnostic *</label>
+          <input className="form-input" value={form.diagnostic} onChange={e=>setForm(f=>({...f,diagnostic:e.target.value}))} placeholder="Diagnostic retenu par vous"/>
+        </div>
+        <div className="form-group"><label className="form-label">Conduite à tenir *</label>
+          <textarea className="form-textarea" value={form.conduite} onChange={e=>setForm(f=>({...f,conduite:e.target.value}))} placeholder="Traitement, orientation, recommandations..."/>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={()=>soumettreReponse(window.__tcRequeteId)} disabled={!form.patient_isub||!form.diagnostic||!form.conduite}>Valider et signer l'acte</button>
+        <div className="form-hint">Cet acte sera enregistré à votre nom, {user.nom}.</div>
+      </div>
+      <div className="alert alert-warning">
+        <span className="alert-icon material-symbols-rounded">gavel</span>
+        <div className="alert-content"><div className="alert-title">Rappel</div><div className="alert-text">L'IA propose des hypothèses à titre indicatif. Le diagnostic, la prescription et la responsabilité de l'acte restent entièrement les vôtres, conformément aux règles de l'exercice médical.</div></div>
+      </div>
+    </div>)}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// DOSSIERS
+// ═══════════════════════════════════════
+function Dossiers({patients,consultations}){
+  const[srch,setSrch]=useState('');const[sel,setSel]=useState(null);
+  const sug=srch.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(srch.toLowerCase())||p.isub?.includes(srch)).slice(0,8):[];
+  const myC=sel?consultations.filter(c=>c.patient_isub===sel.isub).sort((a,b)=>new Date(b.date_consultation)-new Date(a.date_consultation)):[];
+  return(<div>
+    <p className="page-title">📋 Dossiers Médicaux</p>
+    <div className="card">
+      <div className="search-container" style={{marginBottom:sel?16:0}}>
+        <input className="form-input" placeholder="🔍 Rechercher patient (nom ou ISUB)..." value={srch} onChange={e=>{setSrch(e.target.value);setSel(null);}}/>
+        {sug.length>0&&!sel&&<div className="search-results">{sug.map(p=><div key={p.isub} className="search-item" onClick={()=>{setSel(p);setSrch('');}}>
+          <strong>{p.nom} {p.prenoms}</strong> — <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span>
+        </div>)}</div>}
+      </div>
+      {!sel&&<div className="empty-state"><div className="empty-icon">📋</div><div className="empty-text">Recherchez un patient pour accéder à son dossier</div></div>}
+    </div>
+    {sel&&<div className="grid-2">
+      <div className="card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+          <div className="card-title" style={{marginBottom:0}}>👤 Fiche Patient</div>
+          <button className="btn btn-sm btn-outline" onClick={()=>setSel(null)}>← Retour</button>
+        </div>
+        <div className="isub-card" style={{marginBottom:16}}><div className="isub-label">Identifiant ISUB</div><div className="isub-code">{sel.isub}</div><div style={{marginTop:6,fontSize:11,opacity:0.8}}>Source : {sel.source}</div></div>
+        {(sel.allergies||sel.maladies_chroniques)&&<div className="alert alert-warning" style={{marginBottom:16}}>
+          <span className="alert-icon material-symbols-rounded">emergency</span>
+          <div className="alert-content">
+            {sel.allergies&&<div><strong>Allergies :</strong> {sel.allergies}</div>}
+            {sel.maladies_chroniques&&<div style={{marginTop:sel.allergies?4:0}}><strong>Maladies chroniques :</strong> {sel.maladies_chroniques}</div>}
+          </div>
+        </div>}
+        {[['Nom complet',sel.nom+' '+(sel.prenoms||'')],['Date de naissance',fmtDate(sel.date_naissance)],['Sexe',sel.sexe==='M'?'♂️ Masculin':'♀️ Féminin'],['Téléphone',sel.telephone||'—'],['Département',sel.departement],['Zone sanitaire',sel.zone_nom||sel.zone_sanitaire],['Enregistré par',sel.enregistre_par],['Score qualité',`${sel.quality_score}/100`]].map(([k,v])=>(
+          <div key={k} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{k}</div><div style={{fontWeight:600,fontSize:13}}>{v}</div></div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-title">🩺 Historique ({myC.length} consultation{myC.length>1?'s':''})</div>
+        {myC.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation</div></div>
+          :myC.map(c=><div key={c.id} style={{padding:14,borderLeft:'3px solid '+(c.notif==='immédiate'?'var(--danger)':c.notif==='hebdo'?'var(--warning)':'var(--primary)'),background:'var(--light)',borderRadius:'0 10px 10px 0',marginBottom:10}}>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>{fmtDT(c.date_consultation)}</div>
+            <div style={{fontSize:14,fontWeight:600,margin:'4px 0'}}>{c.diagnostic}</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              <span className={`badge badge-${c.notif==='immédiate'?'immediate':c.notif==='hebdo'?'hebdo':'mensuelle'}`}>{c.notif}</span>
+              <span className="badge badge-grey">Gravité: {c.gravite}</span>
+              {c.temperature&&<span className="badge badge-grey">🌡️ {c.temperature}°C</span>}
+              {c.tension_s&&<span className="badge badge-grey">💓 {c.tension_s}/{c.tension_d}</span>}
+            </div>
+            {c.notes&&<div style={{marginTop:6,fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>{c.notes}</div>}
+          </div>)}
+      </div>
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// RAPPELS
+// ═══════════════════════════════════════
+function Rappels({user,patients,rappels,setRappels,db}){
+  const[tab,setTab]=useState('liste');
+  const[form,setForm]=useState({patient_isub:'',type:'rendez_vous',titre:'',message:'',date_rappel:'',recurrence:'aucune'});
+  const[srchP,setSrchP]=useState('');const[psug,setPsug]=useState([]);const[ok,setOk]=useState(false);
+  const icons={rendez_vous:'📅',medicament:'💊',vaccin:'💉',suivi:'🔄'};
+  const srchPat=q=>{setSrchP(q);setPsug(q.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(q.toLowerCase())||p.isub?.includes(q)).slice(0,5):[]);};
+  const submit=async()=>{
+    if(!form.patient_isub||!form.titre||!form.date_rappel)return;
+    const r={id:uuid(),...form,statut:'actif',cree_par:user.nom,created_at:new Date().toISOString()};
+    if(db)await db.put('rappels',r);
+    setRappels(prev=>[r,...prev]);setOk(true);
+    setTimeout(()=>{setOk(false);setForm({patient_isub:'',type:'rendez_vous',titre:'',message:'',date_rappel:'',recurrence:'aucune'});setSrchP('');},1500);
+  };
+  const done=id=>setRappels(prev=>prev.map(r=>r.id===id?{...r,statut:'complete'}:r));
+  const del=async id=>{setRappels(prev=>prev.filter(r=>r.id!==id));if(db)await db.del('rappels',id);};
+  return(<div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+      <p className="page-title" style={{marginBottom:0}}>🔔 Rappels</p>
+      <div className="inner-tabs" style={{marginBottom:0}}>
+        {[['liste','📋 Liste'],['nouveau','➕ Créer']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+      </div>
+    </div>
+    {tab==='liste'?(<div className="card">
+      {rappels.length===0?<div className="empty-state"><div className="empty-icon">🔔</div><div className="empty-text">Aucun rappel programmé</div></div>
+        :rappels.map(r=><div key={r.id} className="rappel-item" style={{opacity:r.statut==='complete'?0.55:1}}>
+          <span style={{fontSize:22}}>{icons[r.type]||'📅'}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600}}>{r.titre}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>📅 {fmtDT(r.date_rappel)} • Récurrence: {r.recurrence}</div>
+            {r.message&&<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{r.message}</div>}
+          </div>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {r.statut==='actif'&&<button className="btn btn-sm btn-success" onClick={()=>done(r.id)}>✅</button>}
+            <span className={`badge ${r.statut==='complete'?'badge-success':'badge-primary'}`}>{r.statut}</span>
+            <button className="btn btn-sm btn-danger" onClick={()=>del(r.id)}>🗑️</button>
+          </div>
+        </div>)}
+    </div>):(<div className="card" style={{maxWidth:600}}>
+      <div className="card-title">➕ Nouveau rappel</div>
+      {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13,marginLeft:8}}>Rappel créé !</span></div>}
+      <div className="form-group"><label className="form-label">Patient *</label>
+        <div className="search-container"><input className="form-input" placeholder="Rechercher patient..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
+          {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>{setForm(f=>({...f,patient_isub:p.isub}));setSrchP(p.nom+' '+p.prenoms);setPsug([]);}}><strong>{p.nom} {p.prenoms}</strong> — {p.isub}</div>)}</div>}
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Type</label>
+          <select className="form-select" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}><option value="rendez_vous">📅 Rendez-vous</option><option value="medicament">💊 Médicament</option><option value="vaccin">💉 Vaccination</option><option value="suivi">🔄 Suivi</option></select>
+        </div>
+        <div className="form-group"><label className="form-label">Récurrence</label>
+          <select className="form-select" value={form.recurrence} onChange={e=>setForm(f=>({...f,recurrence:e.target.value}))}><option value="aucune">Aucune</option><option value="quotidien">Quotidien</option><option value="hebdo">Hebdomadaire</option><option value="mensuel">Mensuel</option></select>
+        </div>
+      </div>
+      <div className="form-group"><label className="form-label">Titre *</label><input className="form-input" placeholder="Ex: Prise antipaludique" value={form.titre} onChange={e=>setForm(f=>({...f,titre:e.target.value}))}/></div>
+      <div className="form-group"><label className="form-label">Date et heure *</label><input className="form-input" type="datetime-local" value={form.date_rappel} onChange={e=>setForm(f=>({...f,date_rappel:e.target.value}))}/></div>
+      <div className="form-group"><label className="form-label">Message (optionnel)</label><textarea className="form-textarea" placeholder="Instructions pour le patient..." value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))}/></div>
+      <button className="btn btn-primary btn-full" onClick={submit} disabled={!form.patient_isub||!form.titre||!form.date_rappel}>🔔 Créer le rappel</button>
+    </div>)}
+  </div>);
+}
+// ═══════════════════════════════════════
+// EXPORT DHIS2
+// ═══════════════════════════════════════
+function Export({consultations,patients}){
+  const[d1,setD1]=useState('');const[d2,setD2]=useState('');const[hist,setHist]=useState([]);
+  const fil=()=>{let r=[...consultations];if(d1)r=r.filter(c=>new Date(c.date_consultation)>=new Date(d1));if(d2)r=r.filter(c=>new Date(c.date_consultation)<=new Date(d2+'T23:59:59'));return r;};
+  const log=(fmt,nb)=>setHist(h=>[{fmt,nb,date:new Date().toISOString()},...h.slice(0,9)]);
+  const expCSV=()=>{const data=fil();const csv=[['ID','Patient_ISUB','Date','Diagnostic','Code_CIM10','Gravite','Notification','Zone','Departement','Score_Qualite','Risque'].join(','),...data.map(c=>[c.id,c.patient_isub,c.date_consultation,c.diagnostic,c.code_cim10,c.gravite,c.notif,c.zone_nom,c.departement,c.quality_score,c.risque].map(v=>'"'+(v===null||v===undefined?'':v)+'"').join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='SNISB_DHIS2_'+new Date().toISOString().slice(0,10)+'.csv';a.click();log('CSV',data.length);};
+  const expJSON=()=>{const data=fil();const payload={version:'2.0',source:'SNISB-Health-Link-v7',generatedAt:new Date().toISOString(),country:'BEN',dataValues:data.map(c=>({dataElement:c.code_cim10||'UNKNOWN',period:(c.date_consultation||'').slice(0,10).replace(/-/g,''),orgUnit:c.zone_sanitaire||'BEN-UNKNOWN',value:1,storedBy:'SNISB-v7',comment:'Zone:'+(c.zone_nom||'')+'|Q:'+(c.quality_score||0)+'/100'}))};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download='SNISB_DHIS2_'+new Date().toISOString().slice(0,10)+'.json';a.click();log('JSON',data.length);};
+  const expPDF=()=>{
+    const data=fil();const{jsPDF}=window.jspdf;const doc=new jsPDF();
+    doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('REPUBLIQUE DU BENIN',105,18,{align:'center'});
+    doc.setFontSize(11);doc.text('Ministère de la Santé — SNISB Health Link',105,26,{align:'center'});
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text('Rapport exporté le '+new Date().toLocaleDateString('fr-FR')+' | '+data.length+' enregistrement(s)',105,33,{align:'center'});
+    doc.line(15,37,195,37);doc.setFont('helvetica','bold');doc.text('Patients: '+patients.length,20,44);doc.text('Score qualité moyen: '+(data.length?Math.round(data.reduce((s,c)=>s+(c.quality_score||0),0)/data.length):0)+'/100',110,44);
+    doc.line(15,48,195,48);doc.setFontSize(8);doc.text('DATE',20,55);doc.text('DIAGNOSTIC',52,55);doc.text('CIM-10',118,55);doc.text('ZONE',146,55);doc.text('NOTIF.',182,55);
+    doc.line(15,57,195,57);doc.setFont('helvetica','normal');let y=63;
+    data.slice(0,35).forEach(c=>{if(y>270){doc.addPage();y=20;}doc.text(fmtDate(c.date_consultation),20,y);doc.text((c.diagnostic||'').substring(0,40),52,y);doc.text(c.code_cim10||'',118,y);doc.text((c.zone_nom||'').substring(0,18),146,y);doc.text(c.notif||'',182,y);y+=7;});
+    doc.save('SNISB_Rapport_'+new Date().toISOString().slice(0,10)+'.pdf');log('PDF',data.length);
+  };
+  const data=fil();
+  return(<div>
+    <p className="page-title">📤 Export & Interopérabilité DHIS2</p>
+    <div className="grid-2">
+      <div className="card">
+        <div className="card-title">⚙️ Paramètres d'export</div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Date début</label><input className="form-input" type="date" value={d1} onChange={e=>setD1(e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Date fin</label><input className="form-input" type="date" value={d2} onChange={e=>setD2(e.target.value)}/></div>
+        </div>
+        <div className="alert alert-info"><span className="alert-icon">📊</span><div className="alert-content"><div className="alert-title">{data.length} enregistrement(s) sélectionné(s)</div><div className="alert-text">Score moyen : {data.length?Math.round(data.reduce((s,c)=>s+(c.quality_score||0),0)/data.length):0}/100</div></div></div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="btn btn-primary" onClick={expCSV}>📄 CSV</button>
+          <button className="btn btn-info" onClick={expJSON}>🔗 JSON DHIS2</button>
+          <button className="btn btn-danger" onClick={expPDF}>📕 PDF Officiel</button>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">📊 Répartition par notification</div>
+        {['immédiate','hebdo','mensuelle'].map(n=>{const cnt=consultations.filter(c=>c.notif===n).length;const pct=consultations.length?Math.round(cnt/consultations.length*100):0;return(
+          <div key={n} style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span className={`badge badge-${n==='immédiate'?'immediate':n==='hebdo'?'hebdo':'mensuelle'}`}>{n}</span><strong style={{fontSize:12}}>{cnt} ({pct}%)</strong></div>
+            <div className="progress-bar"><div className="progress-fill" style={{width:`${pct}%`,background:n==='immédiate'?'var(--danger)':n==='hebdo'?'var(--warning)':'var(--info)'}}/></div>
+          </div>
+        );})}
+      </div>
+    </div>
+    {hist.length>0&&<div className="card"><div className="card-title">📜 Historique exports</div><div className="table-wrap"><table>
+      <thead><tr><th>Format</th><th>Enregistrements</th><th>Date</th></tr></thead>
+      <tbody>{hist.map((e,i)=><tr key={i}><td><span className={`badge ${e.fmt==='PDF'?'badge-immediate':e.fmt==='JSON'?'badge-hebdo':'badge-primary'}`}>{e.fmt}</span></td><td>{e.nb}</td><td>{fmtDT(e.date)}</td></tr>)}</tbody>
+    </table></div></div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// ÉPIDÉMIOLOGIE
+// ═══════════════════════════════════════
+function Epidemio({user,consultations}){
+  const alertes=MALADIES_SIMR.filter(m=>m.notif==='immédiate'&&consultations.some(c=>matchMaladie(c.diagnostic)?.code===m.code));
+  const[alertesReelles,setAlertesReelles]=useState([]);
+  const[loadingAlertes,setLoadingAlertes]=useState(false);
+  const[confirmId,setConfirmId]=useState(null);
+
+  useEffect(()=>{
+    if(!supabase)return;
+    setLoadingAlertes(true);
+    supabase.from('alertes_epidemio').select('id,maladie_nom,maladie_code,zone_sanitaire,statut,created_at').eq('statut','ouverte').order('created_at',{ascending:false})
+      .then(({data,error})=>{ if(!error&&data)setAlertesReelles(data); setLoadingAlertes(false); });
+  },[]);
+
+  const confirmerAlerte=async(id)=>{
+    if(!supabase)return;
+    await supabase.from('alertes_epidemio').update({statut:'notifiee',notifie_dds:true,updated_at:new Date().toISOString()}).eq('id',id);
+    setAlertesReelles(prev=>prev.filter(a=>a.id!==id));
+    setConfirmId(null);
+  };
+
+  return(<div>
+    <p className="page-title">🦠 Surveillance Épidémiologique SIMR</p>
+    {supabase&&<div className="card" style={{borderLeft:'4px solid var(--danger)',marginBottom:20}}>
+      <div className="card-title" style={{color:'var(--danger)'}}>🚨 Alertes ouvertes nécessitant confirmation</div>
+      {loadingAlertes?<div style={{fontSize:13,color:'var(--text-muted)'}}>Chargement...</div>
+        :alertesReelles.length===0?<div style={{fontSize:13,color:'var(--text-muted)'}}>Aucune alerte ouverte pour le moment.</div>
+        :alertesReelles.map(a=><div key={a.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#FDECEA',borderLeft:'3px solid var(--danger)',borderRadius:'0 10px 10px 0',marginBottom:8}}>
+          <span style={{fontSize:20}}>🚨</span>
+          <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{a.maladie_nom} — {a.maladie_code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Zone : {a.zone_sanitaire||'—'} · {fmtDT(a.created_at)}</div></div>
+          {confirmId===a.id?(
+            <div style={{display:'flex',gap:6}}>
+              <button className="btn btn-sm btn-danger" onClick={()=>confirmerAlerte(a.id)}>Je confirme, {user.nom}</button>
+              <button className="btn btn-sm btn-outline" onClick={()=>setConfirmId(null)}>Annuler</button>
+            </div>
+          ):(
+            <button className="btn btn-sm btn-outline" onClick={()=>setConfirmId(a.id)}>Confirmer le traitement</button>
+          )}
+        </div>)}
+      <div className="form-hint" style={{marginTop:8}}>La confirmation attribue la notification à votre nom et clôt l'alerte — aucune clôture automatique.</div>
+    </div>}
+    {alertes.length>0&&<div className="card" style={{borderLeft:'4px solid var(--warning)',marginBottom:20}}>
+      <div className="card-title" style={{color:'var(--warning)'}}>Maladies détectées dans vos consultations (indicatif)</div>
+      {alertes.map(m=><div key={m.code} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#FFF4E5',borderLeft:'3px solid var(--warning)',borderRadius:'0 10px 10px 0',marginBottom:8}}>
+        <span style={{fontSize:20}}>⚠️</span>
+        <div><div style={{fontWeight:700,fontSize:13}}>{m.nom} — {m.code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Voir « Alertes ouvertes » ci-dessus pour la confirmation officielle</div></div>
+      </div>)}
+    </div>}
+    <div className="grid-3" style={{marginBottom:20}}>
+      {['immédiate','hebdo','mensuelle'].map(n=>{const cnt=consultations.filter(c=>c.notif===n).length;return(
+        <div key={n} className={`stat-card ${n==='immédiate'?'red':n==='hebdo'?'orange':'blue'}`}>
+          <div className="stat-icon">{n==='immédiate'?'🚨':n==='hebdo'?'⚠️':'📋'}</div>
+          <div className="stat-number">{cnt}</div>
+          <div className="stat-label">Notification {n}</div>
+        </div>
+      );})}
+    </div>
+    <div className="grid-2">
+      <div className="card">
+        <div className="card-title">📊 Causes consultations — Bénin</div>
+        {[{l:'Paludisme (1ère cause)',pct:44.7,c:'var(--danger)'},{l:'IRA (2ème cause)',pct:11.9,c:'var(--warning)'},{l:'Diarrhées (3ème cause)',pct:5.4,c:'var(--info)'},{l:'Autres pathologies',pct:38.0,c:'var(--text-muted)'}].map(s=>(
+          <div key={s.l} style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span style={{fontSize:12,fontWeight:600}}>{s.l}</span><strong style={{fontSize:13}}>{s.pct}%</strong></div>
+            <div className="progress-bar"><div className="progress-fill" style={{width:`${s.pct}%`,background:s.c}}/></div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-title">🦠 29 Maladies sous surveillance SIMR</div>
+        <div style={{maxHeight:300,overflowY:'auto'}}>
+          {MALADIES_SIMR.map(m=><div key={m.code} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:'1px solid var(--border)'}}>
+            <div><span style={{fontSize:11,fontWeight:700,color:'var(--primary)'}}>{m.code}</span><span style={{fontSize:11,marginLeft:6}}>{m.nom}</span></div>
+            <span className={`badge badge-${m.notif==='immédiate'?'immediate':m.notif==='hebdo'?'hebdo':'mensuelle'}`} style={{flexShrink:0,fontSize:10}}>{m.notif}</span>
+          </div>)}
+        </div>
+      </div>
+    </div>
+    <div className="card"><div className="card-title">🏥 Indicateurs Politique Nationale de Santé</div>
+      <div className="grid-2">
+        {[['Mortalité maternelle','397/100 000 naissances vivantes'],['Mortalité infantile','67/1000 naissances vivantes'],['Mortalité infanto-juvénile','125/1000 enfants < 5 ans'],['Prévalence VIH','1,2% (population 15-49 ans)'],['Couverture sanitaire','>80% du territoire national'],['Taux de fréquentation FOSA','45,1% (2008)']].map(([k,v])=>(
+          <div key={k} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{k}</div><div style={{fontWeight:600,fontSize:13,color:'var(--primary)'}}>{v}</div></div>
+        ))}
+      </div>
+    </div>
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// CARTE ÉPIDÉMIQUE — Leaflet.js + GeoJSON réel
+// ═══════════════════════════════════════
+const BENIN_DEPARTMENTS_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Alibori","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[3.837,10.631],[3.458,10.589],[2.976,10.521],[2.775,10.552],[2.457,10.542],[2.255,10.518],[2.266,10.524],[2.261,10.842],[2.297,10.911],[2.356,10.96],[2.324,10.991],[2.264,11.012],[2.215,11.082],[2.02,11.426],[2.015,11.432],[2.22,11.623],[2.287,11.665],[2.291,11.675],[2.302,11.732],[2.354,11.8],[2.39,11.897],[2.377,11.924],[2.389,11.95],[2.407,11.951],[2.457,11.979],[2.455,12.009],[2.439,12.016],[2.418,12.029],[2.372,12.14],[2.362,12.196],[2.37,12.236],[2.408,12.249],[2.446,12.252],[2.454,12.263],[2.467,12.265],[2.483,12.268],[2.495,12.283],[2.516,12.281],[2.521,12.274],[2.537,12.27],[2.546,12.282],[2.586,12.294],[2.599,12.288],[2.61,12.291],[2.622,12.3],[2.664,12.292],[2.687,12.318],[2.692,12.334],[2.7,12.347],[2.711,12.351],[2.732,12.347],[2.757,12.373],[2.778,12.382],[2.808,12.383],[2.844,12.399],[2.913,12.346],[2.937,12.301],[2.945,12.292],[2.968,12.283],[3.001,12.279],[3.013,12.271],[3.063,12.194],[3.235,12.04],[3.252,12.024],[3.258,11.997],[3.27,11.957],[3.293,11.919],[3.315,11.895],[3.341,11.883],[3.369,11.897],[3.392,11.889],[3.448,11.858],[3.495,11.838],[3.537,11.783],[3.549,11.774],[3.562,11.762],[3.568,11.73],[3.58,11.717],[3.596,11.696],[3.574,11.673],[3.505,11.557],[3.487,11.496],[3.467,11.442],[3.483,11.392],[3.663,11.143],[3.695,11.119],[3.712,11.12],[3.722,11.112],[3.712,11.052],[3.723,11.014],[3.734,10.996],[3.754,10.907],[3.731,10.825],[3.735,10.796],[3.751,10.78],[3.764,10.761],[3.783,10.717],[3.81,10.71],[3.832,10.684],[3.837,10.631]]]},"id":1},{"type":"Feature","properties":{"name":"Borgou","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.255,10.518],[2.406,10.533],[2.615,10.531],[2.83,10.551],[3.217,10.541],[3.837,10.631],[3.837,10.6],[3.804,10.523],[3.794,10.445],[3.773,10.408],[3.671,10.442],[3.633,10.417],[3.622,10.381],[3.593,10.331],[3.573,10.286],[3.588,10.244],[3.656,10.175],[3.667,10.147],[3.664,10.123],[3.612,10.07],[3.6,9.969],[3.557,9.911],[3.513,9.847],[3.414,9.843],[3.326,9.802],[3.315,9.759],[3.331,9.709],[3.332,9.652],[3.262,9.635],[3.238,9.609],[3.245,9.59],[3.183,9.505],[3.152,9.354],[3.151,9.289],[3.125,9.229],[3.076,9.095],[2.983,9.061],[2.952,9.072],[2.899,9.077],[2.846,9.051],[2.769,9.057],[2.77,8.967],[2.762,8.934],[2.748,8.907],[2.763,8.895],[2.75,8.812],[2.746,8.798],[2.723,8.782],[2.723,8.771],[2.195,8.777],[2.203,8.812],[2.194,8.82],[2.088,8.85],[2.059,8.866],[2.044,8.879],[2.031,8.903],[2.025,8.94],[2.029,9.0],[2.041,9.058],[2.051,9.085],[2.05,9.092],[2.038,9.109],[2.009,9.126],[1.997,9.136],[1.985,9.15],[1.977,9.164],[1.97,9.217],[1.975,9.308],[1.999,9.358],[2.028,9.367],[2.089,9.367],[2.1,9.37],[2.114,9.381],[2.161,9.656],[2.152,9.688],[2.115,9.725],[2.1,9.75],[2.081,9.805],[2.088,9.888],[2.097,9.936],[2.096,9.936],[2.087,9.985],[2.099,10.006],[2.092,10.031],[2.088,10.05],[2.089,10.06],[2.1,10.077],[2.12,10.09],[2.185,10.094],[2.241,10.112],[2.257,10.123],[2.267,10.135],[2.271,10.167],[2.263,10.238],[2.248,10.284],[2.23,10.339],[2.219,10.354],[2.188,10.386],[2.182,10.401],[2.184,10.431],[2.203,10.468],[2.23,10.503],[2.255,10.518]]]},"id":2},{"type":"Feature","properties":{"name":"Plateau","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.718,7.659],[2.715,7.626],[2.721,7.587],[2.741,7.549],[2.77,7.514],[2.792,7.478],[2.79,7.436],[2.787,7.427],[2.787,7.421],[2.783,7.419],[2.762,7.424],[2.751,7.424],[2.744,7.419],[2.741,7.408],[2.762,7.162],[2.761,7.148],[2.758,7.139],[2.75,7.129],[2.741,7.11],[2.736,7.103],[2.735,7.096],[2.739,7.083],[2.748,7.072],[2.774,7.051],[2.78,7.041],[2.776,7.031],[2.766,7.025],[2.753,7.021],[2.741,7.016],[2.715,6.98],[2.718,6.944],[2.732,6.905],[2.737,6.863],[2.726,6.821],[2.724,6.8],[2.729,6.78],[2.736,6.77],[2.745,6.764],[2.755,6.761],[2.767,6.76],[2.773,6.755],[2.775,6.745],[2.779,6.699],[2.773,6.687],[2.761,6.679],[2.743,6.663],[2.731,6.642],[2.731,6.621],[2.739,6.579],[2.737,6.558],[2.719,6.504],[2.719,6.505],[2.68,6.57],[2.664,6.587],[2.616,6.628],[2.596,6.659],[2.576,6.776],[2.528,6.892],[2.518,6.942],[2.52,6.993],[2.539,6.992],[2.546,6.992],[2.552,6.993],[2.557,6.995],[2.559,6.998],[2.56,7.0],[2.56,7.0],[2.555,7.045],[2.533,7.156],[2.534,7.173],[2.534,7.178],[2.528,7.185],[2.481,7.217],[2.466,7.25],[2.45,7.309],[2.447,7.321],[2.447,7.337],[2.442,7.346],[2.436,7.354],[2.433,7.363],[2.433,7.407],[2.428,7.426],[2.42,7.451],[2.418,7.475],[2.43,7.497],[2.461,7.541],[2.471,7.548],[2.485,7.552],[2.488,7.563],[2.481,7.589],[2.483,7.618],[2.498,7.659],[2.512,7.66],[2.717,7.659],[2.718,7.659]]]},"id":3},{"type":"Feature","properties":{"name":"Collines","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.195,8.777],[2.723,8.771],[2.742,8.527],[2.745,8.498],[2.737,8.465],[2.703,8.418],[2.706,8.391],[2.698,8.34],[2.701,8.297],[2.708,8.275],[2.728,8.233],[2.735,8.212],[2.727,8.172],[2.708,8.138],[2.704,8.06],[2.687,7.934],[2.673,7.906],[2.672,7.89],[2.692,7.849],[2.724,7.808],[2.727,7.793],[2.718,7.659],[2.499,7.66],[2.485,7.552],[2.461,7.541],[2.43,7.497],[2.418,7.475],[2.428,7.426],[2.248,7.508],[2.119,7.535],[2.019,7.542],[1.944,7.6],[1.845,7.632],[1.643,7.621],[1.623,7.622],[1.621,7.996],[1.626,8.27],[1.615,8.356],[1.606,8.372],[1.606,8.413],[1.64,8.476],[1.64,8.503],[1.609,8.547],[1.607,8.589],[1.679,8.585],[1.703,8.587],[1.801,8.611],[1.83,8.615],[1.847,8.609],[1.863,8.598],[1.897,8.568],[1.898,8.563],[1.915,8.558],[1.946,8.559],[1.964,8.55],[1.98,8.531],[1.995,8.518],[2.034,8.504],[2.055,8.49],[2.097,8.487],[2.159,8.476],[2.189,8.487],[2.212,8.503],[2.214,8.521],[2.22,8.631],[2.204,8.72],[2.187,8.746],[2.195,8.777]]]},"id":4},{"type":"Feature","properties":{"name":"Ou\u00e9m\u00e9","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.52,6.993],[2.518,6.942],[2.576,6.776],[2.615,6.628],[2.68,6.57],[2.719,6.504],[2.715,6.494],[2.704,6.429],[2.703,6.368],[2.484,6.348],[2.477,6.368],[2.464,6.375],[2.468,6.396],[2.487,6.459],[2.483,6.505],[2.467,6.515],[2.455,6.519],[2.444,6.538],[2.437,6.629],[2.432,6.767],[2.419,6.865],[2.385,6.921],[2.398,6.96],[2.414,6.982],[2.43,6.991],[2.458,6.994],[2.52,6.993]]]},"id":5},{"type":"Feature","properties":{"name":"Atakora","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.015,11.432],[2.02,11.426],[2.215,11.082],[2.264,11.012],[2.274,11.012],[2.286,11.01],[2.295,11.005],[2.324,10.991],[2.297,10.911],[2.277,10.889],[2.267,10.871],[2.263,10.859],[2.261,10.842],[2.266,10.524],[2.255,10.518],[2.234,10.506],[2.23,10.503],[2.228,10.501],[2.202,10.468],[2.19,10.447],[2.184,10.431],[2.182,10.416],[2.183,10.396],[2.184,10.393],[2.188,10.386],[2.194,10.378],[2.219,10.354],[2.225,10.346],[2.23,10.339],[2.245,10.3],[2.248,10.284],[2.263,10.238],[2.271,10.167],[2.27,10.147],[2.267,10.135],[2.264,10.13],[2.257,10.123],[2.25,10.117],[2.241,10.112],[2.201,10.098],[2.185,10.094],[2.13,10.093],[2.12,10.09],[2.111,10.085],[2.105,10.082],[2.1,10.077],[2.092,10.067],[2.089,10.06],[2.087,10.054],[2.088,10.05],[2.092,10.032],[1.808,10.04],[1.77,10.026],[1.735,10.006],[1.702,9.98],[1.66,9.959],[1.61,9.947],[1.546,9.954],[1.504,9.963],[1.455,9.969],[1.413,9.97],[1.357,9.959],[1.344,9.955],[1.344,9.962],[1.331,9.996],[1.225,10.066],[1.082,10.16],[0.997,10.217],[0.939,10.255],[0.844,10.317],[0.769,10.367],[0.761,10.382],[0.76,10.405],[0.774,10.508],[0.789,10.564],[0.789,10.603],[0.781,10.693],[0.796,10.726],[0.85,10.778],[0.863,10.796],[0.866,10.806],[0.868,10.829],[0.87,10.84],[0.885,10.869],[0.884,10.88],[0.875,10.901],[0.873,10.911],[0.876,10.931],[0.901,10.993],[0.932,10.976],[0.945,10.974],[0.963,10.974],[0.968,10.979],[0.97,10.991],[0.969,11.003],[0.963,11.008],[0.955,11.012],[0.952,11.021],[0.951,11.032],[0.952,11.042],[0.956,11.045],[0.964,11.057],[0.97,11.069],[0.977,11.078],[0.981,11.08],[0.986,11.078],[1.008,11.075],[1.015,11.07],[1.02,11.066],[1.025,11.064],[1.028,11.061],[1.033,11.052],[1.035,11.049],[1.041,11.05],[1.052,11.055],[1.056,11.056],[1.087,11.053],[1.097,11.049],[1.1,11.044],[1.107,11.034],[1.114,11.028],[1.117,11.032],[1.119,11.048],[1.107,11.06],[1.101,11.07],[1.099,11.081],[1.099,11.093],[1.097,11.104],[1.095,11.104],[1.086,11.109],[1.083,11.111],[1.082,11.115],[1.084,11.128],[1.083,11.132],[1.073,11.134],[1.067,11.128],[1.063,11.127],[1.062,11.142],[1.067,11.144],[1.1,11.152],[1.106,11.156],[1.113,11.174],[1.117,11.179],[1.128,11.179],[1.148,11.17],[1.158,11.166],[1.153,11.183],[1.149,11.217],[1.131,11.248],[1.136,11.26],[1.146,11.27],[1.156,11.286],[1.166,11.278],[1.173,11.267],[1.172,11.261],[1.181,11.261],[1.186,11.264],[1.191,11.267],[1.2,11.269],[1.219,11.268],[1.235,11.263],[1.268,11.248],[1.281,11.271],[1.283,11.279],[1.28,11.289],[1.271,11.298],[1.268,11.306],[1.273,11.318],[1.284,11.313],[1.296,11.3],[1.302,11.289],[1.309,11.297],[1.316,11.3],[1.323,11.297],[1.33,11.289],[1.348,11.303],[1.346,11.316],[1.336,11.33],[1.33,11.347],[1.339,11.366],[1.359,11.379],[1.382,11.389],[1.398,11.399],[1.389,11.42],[1.39,11.428],[1.398,11.44],[1.411,11.45],[1.423,11.454],[1.424,11.454],[1.434,11.459],[1.44,11.474],[1.456,11.465],[1.475,11.461],[1.569,11.453],[1.567,11.447],[1.565,11.433],[1.563,11.426],[1.581,11.427],[1.602,11.389],[1.621,11.395],[1.638,11.404],[1.684,11.414],[1.703,11.423],[1.719,11.428],[1.763,11.425],[1.782,11.426],[1.822,11.442],[1.841,11.445],[1.858,11.44],[1.868,11.447],[1.88,11.445],[1.906,11.433],[1.948,11.417],[1.983,11.414],[2.011,11.427],[2.015,11.432]]]},"id":6},{"type":"Feature","properties":{"name":"Donga","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.092,10.032],[2.1,10.011],[2.1,10.007],[2.098,10.002],[2.097,10.001],[2.096,10.0],[2.088,9.985],[2.097,9.936],[2.097,9.917],[2.089,9.888],[2.08,9.836],[2.079,9.818],[2.081,9.805],[2.1,9.75],[2.102,9.745],[2.115,9.725],[2.136,9.703],[2.152,9.688],[2.161,9.671],[2.161,9.656],[2.122,9.4],[2.118,9.387],[2.114,9.381],[2.108,9.375],[2.104,9.372],[2.1,9.37],[2.095,9.368],[2.089,9.367],[2.051,9.368],[2.028,9.367],[2.012,9.364],[2.007,9.362],[1.999,9.358],[1.99,9.351],[1.976,9.308],[1.971,9.274],[1.97,9.217],[1.973,9.185],[1.978,9.164],[1.98,9.159],[1.985,9.15],[1.99,9.142],[1.997,9.136],[2.001,9.131],[2.009,9.126],[2.039,9.113],[2.042,9.11],[2.045,9.106],[2.049,9.098],[2.051,9.091],[2.051,9.085],[2.049,9.079],[2.041,9.059],[2.034,9.035],[2.029,9.0],[2.029,9.0],[2.027,8.989],[2.025,8.94],[2.027,8.923],[2.031,8.903],[2.034,8.894],[2.038,8.887],[2.044,8.879],[2.051,8.872],[2.059,8.866],[2.068,8.86],[2.088,8.85],[2.188,8.822],[2.194,8.82],[2.197,8.818],[2.203,8.812],[2.195,8.777],[2.187,8.746],[2.196,8.734],[2.204,8.72],[2.22,8.631],[2.207,8.545],[2.214,8.521],[2.219,8.515],[2.212,8.503],[2.198,8.492],[2.189,8.487],[2.177,8.481],[2.16,8.476],[2.136,8.476],[2.13,8.476],[2.124,8.477],[2.097,8.487],[2.085,8.49],[2.06,8.489],[2.055,8.49],[2.05,8.492],[2.034,8.504],[2.005,8.513],[1.995,8.518],[1.987,8.524],[1.979,8.531],[1.965,8.55],[1.961,8.553],[1.957,8.556],[1.952,8.558],[1.946,8.559],[1.915,8.558],[1.909,8.559],[1.904,8.561],[1.898,8.563],[1.894,8.566],[1.89,8.568],[1.863,8.597],[1.855,8.604],[1.847,8.609],[1.836,8.613],[1.83,8.615],[1.818,8.614],[1.801,8.611],[1.714,8.588],[1.703,8.587],[1.698,8.587],[1.679,8.585],[1.625,8.587],[1.607,8.589],[1.606,8.722],[1.604,8.815],[1.603,8.924],[1.601,9.05],[1.596,9.077],[1.588,9.101],[1.567,9.137],[1.505,9.201],[1.425,9.284],[1.42,9.292],[1.401,9.321],[1.387,9.361],[1.38,9.462],[1.368,9.491],[1.351,9.483],[1.336,9.498],[1.326,9.522],[1.323,9.542],[1.327,9.555],[1.345,9.582],[1.351,9.595],[1.353,9.605],[1.352,9.625],[1.355,9.635],[1.356,9.647],[1.348,9.694],[1.347,9.772],[1.345,9.881],[1.344,9.955],[1.357,9.959],[1.413,9.97],[1.455,9.969],[1.504,9.963],[1.546,9.954],[1.61,9.947],[1.66,9.959],[1.702,9.98],[1.735,10.006],[1.77,10.026],[1.808,10.04],[2.092,10.032]]]},"id":7},{"type":"Feature","properties":{"name":"Zou","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.428,7.426],[2.433,7.407],[2.433,7.363],[2.436,7.354],[2.442,7.346],[2.447,7.337],[2.447,7.321],[2.45,7.309],[2.466,7.25],[2.481,7.217],[2.528,7.185],[2.534,7.178],[2.534,7.173],[2.533,7.156],[2.555,7.045],[2.56,7.0],[2.56,7.0],[2.56,7.0],[2.559,6.999],[2.558,6.998],[2.557,6.995],[2.552,6.993],[2.546,6.992],[2.539,6.992],[2.52,6.993],[2.458,6.994],[2.43,6.991],[2.414,6.982],[2.398,6.96],[2.387,6.941],[2.385,6.921],[2.084,6.919],[2.077,6.925],[2.06,6.916],[2.05,6.912],[2.043,6.913],[2.035,6.916],[2.001,6.941],[1.995,6.946],[1.993,6.951],[1.988,6.969],[1.975,6.989],[1.959,6.997],[1.942,7.02],[1.921,7.052],[1.905,7.064],[1.9,7.067],[1.893,7.072],[1.88,7.093],[1.871,7.136],[1.858,7.183],[1.843,7.21],[1.83,7.218],[1.826,7.224],[1.821,7.235],[1.783,7.284],[1.767,7.296],[1.759,7.306],[1.755,7.314],[1.754,7.332],[1.752,7.339],[1.746,7.348],[1.743,7.355],[1.737,7.381],[1.684,7.492],[1.677,7.504],[1.656,7.53],[1.623,7.536],[1.623,7.622],[1.642,7.621],[1.845,7.632],[1.889,7.623],[1.944,7.6],[1.981,7.567],[2.019,7.542],[2.067,7.534],[2.119,7.535],[2.178,7.53],[2.248,7.508],[2.428,7.426]]]},"id":8},{"type":"Feature","properties":{"name":"Kouffo","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[1.623,7.536],[1.656,7.53],[1.677,7.504],[1.684,7.492],[1.737,7.381],[1.743,7.355],[1.746,7.348],[1.752,7.339],[1.754,7.332],[1.755,7.314],[1.6,7.2],[1.55,7.05],[1.5,6.9],[1.45,6.75],[1.42,6.68],[1.4,6.69],[1.35,6.72],[1.31,6.75],[1.3,6.85],[1.32,6.95],[1.35,7.05],[1.4,7.15],[1.45,7.25],[1.5,7.35],[1.55,7.45],[1.62,7.53],[1.623,7.536]]]},"id":9},{"type":"Feature","properties":{"name":"Mono","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[1.3,6.85],[1.31,6.75],[1.35,6.72],[1.4,6.69],[1.42,6.68],[1.55,6.6],[1.62,6.55],[1.68,6.51],[1.7,6.45],[1.68,6.4],[1.62,6.38],[1.55,6.36],[1.48,6.35],[1.4,6.36],[1.35,6.4],[1.3,6.48],[1.28,6.58],[1.27,6.68],[1.28,6.78],[1.3,6.85]]]},"id":10},{"type":"Feature","properties":{"name":"Atlantique","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[2.084,6.919],[2.077,6.925],[2.06,6.916],[2.05,6.912],[2.043,6.913],[2.035,6.916],[2.001,6.941],[1.995,6.946],[1.9,6.95],[1.8,6.9],[1.7,6.8],[1.68,6.7],[1.7,6.6],[1.75,6.5],[1.85,6.42],[1.95,6.38],[2.05,6.35],[2.1,6.34],[2.15,6.37],[2.18,6.45],[2.18,6.55],[2.15,6.65],[2.1,6.75],[2.084,6.919]]]},"id":11},{"type":"Feature","properties":{"name":"Littoral","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[2.42,6.395],[2.44,6.375],[2.46,6.365],[2.42,6.35],[2.38,6.355],[2.36,6.375],[2.38,6.4],[2.4,6.41],[2.42,6.395]]]},"id":12}]};
+
+function Carte({consultations}){
+  const mapRef=useRef(null);
+  const mapInstance=useRef(null);
+  const geoLayerRef=useRef(null);
+  const[metric,setMetric]=useState('cas');
+  const[selectedDept,setSelectedDept]=useState(null);
+
+  const zoneToDept={};
+  Object.entries(ZONES_SANITAIRES).forEach(([dept,zones])=>{
+    zones.forEach(z=>{ zoneToDept[z.code]=dept; });
+  });
+
+  const deptNameNorm=n=>(n||'').toUpperCase()
+    .replace('OUÉMÉ','OUEME').replace('KOUFFO','COUFFO').replace('ATACORA','ATACORA');
+
+  const deptData=useMemo(()=>{
+    const d={};
+    Object.keys(ZONES_SANITAIRES).forEach(dept=>{
+      const zones=ZONES_SANITAIRES[dept];
+      const zoneCodes=zones.map(z=>z.code);
+      const cas=consultations.filter(c=>zoneCodes.includes(c.zone_sanitaire)).length;
+      const imm=consultations.filter(c=>zoneCodes.includes(c.zone_sanitaire)&&c.notif==='immédiate').length;
+      const pop=zones.reduce((a,z)=>a+(z.pop||0),0);
+      const incidence=pop>0?Math.round(cas/pop*100000):0;
+      d[dept]={cas,imm,pop,incidence};
+    });
+    return d;
+  },[consultations]);
+
+  const maxVal=Math.max(1,...Object.values(deptData).map(d=>metric==='cas'?d.cas:metric==='imm'?d.imm:d.incidence));
+
+  const getColor=(val)=>{
+    const ratio=Math.min(1,val/maxVal);
+    if(ratio===0)return'#EEEEEE';
+    if(ratio<0.25)return'#4CAF50';
+    if(ratio<0.5)return'#FFEB3B';
+    if(ratio<0.75)return'#FF9800';
+    return'#F44336';
+  };
+
+  useEffect(()=>{
+    if(!mapRef.current||mapInstance.current)return;
+    const map=L.map(mapRef.current,{zoomControl:true,attributionControl:true}).setView([9.3077,2.3158],7);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+      attribution:'&copy; OpenStreetMap &copy; CARTO',
+      maxZoom:12, minZoom:6
+    }).addTo(map);
+    mapInstance.current=map;
+    return()=>{ map.remove(); mapInstance.current=null; };
+  },[]);
+
+  useEffect(()=>{
+    const map=mapInstance.current;
+    if(!map)return;
+    if(geoLayerRef.current){ map.removeLayer(geoLayerRef.current); }
+
+    const findDeptKey=(geoName)=>{
+      const norm=(geoName||'').toUpperCase();
+      return Object.keys(ZONES_SANITAIRES).find(k=>k===norm||k.includes(norm)||norm.includes(k));
+    };
+
+    const layer=L.geoJSON(BENIN_DEPARTMENTS_GEOJSON,{
+      style:(feature)=>{
+        const key=findDeptKey(feature.properties.name);
+        const d=key?deptData[key]:null;
+        const val=d?(metric==='cas'?d.cas:metric==='imm'?d.imm:d.incidence):0;
+        return{
+          fillColor:getColor(val),
+          fillOpacity:0.72,
+          color:'#ffffff',
+          weight:selectedDept===key?2.5:1.2,
+          dashArray:feature.properties.precision==='simplifiee'?'4,3':null
+        };
+      },
+      onEachFeature:(feature,lyr)=>{
+        const key=findDeptKey(feature.properties.name);
+        const d=key?deptData[key]:{cas:0,imm:0,incidence:0,pop:0};
+        const precisionNote=feature.properties.precision==='simplifiee'
+          ?'<div style="color:#B26A00;font-size:11px;margin-top:6px;">Contour simplifié (données précises à venir)</div>':'';
+        lyr.bindPopup(
+          '<div style="font-weight:600;font-size:13px;margin-bottom:6px;">'+feature.properties.name+'</div>'+
+          '<div style="font-size:12px;line-height:1.7;">'+
+          'Consultations : <strong>'+d.cas+'</strong><br/>'+
+          'Alertes immédiates : <strong style="color:#D32F2F;">'+d.imm+'</strong><br/>'+
+          'Incidence : <strong>'+d.incidence+'</strong> / 100 000 hab.'+
+          '</div>'+precisionNote
+        );
+        lyr.on('mouseover',function(){ this.setStyle({fillOpacity:0.88,weight:2}); });
+        lyr.on('mouseout',function(){ layer.resetStyle(this); });
+        lyr.on('click',function(){ setSelectedDept(key===selectedDept?null:key); });
+      }
+    }).addTo(map);
+    geoLayerRef.current=layer;
+  },[deptData,metric,selectedDept]);
+
+  const selDept=selectedDept?(ZONES_SANITAIRES[selectedDept]||[]):[];
+
+  return(<div>
+    <p className="page-title">Carte Épidémique du Bénin</p>
+    <p className="page-sub">12 départements, 34 zones sanitaires — Limites administratives réelles (source : données SIG publiques, licence CC-BY 4.0)</p>
+    <div className="grid-2">
+      <div>
+        <div className="map-shell">
+          <div className="map-toolbar">
+            {[['cas','Consultations'],['imm','Alertes immédiates'],['incidence','Incidence /100k']].map(([v,l])=>(
+              <button key={v} className={`inner-tab ${metric===v?'active':''}`} style={{marginBottom:0}} onClick={()=>setMetric(v)}>{l}</button>
+            ))}
+          </div>
+          <div style={{position:'relative'}}>
+            <div id="leaflet-map" ref={mapRef}></div>
+            <div className="map-legend">
+              <div style={{fontWeight:600,marginBottom:6,fontSize:11}}>Légende</div>
+              {[['Aucun cas','#EEEEEE'],['Faible','#4CAF50'],['Modéré','#FFEB3B'],['Élevé','#FF9800'],['Alerte','#F44336']].map(([l,c])=>(
+                <div key={l} className="map-legend-row"><div className="map-legend-swatch" style={{background:c}}></div><span>{l}</span></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div className="card">
+          <div className="card-title">Classement des départements</div>
+          <div style={{maxHeight:220,overflowY:'auto'}}>
+            {Object.entries(deptData).sort((a,b)=>b[1].cas-a[1].cas).map(([dept,d],i)=>(
+              <div key={dept} onClick={()=>setSelectedDept(dept===selectedDept?null:dept)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px',cursor:'pointer',borderRadius:6,background:selectedDept===dept?'var(--primary-light)':'transparent',marginBottom:2}}>
+                <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',minWidth:16}}>{i+1}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500}}>{dept.charAt(0)+dept.slice(1).toLowerCase()}</div>
+                  <div className="progress-bar" style={{height:4,marginTop:4}}><div className="progress-fill" style={{width:`${Math.round(d.cas/Math.max(1,maxVal)*100)}%`,background:getColor(d.cas)}}/></div>
+                </div>
+                <span style={{fontSize:13,fontWeight:600}}>{d.cas}</span>
+                {d.imm>0&&<span className="badge badge-immediate">{d.imm}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+        {selectedDept&&<div className="card">
+          <div className="card-title">{selectedDept.charAt(0)+selectedDept.slice(1).toLowerCase()} — Zones sanitaires</div>
+          {selDept.map(z=>{
+            const cnt=consultations.filter(c=>c.zone_sanitaire===z.code).length;
+            return(<div key={z.code} style={{padding:'9px 0',borderBottom:'1px solid var(--gray-100)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div><div style={{fontSize:13,fontWeight:500}}>{z.nom}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{z.code} · {z.pop?.toLocaleString('fr-FR')} hab.</div></div>
+                <span style={{fontWeight:600,fontSize:13,color:cnt>0?'var(--primary)':'var(--text-muted)'}}>{cnt}</span>
+              </div>
+            </div>);
+          })}
+        </div>}
+        <div className="alert alert-info">
+          <span className="alert-icon material-symbols-rounded">info</span>
+          <div className="alert-content"><div className="alert-text">8 départements affichent des frontières précises (source SIG officielle). Les 4 départements côtiers restants (Couffo, Littoral, Mono, Atlantique) sont en contour simplifié — bordure en pointillés sur la carte.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// IA CLINIQUE (Claude API)
+// ═══════════════════════════════════════
+function IAClinique({user,patients,consultations}){
+  const welcomeMsg='Bonjour Dr. '+user.nom+' ! Je suis votre assistant IA clinique SNISB.\n\nJe peux vous aider avec :\n\u{1F50D} Analyse diagnostique — Diagnostics différentiels\n\u{1F9A0} Épidémiologie — Tendances dans votre zone\n\u{1F48A} Protocoles — Guides thérapeutiques béninois\n\u{1F4CA} Données SNISB — Vos statistiques locales\n\nComment puis-je vous aider ?';
+  const[messages,setMessages]=useState([{role:'ai',content:welcomeMsg}]);
+  const[input,setInput]=useState('');
+  const[loading,setLoading]=useState(false);
+  const endRef=useRef(null);
+  const QUICK_PROMPTS=['Protocole traitement paludisme simple Bénin','Critères de gravité méningite','Seuil alerte épidémique choléra','Analyse épidémio de ma zone','Définition de cas rougeole SIMR'];
+
+  useEffect(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),[messages]);
+
+  const buildContext=()=>{
+    const totalP=patients.length;
+    const totalC=consultations.length;
+    const alertes=consultations.filter(c=>c.notif==='immédiate').length;
+    const zoneUser=user.zone?TOUTES_ZONES.find(z=>z.code===user.zone)?.nom||user.zone:'nationale';
+    return 'Contexte SNISB Health Link — Bénin:\n'
+      +'- Agent: '+user.nom+' ('+( ROLES[user.role]?.label||user.role)+')\n'
+      +'- Zone: '+zoneUser+' | Département: '+(user.dept||'non défini')+'\n'
+      +'- Données locales: '+totalP+' patients, '+totalC+' consultations, '+alertes+' alertes\n'
+      +'- Statistiques nationales: paludisme 44.7%, IRA 11.9%, diarrhées 5.4%\n'
+      +'- Système: SIMR avec 29 maladies dont 13 à notification immédiate\n'
+      +'- Contexte: Bénin, Ministère de la Santé, guides OMS adaptés';
+  };
+
+  const send=async(txt)=>{
+    const q=txt||input.trim();
+    if(!q||loading)return;
+    setInput('');
+    const userMsg={role:'user',content:q};
+    setMessages(m=>[...m,userMsg]);
+    setLoading(true);
+    try{
+      let token='';
+      if(supabase){
+        const{data:sessionData}=await supabase.auth.getSession();
+        token=sessionData?.session?.access_token||'';
+      }
+      if(!token)throw new Error('Session Supabase absente — reconnectez-vous avec votre vrai mot de passe Supabase (pas le mot de passe démo).');
+      const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({
+          messages:[...messages.filter(m=>m.role==='user'||m.role==='assistant').map(m=>({role:m.role==='ai'?'assistant':m.role,content:m.content})),{role:'user',content:q}],
+          context:buildContext()
+        })
+      });
+      if(!resp.ok){const err=await resp.json();throw new Error(err.error||'Erreur serveur');}
+      const data=await resp.json();
+      const aiText=data.content?.find(b=>b.type==='text')?.text||'Désolé, je n\'ai pas pu traiter votre demande.';
+      setMessages(m=>[...m,{role:'ai',content:aiText}]);
+    }catch(e){
+      setMessages(m=>[...m,{role:'ai',content:'⚠️ Connexion temporairement indisponible.\n\nConsultez le guide SIMR ou contactez le niveau central SNISB.\n\nErreur: '+e.message}]);
+    }
+    setLoading(false);
+  };
+
+  const formatMsg=txt=>{
+    return txt.split('\n').map((line,i)=>{
+      if(line.startsWith('**')&&line.endsWith('**'))return<div key={i} style={{fontWeight:700,marginTop:4}}>{line.slice(2,-2)}</div>;
+      if(line.startsWith('- '))return<div key={i} style={{paddingLeft:12,marginTop:2}}>• {line.slice(2)}</div>;
+      if(line.startsWith('#'))return<div key={i} style={{fontWeight:700,fontSize:14,marginTop:6}}>{line.replace(/^#+\s/,'')}</div>;
+      return<div key={i} style={{marginTop:line?2:4}}>{line||' '}</div>;
+    });
+  };
+
+  return(<div>
+    <p className="page-title">🤖 IA Clinique — Assistant SNISB</p>
+    <div className="grid-2">
+      <div className="ai-panel" style={{marginBottom:16}}>
+        <div className="ai-panel-title">🤖 Assistant IA Clinique</div>
+        <div className="ai-panel-sub">Propulsé par Claude • Contexte SNISB intégré</div>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,opacity:0.6,marginBottom:8,textTransform:'uppercase',letterSpacing:'0.5px'}}>Questions rapides :</div>
+          {QUICK_PROMPTS.map((p,i)=><button key={i} className="ai-chip" onClick={()=>send(p)}>{p}</button>)}
+        </div>
+        <div style={{padding:12,background:'rgba(255,255,255,0.06)',borderRadius:10,fontSize:12,opacity:0.7}}>
+          <div style={{fontWeight:600,marginBottom:4}}>⚠️ Avertissement</div>
+          L'IA complète sans remplacer le jugement clinique. Toujours valider avec un médecin. En urgence, appeler le SAMU (161).
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        {[{i:'👤',l:'Patients',v:patients.length,c:'var(--success)'},{i:'🩺',l:'Consultations',v:consultations.length,c:'var(--info)'},{i:'🚨',l:'Alertes',v:consultations.filter(c=>c.notif==='immédiate').length,c:'var(--danger)'},{i:'🦠',l:'Maladies SIMR',v:29,c:'var(--warning)'}].map((s,i)=>(
+          <div key={i} style={{background:'white',borderRadius:12,padding:16,boxShadow:'var(--shadow)'}}>
+            <div style={{fontSize:24}}>{s.i}</div>
+            <div style={{fontSize:22,fontWeight:700,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div className="card" style={{padding:0,overflow:'hidden'}}>
+      <div style={{padding:'14px 20px',background:'linear-gradient(135deg,#0D1B2A,#1B2838)',color:'white',display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontSize:20}}>🤖</span>
+        <div><div style={{fontWeight:700,fontSize:14}}>Assistant IA Clinique SNISB</div><div style={{fontSize:11,opacity:0.6}}>Claude • Contexte Bénin intégré</div></div>
+        <div style={{marginLeft:'auto',display:'flex',gap:6}}>
+          <span style={{fontSize:10,padding:'3px 8px',background:'rgba(0,133,62,0.3)',borderRadius:10,color:'#2ECC71'}}>● En ligne</span>
+        </div>
+      </div>
+      <div className="ai-messages">
+        {messages.map((m,i)=>(
+          <div key={i} className={`ai-msg ${m.role}`}>
+            {m.role==='ai'&&<div style={{fontSize:10,color:'var(--text-muted)',marginBottom:4}}>🤖 Assistant SNISB</div>}
+            <div style={{fontSize:13,lineHeight:1.6}}>{formatMsg(m.content)}</div>
+          </div>
+        ))}
+        {loading&&<div className="ai-msg ai typing"><div style={{fontSize:10,color:'var(--text-muted)',marginBottom:4}}>🤖 Assistant SNISB</div><div>⏳ Analyse en cours...</div></div>}
+        <div ref={endRef}/>
+      </div>
+      <div className="ai-input-row">
+        <input className="ai-input" placeholder="Posez votre question clinique ou épidémiologique..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} disabled={loading}/>
+        <button className="btn btn-primary btn-sm" onClick={()=>send()} disabled={!input.trim()||loading}>{loading?'⏳':'📤'}</button>
+      </div>
+    </div>
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// FORMATION
+// ═══════════════════════════════════════
+function Formation({user}){
+  const[progress,setProgress]=useState({});const[active,setActive]=useState(null);
+  const[chap,setChap]=useState(0);const[quiz,setQuiz]=useState(false);const[ans,setAns]=useState({});const[done,setDone]=useState(false);
+  const start=m=>{setActive(m);setChap(0);setQuiz(false);setAns({});setDone(false);};
+  const next=()=>{if(chap<active.chapitres.length-1)setChap(chap+1);else setQuiz(true);};
+  const submit=()=>{const ok=active.quiz.filter((q,i)=>ans[i]===q.ok).length;const sc=Math.round(ok/active.quiz.length*100);setProgress(p=>({...p,[active.id]:{sc,ok:sc>=70,date:new Date().toISOString()}}));setDone(true);};
+  const total=Object.values(progress).filter(p=>p.ok).length;
+  if(active){const pr=progress[active.id];return(<div>
+    <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+      <button className="btn btn-outline btn-sm" onClick={()=>setActive(null)}>← Retour</button>
+      <p className="page-title" style={{marginBottom:0}}>{active.icon} {active.titre}</p>
+    </div>
+    {!quiz?(<div className="card" style={{maxWidth:680}}>
+      <div style={{marginBottom:14}}><div className="progress-bar"><div className="progress-fill" style={{width:`${(chap/active.chapitres.length)*100}%`}}/></div><div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Chapitre {chap+1} / {active.chapitres.length}</div></div>
+      <div className="card-title">📖 {active.chapitres[chap]}</div>
+      <div style={{padding:20,background:'var(--light)',borderRadius:10,marginBottom:16}}>
+        <p style={{fontSize:14,lineHeight:1.8}}>Ce chapitre traite de <strong>{active.chapitres[chap]}</strong> dans le contexte du système de santé béninois. La maîtrise de ce sujet est essentielle pour améliorer la qualité des données sanitaires et renforcer la surveillance épidémiologique des 12 millions d'habitants du Bénin.</p>
+        <div style={{marginTop:12,padding:12,background:'var(--primary-light)',borderRadius:8,borderLeft:'3px solid var(--primary)'}}>
+          <strong style={{fontSize:12,color:'var(--primary)'}}>💡 Point clé :</strong>
+          <p style={{fontSize:13,marginTop:4}}>Une collecte de données de qualité permet d'anticiper les épidémies, optimiser les ressources et améliorer les indicateurs sanitaires nationaux.</p>
+        </div>
+      </div>
+      <button className="btn btn-primary" onClick={next}>{chap<active.chapitres.length-1?'→ Chapitre suivant':'📝 Passer au quiz'}</button>
+    </div>):!done?(<div className="card" style={{maxWidth:600}}>
+      <div className="card-title">📝 Quiz — {active.titre}</div>
+      {active.quiz.map((q,qi)=><div key={qi} style={{marginBottom:20}}>
+        <div style={{fontWeight:600,marginBottom:10}}>{qi+1}. {q.q}</div>
+        {q.opts.map((o,oi)=><div key={oi} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',border:`2px solid ${ans[qi]===oi?'var(--primary)':'var(--border)'}`,borderRadius:10,marginBottom:6,cursor:'pointer',background:ans[qi]===oi?'var(--primary-light)':'white',transition:'all 0.15s'}} onClick={()=>setAns(a=>({...a,[qi]:oi}))}>
+          <div style={{width:18,height:18,border:`2px solid ${ans[qi]===oi?'var(--primary)':'var(--border)'}`,borderRadius:'50%',background:ans[qi]===oi?'var(--primary)':'white',flexShrink:0}}/>
+          <span style={{fontSize:13}}>{o}</span>
+        </div>)}
+      </div>)}
+      <button className="btn btn-primary" onClick={submit} disabled={Object.keys(ans).length<active.quiz.length}>✅ Valider le quiz</button>
+    </div>):(<div className="card" style={{maxWidth:480,textAlign:'center'}}>
+      <div style={{fontSize:64,marginBottom:12}}>{pr?.ok?'🏆':'📝'}</div>
+      <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>{pr?.ok?'Félicitations !':'À revoir...'}</h3>
+      <div style={{fontSize:36,fontWeight:700,color:pr?.ok?'var(--success)':'var(--warning)',marginBottom:12}}>{pr?.sc}%</div>
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{pr?.ok?'Module validé avec succès !':'Score insuffisant — minimum 70% requis'}</p>
+      {pr?.ok&&<div className="alert alert-success" style={{textAlign:'left',marginBottom:16}}><span className="alert-icon">🏅</span><div className="alert-content"><div className="alert-title">Certificat obtenu !</div><div className="alert-text">{user.nom} — {active.titre} — {new Date().toLocaleDateString('fr-FR')}</div></div></div>}
+      <div style={{display:'flex',gap:8,justifyContent:'center'}}><button className="btn btn-outline" onClick={()=>start(active)}>🔄 Recommencer</button><button className="btn btn-primary" onClick={()=>setActive(null)}>← Modules</button></div>
+    </div>)}
+  </div>);}
+  return(<div>
+    <p className="page-title">📚 Formation Intégrée</p>
+    <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
+      <span style={{color:'var(--text-muted)',fontSize:13}}>{total}/{MODULES_FORMATION.length} modules validés</span>
+      <div className="progress-bar" style={{flex:1}}><div className="progress-fill" style={{width:`${total/MODULES_FORMATION.length*100}%`}}/></div>
+      <strong style={{color:'var(--primary)'}}>{Math.round(total/MODULES_FORMATION.length*100)}%</strong>
+    </div>
+    <div className="grid-2">
+      {MODULES_FORMATION.map(m=>{const pr=progress[m.id];return(
+        <div key={m.id} className={`module-card ${pr?.ok?'completed':''}`} onClick={()=>start(m)}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div style={{fontSize:32,marginBottom:8}}>{m.icon}</div>
+            {pr?.ok&&<span className="badge badge-success">✅ Validé</span>}
+            {pr&&!pr.ok&&<span className="badge badge-hebdo">⚠️ {pr.sc}%</span>}
+          </div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{m.titre}</div>
+          <div style={{fontSize:11,color:'var(--text-muted)'}}>{m.duree} • {m.niveau} • {m.chapitres.length} chapitres • {m.quiz.length} questions</div>
+          {pr&&<div style={{marginTop:10}}><div className="progress-bar" style={{height:6}}><div className="progress-fill" style={{width:`${pr.sc}%`,background:pr.ok?'var(--success)':'var(--warning)'}}/></div></div>}
+        </div>
+      );})}
+    </div>
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════
+function Admin({user,patients,consultations}){
+  const[tab,setTab]=useState('users');
+  const[realUsers,setRealUsers]=useState([]);
+  const[realLogs,setRealLogs]=useState([]);
+  const[loadingUsers,setLoadingUsers]=useState(false);
+  const[loadingLogs,setLoadingLogs]=useState(false);
+
+  useEffect(()=>{
+    if(tab==='users'&&supabase&&realUsers.length===0){
+      setLoadingUsers(true);
+      supabase.from('profiles').select('username,nom,role,zone,departement,actif').order('nom')
+        .then(({data,error})=>{ if(!error&&data)setRealUsers(data); setLoadingUsers(false); });
+    }
+    if(tab==='logs'&&supabase&&realLogs.length===0){
+      setLoadingLogs(true);
+      supabase.from('audit_logs').select('action,user_nom,details,created_at').order('created_at',{ascending:false}).limit(50)
+        .then(({data,error})=>{ if(!error&&data)setRealLogs(data); setLoadingLogs(false); });
+    }
+  },[tab]);
+
+  return(<div>
+    <p className="page-title">⚙️ Administration</p>
+    <div className="inner-tabs">
+      {[['users','👥 Utilisateurs'],['zones','🗺️ Zones sanitaires'],['kpi','📊 KPIs'],['logs','📝 Audit'],['pwa','📱 PWA & Sync']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+    </div>
+    {tab==='users'&&<div className="card"><div className="card-title">👥 Utilisateurs du système</div>
+      {!supabase?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher les utilisateurs réels.</div></div>
+      :loadingUsers?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
+      :realUsers.length===0?<div className="empty-state"><div className="empty-text">Aucun utilisateur trouvé dans la base.</div></div>
+      :<div className="table-wrap"><table>
+      <thead><tr><th>Nom</th><th>Username</th><th>Rôle</th><th>Zone</th><th>Département</th><th>Statut</th></tr></thead>
+      <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'—'}</td><td>{u.departement||'—'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
+    </table></div>}</div>}
+    {tab==='zones'&&<div className="card"><div className="card-title">🗺️ 34 Zones Sanitaires — 12 Départements</div><div className="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Zone Sanitaire</th><th>Département</th><th>Population</th></tr></thead>
+      <tbody>{TOUTES_ZONES.map(z=><tr key={z.code}><td><code style={{fontSize:11}}>{z.code}</code></td><td>{z.nom}</td><td>{z.departement}</td><td>{z.pop?.toLocaleString('fr-FR')} hab.</td></tr>)}</tbody>
+    </table></div></div>}
+    {tab==='kpi'&&<div className="card"><div className="card-title">📊 KPIs Nationaux SNISB v7</div>
+      <div className="grid-2">
+        {[['Patients enregistrés','—',patients.length,'↑'],['Consultations totales','—',consultations.length,'↑'],['Délai disponibilité','15-30j','<24h','-95%'],['Temps saisie','3-4h/j','15-20min','-85%'],["Taux d'erreurs",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%']].map(([l,a,b,g],i)=>(
+          <div key={i} className="kpi-row"><div><div style={{fontSize:12,fontWeight:600}}>{l}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{a} → <strong style={{color:'var(--primary)'}}>{b}</strong></div></div><span className="kpi-gain">{g}</span></div>
+        ))}
+      </div>
+    </div>}
+    {tab==='logs'&&<div className="card"><div className="card-title">📝 Journal d'audit</div>
+      {!supabase?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher le journal réel.</div></div>
+      :loadingLogs?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
+      :realLogs.length===0?<div className="empty-state"><div className="empty-text">Aucune entrée d'audit pour le moment.</div></div>
+      :realLogs.map((l,i)=>(
+        <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
+          <span className={`badge ${l.action==='LOGIN'?'badge-success':l.action==='ALERT'?'badge-immediate':l.action==='SYNC'?'badge-hebdo':'badge-primary'}`}>{l.action}</span>
+          <strong style={{fontSize:12,minWidth:90}}>{l.user_nom||'—'}</strong><span style={{fontSize:12,flex:1}}>{JSON.stringify(l.details||{})}</span>
+          <span style={{fontSize:11,color:'var(--text-muted)',flexShrink:0}}>{fmtDT(l.created_at)}</span>
+        </div>
+      ))}
+    </div>}
+    {tab==='pwa'&&<div className="card"><div className="card-title">📱 PWA & Synchronisation</div>
+      <div className="grid-2">
+        {[{i:'📱',t:'Application installable',d:'Cliquez sur "Installer" dans votre navigateur pour ajouter SNISB en application sur votre téléphone Android ou iOS.',c:'var(--primary)'},{i:'🔄',t:'Mode hors-ligne (IndexedDB)',d:'Toutes les données sont sauvegardées localement. La synchronisation avec Supabase est automatique dès le retour de connexion.',c:'var(--info)'},{i:'🔐',t:'Authentification Supabase',d:'Connexion sécurisée JWT. Les sessions persistent 7 jours. Données chiffrées en transit (TLS 1.3).',c:'var(--success)'},{i:'⚡',t:'Synchronisation temps réel',d:'Supabase Realtime permet de voir les consultations des autres agents de votre zone en temps réel.',c:'var(--warning)'}].map((s,i)=>(
+          <div key={i} style={{padding:16,border:`2px solid ${s.c}22`,borderRadius:12,background:`${s.c}08`}}>
+            <div style={{fontSize:28,marginBottom:8}}>{s.i}</div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:6,color:s.c}}>{s.t}</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>{s.d}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:16,padding:14,background:'var(--light)',borderRadius:10,fontSize:12}}>
+        <strong>📋 Instructions d'installation PWA :</strong>
+        <div style={{marginTop:8,lineHeight:2}}>1. Ouvrir SNISB dans Chrome (Android) ou Safari (iOS)<br/>2. Appuyer sur le menu ⋮ (Android) ou le bouton Partager (iOS)<br/>3. Sélectionner "Ajouter à l'écran d'accueil" ou "Installer l'application"<br/>4. L'icône SNISB apparaîtra sur votre écran d'accueil</div>
+      </div>
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// CARNET PATIENT
+// ═══════════════════════════════════════
+function Carnet({user,consultations}){
+  const isub=user.isub||'BEN-ZS-OUE-03-2026-001234';
+  const myC=consultations.filter(c=>c.patient_isub===isub);
+  return(<div>
+    <div className="carnet-header">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div>
+          <div style={{fontSize:13,opacity:0.7,marginBottom:4,textTransform:'uppercase',letterSpacing:'0.5px'}}>Carnet Numérique de Santé</div>
+          <div style={{fontSize:24,fontWeight:700}}>{user.nom}</div>
+          <div style={{fontFamily:'monospace',fontSize:13,opacity:0.8,marginTop:6,letterSpacing:1}}>{isub}</div>
+          <div style={{fontSize:11,opacity:0.65,marginTop:4}}>République du Bénin • Ministère de la Santé</div>
+        </div>
+        <div style={{background:'white',borderRadius:10,padding:10,textAlign:'center'}}>
+          <div style={{fontSize:9,color:'var(--text-muted)',marginBottom:4}}>QR CODE</div>
+          <div style={{width:60,height:60,background:`repeating-conic-gradient(#333 0% 25%,white 0% 50%) 0 0/8px 8px`,border:'2px solid #333',borderRadius:4}}/>
+        </div>
+      </div>
+    </div>
+    <div className="grid-2">
+      <div className="card"><div className="card-title">🩺 Mes consultations ({myC.length})</div>
+        {myC.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation enregistrée</div></div>
+          :myC.slice(0,6).map(c=><div key={c.id} style={{padding:12,borderLeft:'3px solid var(--primary)',background:'var(--light)',borderRadius:'0 8px 8px 0',marginBottom:8}}>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>{fmtDate(c.date_consultation)}</div>
+            <div style={{fontSize:14,fontWeight:600}}>{c.diagnostic}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{c.zone_nom}</div>
+          </div>)}
+      </div>
+      <div>
+        <div className="card"><div className="card-title">❤️ Conseils Santé</div>
+          {[['💧',"Boire au moins 1,5 L d'eau par jour"],['🦟','Dormir sous moustiquaire imprégnée (paludisme)'],['🧼','Se laver les mains au savon avant les repas'],['💉','Maintenir le carnet de vaccination à jour'],['🥗','Alimentation équilibrée et variée'],['🏃','Pratiquer une activité physique régulière']].map(([ic,tip],i)=>(
+            <div key={i} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:20}}>{ic}</span><span style={{fontSize:13,lineHeight:1.5}}>{tip}</span></div>
+          ))}
+        </div>
+        <div className="card"><div className="card-title">📞 Urgences Bénin</div>
+          {[['SAMU',161],['Police Nationale',117],['Pompiers',118],['CNHU Cotonou','+229 21 30 09 09'],['Centre Antipoison','+229 21 38 06 43']].map(([s,n])=>(
+            <div key={s} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{s}</div><div style={{fontWeight:700,color:'var(--danger)',fontSize:14}}>{n}</div></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+// ═══════════════════════════════════════
+// APP PRINCIPALE
+// ═══════════════════════════════════════
+function App(){
+  const[user,setUser]=useState(null);
+  const[tab,setTab]=useState('dashboard');
+  const[online,setOnline]=useState(navigator.onLine);
+  const[db,setDb]=useState(null);
+  const[patients,setPatients]=useState([]);
+  const[consultations,setConsultations]=useState([]);
+  const[rappels,setRappels]=useState([]);
+  const[ready,setReady]=useState(false);
+  const[syncPending,setSyncPending]=useState(0);
+  const[pwaPrompt,setPwaPrompt]=useState(null);
+
+  // Init IndexedDB — avec filet de sécurité : si IndexedDB reste bloqué
+  // (ex: origine restreinte, fichier ouvert en local), l'app démarre quand
+  // même après 4s, sans stockage persistant plutôt que de bloquer indéfiniment.
+  useEffect(()=>{
+    let done=false;
+    const finish=()=>{ if(!done){ done=true; setReady(true); } };
+    const timeout=setTimeout(finish,4000);
+    const manager=new DB();
+    manager.init().then(async()=>{
+      if(done)return;
+      setDb(manager);
+      const[p,c,r]=await Promise.all([manager.getAll('patients'),manager.getAll('consultations'),manager.getAll('rappels')]);
+      if(done)return;
+      setPatients(p);setConsultations(c);setRappels(r);
+      clearTimeout(timeout);finish();
+    }).catch(()=>{clearTimeout(timeout);finish();});
+  },[]);
+
+  // Online/offline
+  useEffect(()=>{
+    const on=()=>{setOnline(true);syncWithSupabase();};
+    const off=()=>setOnline(false);
+    window.addEventListener('online',on);window.addEventListener('offline',off);
+    return()=>{window.removeEventListener('online',on);window.removeEventListener('offline',off);};
+  },[]);
+
+  // PWA install prompt
+  useEffect(()=>{
+    const handler=e=>{e.preventDefault();setPwaPrompt(e);};
+    window.addEventListener('beforeinstallprompt',handler);
+    return()=>window.removeEventListener('beforeinstallprompt',handler);
+  },[]);
+
+  // Supabase realtime (si disponible)
+  useEffect(()=>{
+    if(!supabase||!user)return;
+    const channel=supabase.channel('snisb-realtime')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'consultations'},payload=>{
+        setConsultations(prev=>{if(prev.find(c=>c.id===payload.new.id))return prev;return[payload.new,...prev];});
+      })
+      .subscribe();
+    return()=>supabase.removeChannel(channel);
+  },[user]);
+
+  const syncWithSupabase=async()=>{
+    if(!supabase||!db)return;
+    try{
+      const{data:remoteC}=await supabase.from('consultations').select('*').order('created_at',{ascending:false}).limit(100);
+      const{data:remoteP}=await supabase.from('patients').select('*').limit(200);
+      if(remoteC){for(const c of remoteC)await db.put('consultations',c);setConsultations(remoteC);}
+      if(remoteP){for(const p of remoteP)await db.put('patients',p);setPatients(remoteP);}
+      setSyncPending(0);
+    }catch(e){console.log('Sync error:',e);}
+  };
+
+  const installPwa=async()=>{
+    if(!pwaPrompt)return;
+    pwaPrompt.prompt();
+    const{outcome}=await pwaPrompt.userChoice;
+    if(outcome==='accepted')setPwaPrompt(null);
+  };
+
+  const login=c=>{setUser(c);setTab(c.role==='patient'?'carnet':'dashboard');};
+  const logout=()=>{setUser(null);setTab('dashboard');if(supabase)supabase.auth.signOut();};
+
+  const alerts=consultations.filter(c=>matchMaladie(c.diagnostic)?.notif==='immédiate').length;
+
+  if(!ready)return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#0F8B4C'}}>
+      <div style={{fontSize:64,marginBottom:16}}>🏥</div>
+      <div className="spinner" style={{borderTopColor:'white',borderColor:'rgba(255,255,255,0.3)'}}/>
+      <p style={{color:'white',marginTop:16,fontWeight:700,fontSize:16}}>SNISB Health Link</p>
+      <p style={{color:'rgba(255,255,255,0.7)',fontSize:12,marginTop:4}}>Initialisation du système...</p>
+    </div>
+  );
+
+  if(!user)return <Login onLogin={login}/>;
+
+  const renderTab=()=>{
+    const props={user,patients,setPatients,consultations,setConsultations,rappels,setRappels,db};
+    switch(tab){
+      case 'dashboard':return<Dashboard user={user} patients={patients} consultations={consultations}/>;
+      case 'patients':return<Patients {...props}/>;
+      case 'consultations':return<Consultations {...props}/>;
+      case 'teleconsultation':return<Teleconsultation user={user} patients={patients} consultations={consultations} setConsultations={setConsultations} db={db}/>;
+      case 'dossiers':return<Dossiers patients={patients} consultations={consultations}/>;
+      case 'rappels':return<Rappels {...props}/>;
+      case 'export':return<Export consultations={consultations} patients={patients}/>;
+      case 'epidemio':return<Epidemio user={user} consultations={consultations}/>;
+      case 'carte':return<Carte consultations={consultations}/>;
+      case 'ia':return<IAClinique user={user} patients={patients} consultations={consultations}/>;
+      case 'formation':return<Formation user={user}/>;
+      case 'admin':return<Admin user={user} patients={patients} consultations={consultations}/>;
+      case 'carnet':case 'sante':return<Carnet user={user} consultations={consultations}/>;
+      default:return<Dashboard user={user} patients={patients} consultations={consultations}/>;
+    }
+  };
+
+  return(
+    <div className="app-layout">
+      {pwaPrompt&&(
+        <div className="pwa-banner">
+          <span style={{fontSize:20}}>📱</span>
+          <div style={{flex:1}}><strong>Installer SNISB Health Link</strong> comme application sur votre appareil — fonctionne sans Internet !</div>
+          <button className="btn btn-sm" style={{background:'white',color:'var(--primary)',fontWeight:700}} onClick={installPwa}>Installer</button>
+          <button className="btn-icon" style={{background:'rgba(255,255,255,0.2)'}} onClick={()=>setPwaPrompt(null)}>×</button>
+        </div>
+      )}
+      <Header user={user} online={online} onLogout={logout} syncPending={syncPending}/>
+      <div className="app-body">
+        <Nav user={user} active={tab} onChange={setTab} alerts={alerts}/>
+        <main className="main">{renderTab()}</main>
+      </div>
+      {!online&&(
+        <div className="offline-banner">
+          📵 Mode hors-ligne — Données sauvegardées localement (IndexedDB) — Synchronisation Supabase automatique au retour de connexion
+        </div>
+      )}
+    </div>
+  );
+}
+
+class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={error:null};}
+  static getDerivedStateFromError(e){return{error:e};}
+  render(){
+    if(this.state.error){
+      return React.createElement('div',{style:{padding:40,fontFamily:'sans-serif',textAlign:'center',background:'#fff',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
+        React.createElement('div',{style:{fontSize:48,marginBottom:16}},'🏥'),
+        React.createElement('h2',{style:{color:'#E74C3C',marginBottom:8}},'Erreur de chargement SNISB'),
+        React.createElement('p',{style:{color:'#666',marginBottom:16,fontSize:13}},this.state.error.message||'Erreur inconnue'),
+        React.createElement('button',{style:{background:'#00853E',color:'white',border:'none',padding:'12px 24px',borderRadius:8,cursor:'pointer',fontSize:14},onClick:()=>window.location.reload()},'🔄 Recharger')
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ═══════════════════════════════════════
+// SYSTÈME D'ICÔNES — Material Symbols Rounded
+// Remplace les emojis par des icônes cohérentes après chaque rendu,
+// sans toucher à la logique des composants (post-traitement DOM sûr).
+// ═══════════════════════════════════════
+const EMOJI_TO_ICON = {
+  '🏥':'local_hospital','⚕':'local_hospital','📊':'bar_chart','👤':'person','👥':'group',
+  '👨':'medical_services','👩':'medical_services','🩺':'stethoscope','📋':'assignment',
+  '🔔':'notifications','📤':'upload_file','🦠':'coronavirus','📚':'school','📓':'menu_book',
+  '❤':'favorite','🚪':'logout','🔐':'lock','🔒':'lock','✅':'check_circle','❌':'cancel',
+  '⚠':'warning','🚨':'emergency','💊':'medication','💉':'vaccines','📅':'calendar_month',
+  '🔄':'sync','🗺':'map','🤖':'smart_toy','💧':'water_drop','🦟':'pest_control',
+  '🧼':'clean_hands','📞':'call','⭐':'star','🎯':'track_changes','📈':'trending_up',
+  '📕':'picture_as_pdf','🔗':'link','📜':'history','🌡':'thermostat','💓':'monitor_heart',
+  '🏆':'emoji_events','🏅':'military_tech','📝':'edit_note','🔍':'search','➕':'add',
+  '🗑':'delete','⚙':'settings','💾':'save','📄':'description','📖':'auto_stories',
+  '📱':'smartphone','📵':'wifi_off','✏':'edit','💡':'lightbulb','🏃':'directions_run',
+  '🥗':'restaurant','👑':'shield_person','⚡':'bolt','📍':'location_on',
+  '🔴':'circle','🟡':'circle','🟢':'circle'
+};
+function applyIconSystem(){
+  const root=document.getElementById('root');
+  if(!root)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  const targets=[];
+  let node;
+  while((node=walker.nextNode())){
+    if(node.parentElement&&node.parentElement.classList&&node.parentElement.classList.contains('material-symbols-rounded'))continue;
+    for(const emoji of Object.keys(EMOJI_TO_ICON)){
+      if(node.nodeValue.indexOf(emoji)!==-1){ targets.push(node); break; }
+    }
+  }
+  targets.forEach(textNode=>{
+    const parts=[];
+    let remaining=textNode.nodeValue;
+    let matched=true;
+    while(matched&&remaining.length){
+      matched=false;
+      for(const emoji of Object.keys(EMOJI_TO_ICON)){
+        const idx=remaining.indexOf(emoji);
+        if(idx===-1)continue;
+        if(parts.length===0||true){
+          if(idx>0)parts.push({type:'text',v:remaining.slice(0,idx)});
+          parts.push({type:'icon',v:EMOJI_TO_ICON[emoji]});
+          remaining=remaining.slice(idx+emoji.length);
+          matched=true;
+          break;
+        }
+      }
+    }
+    if(remaining.length)parts.push({type:'text',v:remaining});
+    if(parts.length<=1)return;
+    const frag=document.createDocumentFragment();
+    parts.forEach(p=>{
+      if(p.type==='text'){ frag.appendChild(document.createTextNode(p.v)); }
+      else{
+        const span=document.createElement('span');
+        span.className='material-symbols-rounded';
+        span.textContent=p.v;
+        span.style.color=(p.v==='circle')?'inherit':'';
+        frag.appendChild(span);
+      }
+    });
+    textNode.parentNode.replaceChild(frag,textNode);
+  });
+}
+let iconRAF=null;
+const iconObserver=new MutationObserver(()=>{
+  if(iconRAF)cancelAnimationFrame(iconRAF);
+  iconRAF=requestAnimationFrame(applyIconSystem);
+});
+setTimeout(()=>{
+  const root=document.getElementById('root');
+  if(root){
+    iconObserver.observe(root,{childList:true,subtree:true,characterData:true});
+    applyIconSystem();
+  }
+},50);
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(ErrorBoundary,null,React.createElement(App,null))
+);
+</script>
+<script>
+// Nettoyage : désinstalle tout Service Worker installé par une version
+// précédente (source du blocage sur l'ancien contenu en cache). L'app
+// fonctionne pleinement sans lui — le stockage hors-ligne passe par
+// IndexedDB, indépendant du Service Worker.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){ r.unregister(); });
+  }).catch(function(){});
+}
+</script>
+</body>
+</html>

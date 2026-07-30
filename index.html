@@ -14,7 +14,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* ============================================================
@@ -1541,8 +1541,16 @@ function Admin({user,patients,consultations}){
 // CARNET PATIENT
 // ═══════════════════════════════════════
 function Carnet({user,consultations}){
-  const isub=user.isub||'BEN-ZS-OUE-03-2026-001234';
-  const myC=consultations.filter(c=>c.patient_isub===isub);
+  const isub=user.isub||null;
+  const myC=isub?consultations.filter(c=>c.patient_isub===isub):[];
+  if(!isub)return(<div>
+    <p className="page-title">📓 Mon Carnet</p>
+    <div className="alert alert-warning">
+      <span className="alert-icon">⚠️</span>
+      <div className="alert-content"><div className="alert-title">Compte non relié à une fiche patient</div>
+      <div className="alert-text">Contactez un administrateur pour relier votre compte à votre dossier patient (ISUB).</div></div>
+    </div>
+  </div>);
   return(<div>
     <div className="carnet-header">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>

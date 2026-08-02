@@ -232,10 +232,10 @@ const{useState,useEffect,useRef,useCallback,useMemo}=React;
 const SB_URL='https://ybfuosvvycnsausjqnlw.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InliZnVvc3Z2eWNuc2F1c2pxbmx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMzI0MTgsImV4cCI6MjA5OTYwODQxOH0.DjR-C_EETq5VlxrVsaTlfJYXHiq-1nJgcWv9PFLZq3Y';
 const EDGE_FUNCTIONS_URL='https://ybfuosvvycnsausjqnlw.supabase.co/functions/v1';
-let supabase=null;
+let supaClient=null;
 try{
   const sb=window.supabase||window.supabaseJs;
-  if(sb&&sb.createClient){supabase=sb.createClient(SB_URL,SB_KEY);console.log('Supabase OK');}
+  if(sb&&sb.createClient){supaClient=sb.createClient(SB_URL,SB_KEY);console.log('Supabase OK');}
 }catch(e){console.log('Supabase mode local:',e.message);}
 
 // ═══════════════════════════════════════
@@ -389,11 +389,11 @@ function Login({onLogin}){
   const go=async()=>{
     if(!u||!p)return;
     setLd(true);setErr('');
-    if(!supabase){setErr('Connexion au serveur indisponible. Réessayez plus tard.');setLd(false);return;}
+    if(!supaClient){setErr('Connexion au serveur indisponible. Réessayez plus tard.');setLd(false);return;}
     try{
-      const{data,error}=await supabase.auth.signInWithPassword({email:u+'@snisb.bj',password:p});
+      const{data,error}=await supaClient.auth.signInWithPassword({email:u+'@snibs.bj',password:p});
       if(error||!data?.user){setErr('Identifiant ou mot de passe incorrect.');setLd(false);return;}
-      const{data:profile,error:profErr}=await supabase.from('profiles').select('role,nom,zone,departement,isub').eq('id',data.user.id).single();
+      const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub').eq('id',data.user.id).single();
       if(profErr||!profile){setErr('Compte authentifié mais profil introuvable — contactez un administrateur.');setLd(false);return;}
       onLogin({username:u,supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub});
     }catch(e){setErr('Erreur de connexion. Vérifiez votre réseau et réessayez.');}
@@ -529,7 +529,7 @@ function Patients({user,patients,setPatients,db}){
   const save=async()=>{
     const p={isub,npi:form.npi||('TEMP'+Date.now().toString().slice(-6)),nom:form.nom,prenoms:form.prenoms,date_naissance:form.date_naissance,sexe:form.sexe,telephone:form.telephone,departement:form.departement,zone_sanitaire:form.zone_sanitaire,zone_nom:TOUTES_ZONES.find(z=>z.code===form.zone_sanitaire)?.nom||'',source:form.npi?'ANIP':'TEMPORAIRE',quality_score:sc?.score||0,allergies:form.allergies,maladies_chroniques:form.maladies_chroniques,enregistre_par:user.nom,created_at:new Date().toISOString()};
     if(db)await db.put('patients',p);
-    if(supabase){try{await supabase.from('patients').upsert(p);}catch(e){}}
+    if(supaClient){try{await supaClient.from('patients').upsert(p);}catch(e){}}
     setPatients(prev=>[...prev.filter(x=>x.isub!==isub),p]);
     setOk(true);setShowDbl(false);
     setTimeout(()=>{setOk(false);setForm({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:''});setSc(null);setIsub('');},2000);
@@ -635,7 +635,7 @@ function Consultations({user,patients,consultations,setConsultations,db}){
     const pat=patients.find(p=>p.isub===form.patient_isub);
     const c={id:uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),diagnostic:form.diagnostic,code_cim10:form.code_cim10,gravite:form.gravite,temperature:form.temperature,tension_s:form.tension_s,tension_d:form.tension_d,notes:form.notes,notif:MALADIES_SIMR.find(m=>m.nom===form.diagnostic)?.notif||'mensuelle',departement:pat?.departement||'',zone_sanitaire:pat?.zone_sanitaire||'',zone_nom:pat?.zone_nom||'',quality_score:sc?.score||0,risque:rq?.score||0,enregistre_par:user.nom,created_at:new Date().toISOString()};
     if(db)await db.put('consultations',c);
-    if(supabase){try{await supabase.from('consultations').insert(c);}catch(e){}}
+    if(supaClient){try{await supaClient.from('consultations').insert(c);}catch(e){}}
     setConsultations(prev=>[c,...prev]);setOk(true);setImmAlert(null);
     setTimeout(()=>{setOk(false);setForm({patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:''});setSrchP('');setDiagQ('');setSc(null);setRq(null);},2000);
   };
@@ -737,7 +737,7 @@ function Teleconsultation({user,patients,consultations,setConsultations,db}){
     setLoadingIA(true);setAvisIA('');
     try{
       let token='';
-      if(supabase){const{data:sd}=await supabase.auth.getSession();token=sd?.session?.access_token||'';}
+      if(supaClient){const{data:sd}=await supaClient.auth.getSession();token=sd?.session?.access_token||'';}
       if(!token)throw new Error('Session Supabase requise pour obtenir un avis IA.');
       const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -1031,22 +1031,22 @@ function Epidemio({user,consultations}){
   const[confirmId,setConfirmId]=useState(null);
 
   useEffect(()=>{
-    if(!supabase)return;
+    if(!supaClient)return;
     setLoadingAlertes(true);
-    supabase.from('alertes_epidemio').select('id,maladie_nom,maladie_code,zone_sanitaire,statut,created_at').eq('statut','ouverte').order('created_at',{ascending:false})
+    supaClient.from('alertes_epidemio').select('id,maladie_nom,maladie_code,zone_sanitaire,statut,created_at').eq('statut','ouverte').order('created_at',{ascending:false})
       .then(({data,error})=>{ if(!error&&data)setAlertesReelles(data); setLoadingAlertes(false); });
   },[]);
 
   const confirmerAlerte=async(id)=>{
-    if(!supabase)return;
-    await supabase.from('alertes_epidemio').update({statut:'notifiee',notifie_dds:true,updated_at:new Date().toISOString()}).eq('id',id);
+    if(!supaClient)return;
+    await supaClient.from('alertes_epidemio').update({statut:'notifiee',notifie_dds:true,updated_at:new Date().toISOString()}).eq('id',id);
     setAlertesReelles(prev=>prev.filter(a=>a.id!==id));
     setConfirmId(null);
   };
 
   return(<div>
     <p className="page-title">🦠 Surveillance Épidémiologique SIMR</p>
-    {supabase&&<div className="card" style={{borderLeft:'4px solid var(--danger)',marginBottom:20}}>
+    {supaClient&&<div className="card" style={{borderLeft:'4px solid var(--danger)',marginBottom:20}}>
       <div className="card-title" style={{color:'var(--danger)'}}>🚨 Alertes ouvertes nécessitant confirmation</div>
       {loadingAlertes?<div style={{fontSize:13,color:'var(--text-muted)'}}>Chargement...</div>
         :alertesReelles.length===0?<div style={{fontSize:13,color:'var(--text-muted)'}}>Aucune alerte ouverte pour le moment.</div>
@@ -1308,8 +1308,8 @@ function IAClinique({user,patients,consultations}){
     setLoading(true);
     try{
       let token='';
-      if(supabase){
-        const{data:sessionData}=await supabase.auth.getSession();
+      if(supaClient){
+        const{data:sessionData}=await supaClient.auth.getSession();
         token=sessionData?.session?.access_token||'';
       }
       if(!token)throw new Error('Session Supabase absente — reconnectez-vous avec votre vrai mot de passe Supabase (pas le mot de passe démo).');
@@ -1471,14 +1471,14 @@ function Admin({user,patients,consultations}){
   const[loadingLogs,setLoadingLogs]=useState(false);
 
   useEffect(()=>{
-    if(tab==='users'&&supabase&&realUsers.length===0){
+    if(tab==='users'&&supaClient&&realUsers.length===0){
       setLoadingUsers(true);
-      supabase.from('profiles').select('username,nom,role,zone,departement,actif').order('nom')
+      supaClient.from('profiles').select('username,nom,role,zone,departement,actif').order('nom')
         .then(({data,error})=>{ if(!error&&data)setRealUsers(data); setLoadingUsers(false); });
     }
-    if(tab==='logs'&&supabase&&realLogs.length===0){
+    if(tab==='logs'&&supaClient&&realLogs.length===0){
       setLoadingLogs(true);
-      supabase.from('audit_logs').select('action,user_nom,details,created_at').order('created_at',{ascending:false}).limit(50)
+      supaClient.from('audit_logs').select('action,user_nom,details,created_at').order('created_at',{ascending:false}).limit(50)
         .then(({data,error})=>{ if(!error&&data)setRealLogs(data); setLoadingLogs(false); });
     }
   },[tab]);
@@ -1489,7 +1489,7 @@ function Admin({user,patients,consultations}){
       {[['users','👥 Utilisateurs'],['zones','🗺️ Zones sanitaires'],['kpi','📊 KPIs'],['logs','📝 Audit'],['pwa','📱 PWA & Sync']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
     </div>
     {tab==='users'&&<div className="card"><div className="card-title">👥 Utilisateurs du système</div>
-      {!supabase?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher les utilisateurs réels.</div></div>
+      {!supaClient?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher les utilisateurs réels.</div></div>
       :loadingUsers?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
       :realUsers.length===0?<div className="empty-state"><div className="empty-text">Aucun utilisateur trouvé dans la base.</div></div>
       :<div className="table-wrap"><table>
@@ -1508,7 +1508,7 @@ function Admin({user,patients,consultations}){
       </div>
     </div>}
     {tab==='logs'&&<div className="card"><div className="card-title">📝 Journal d'audit</div>
-      {!supabase?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher le journal réel.</div></div>
+      {!supaClient?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher le journal réel.</div></div>
       :loadingLogs?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
       :realLogs.length===0?<div className="empty-state"><div className="empty-text">Aucune entrée d'audit pour le moment.</div></div>
       :realLogs.map((l,i)=>(
@@ -1640,20 +1640,20 @@ function App(){
 
   // Supabase realtime (si disponible)
   useEffect(()=>{
-    if(!supabase||!user)return;
-    const channel=supabase.channel('snisb-realtime')
+    if(!supaClient||!user)return;
+    const channel=supaClient.channel('snisb-realtime')
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'consultations'},payload=>{
         setConsultations(prev=>{if(prev.find(c=>c.id===payload.new.id))return prev;return[payload.new,...prev];});
       })
       .subscribe();
-    return()=>supabase.removeChannel(channel);
+    return()=>supaClient.removeChannel(channel);
   },[user]);
 
   const syncWithSupabase=async()=>{
-    if(!supabase||!db)return;
+    if(!supaClient||!db)return;
     try{
-      const{data:remoteC}=await supabase.from('consultations').select('*').order('created_at',{ascending:false}).limit(100);
-      const{data:remoteP}=await supabase.from('patients').select('*').limit(200);
+      const{data:remoteC}=await supaClient.from('consultations').select('*').order('created_at',{ascending:false}).limit(100);
+      const{data:remoteP}=await supaClient.from('patients').select('*').limit(200);
       if(remoteC){for(const c of remoteC)await db.put('consultations',c);setConsultations(remoteC);}
       if(remoteP){for(const p of remoteP)await db.put('patients',p);setPatients(remoteP);}
       setSyncPending(0);
@@ -1668,7 +1668,7 @@ function App(){
   };
 
   const login=c=>{setUser(c);setTab(c.role==='patient'?'carnet':'dashboard');};
-  const logout=()=>{setUser(null);setTab('dashboard');if(supabase)supabase.auth.signOut();};
+  const logout=()=>{setUser(null);setTab('dashboard');if(supaClient)supaClient.auth.signOut();};
 
   const alerts=consultations.filter(c=>matchMaladie(c.diagnostic)?.notif==='immédiate').length;
 

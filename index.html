@@ -482,7 +482,7 @@ function Dashboard({user,patients,consultations}){
       i1.current=new Chart(r1.current,{type:'line',data:{labels:d7.map(x=>x.l),datasets:[{label:'Consultations',data:d7.map(x=>x.v),borderColor:'#0F8B4C',backgroundColor:'rgba(15,139,76,0.06)',borderWidth:2,tension:0.3,fill:true,pointBackgroundColor:'#0F8B4C',pointBorderColor:'#fff',pointBorderWidth:1.5,pointRadius:3,pointHoverRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#212121',padding:10,cornerRadius:6,titleFont:{family:'Inter',size:12},bodyFont:{family:'Inter',size:12}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Inter',size:11},color:'#757575'},grid:{color:'#EEEEEE',borderDash:[3,3]},border:{display:false}},x:{ticks:{font:{family:'Inter',size:11},color:'#757575'},grid:{display:false},border:{color:'#E0E0E0'}}}}});}
     if(r2.current){if(i2.current)i2.current.destroy();
       i2.current=new Chart(r2.current,{type:'doughnut',data:{labels:['Paludisme 44.7%','IRA 11.9%','Diarrhées 5.4%','Autres 38%'],datasets:[{data:[44.7,11.9,5.4,38],backgroundColor:['#F44336','#FF9800','#1565C0','#BDBDBD'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{family:'Inter',size:11},color:'#424242',padding:12,usePointStyle:true,pointStyle:'circle'}},tooltip:{backgroundColor:'#212121',padding:10,cornerRadius:6,bodyFont:{family:'Inter',size:12}}}}});}
-    return()=>{if(i1.current)i1.current.destroy();if(i2.current)i2.current.destroy();};
+    return()=>{try{if(i1.current){i1.current.destroy();i1.current=null;}if(i2.current){i2.current.destroy();i2.current=null;}}catch(e){}};
   },[consultations]);
   return(<div>
     <p className="page-title">📊 Tableau de bord</p>
@@ -1163,7 +1163,7 @@ function Carte({consultations}){
       maxZoom:12, minZoom:6
     }).addTo(map);
     mapInstance.current=map;
-    return()=>{ map.remove(); mapInstance.current=null; };
+    return()=>{ try{map.remove();}catch(e){} mapInstance.current=null; };
   },[]);
 
   useEffect(()=>{
@@ -1283,7 +1283,7 @@ function IAClinique({user,patients,consultations}){
   const endRef=useRef(null);
   const QUICK_PROMPTS=['Protocole traitement paludisme simple Bénin','Critères de gravité méningite','Seuil alerte épidémique choléra','Analyse épidémio de ma zone','Définition de cas rougeole SIMR'];
 
-  useEffect(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),[messages]);
+  useEffect(()=>{ if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'}); },[messages]);
 
   const buildContext=()=>{
     const totalP=patients.length;
@@ -1646,7 +1646,7 @@ function App(){
         setConsultations(prev=>{if(prev.find(c=>c.id===payload.new.id))return prev;return[payload.new,...prev];});
       })
       .subscribe();
-    return()=>supaClient.removeChannel(channel);
+    return()=>{ try{ supaClient.removeChannel(channel); }catch(e){} };
   },[user]);
 
   const syncWithSupabase=async()=>{

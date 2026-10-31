@@ -298,9 +298,9 @@ const COMPTES_DEMO=[
 ];
 
 const ROLES={
-  admin:{label:'Administrateur National',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','export','epidemio','carte','ia','formation','admin']},
-  medecin:{label:'Médecin',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','export','epidemio','carte','ia','formation']},
-  infirmier:{label:'Infirmier / Sage-femme',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','rappels','ia','formation']},
+  admin:{label:'Administrateur National',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','export','epidemio','carte','ia','formation','admin']},
+  medecin:{label:'Médecin',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','export','epidemio','carte','ia','formation']},
+  infirmier:{label:'Infirmier / Sage-femme',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','ia','formation']},
   statisticien:{label:'Statisticien SNIS',onglets:['dashboard','export','epidemio','carte','ia','formation']},
   patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia','sante']}
 };
@@ -459,7 +459,7 @@ function Nav({user,active,onChange,alerts}){
     rappels:{l:'Rappels',i:'notifications'},export:{l:'Export DHIS2',i:'upload_file'},
     epidemio:{l:'Épidémiologie',i:'coronavirus'},carte:{l:'Carte',i:'map'},
     ia:{l:'IA Clinique',i:'smart_toy'},formation:{l:'Formation',i:'school'},
-    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},sante:{l:'Ma Santé',i:'favorite'}
+    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},carnet_sante:{l:'Carnet de santé',i:'menu_book'},sante:{l:'Ma Santé',i:'favorite'}
   };
   return(<aside className="sidebar">
     {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
@@ -619,25 +619,40 @@ function Patients({user,patients,setPatients,db}){
 // ═══════════════════════════════════════
 // CONSULTATIONS
 // ═══════════════════════════════════════
+const FORM_CONSULT_VIDE={patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:'',plainte:'',autres_signes:'',pouls:'',conduite:'',categorie_tarification:'',numero_ordre:'',med1:'',med2:'',med3:'',med4:'',med5:'',evolution:''};
+const CHAMPS_CARNET_SOINS=['plainte','autres_signes','pouls','conduite','categorie_tarification','numero_ordre','medicaments','evolution'];
+async function envoyerConsultation(c){
+  if(!supaClient)return;
+  const vide=v=>(v===''||v===undefined)?null:v;
+  const row=Object.assign({},c,{temperature:vide(c.temperature),tension_s:vide(c.tension_s),tension_d:vide(c.tension_d),pouls:vide(c.pouls)});
+  try{
+    const r=await supaClient.from('consultations').insert(row);
+    if(r&&r.error){
+      const m=(r.error.message||'')+' '+(r.error.code||'');
+      if(/column|42703|PGRST204/i.test(m)){const base=Object.assign({},row);CHAMPS_CARNET_SOINS.forEach(k=>{delete base[k];});await supaClient.from('consultations').insert(base);}
+    }
+  }catch(e){}
+}
 function Consultations({user,patients,consultations,setConsultations,db}){
   const[tab,setTab]=useState('liste');
-  const[form,setForm]=useState({patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:''});
+  const[form,setForm]=useState({...FORM_CONSULT_VIDE});
   const[srchP,setSrchP]=useState('');const[psug,setPsug]=useState([]);
   const[diagQ,setDiagQ]=useState('');const[dsug,setDsug]=useState([]);
   const[sc,setSc]=useState(null);const[rq,setRq]=useState(null);
   const[immAlert,setImmAlert]=useState(null);const[ok,setOk]=useState(false);
   const srchPat=q=>{setSrchP(q);setPsug(q.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(q.toLowerCase())||p.isub?.includes(q)).slice(0,6):[]);};
-  const selPat=p=>{setSrchP(p.nom+' '+p.prenoms);setForm(f=>({...f,patient_isub:p.isub}));setPsug([]);};
-  const selDiag=m=>{const nf={...form,diagnostic:m.nom,code_cim10:m.code};setForm(nf);setDiagQ(m.nom);setDsug([]);setImmAlert(m.notif==='immédiate'?m:null);setSc(scoreQualite(nf));setRq(risqueEpidemio(nf));};
-  const upd=(f,v)=>{const nf={...form,[f]:v};setForm(nf);if(nf.diagnostic){setSc(scoreQualite(nf));setRq(risqueEpidemio(nf));}};
+  const calcScore=nf=>{const pat=patients.find(x=>x.isub===nf.patient_isub)||{};return scoreQualite({...pat,...nf});};
+  const selPat=p=>{setSrchP(p.nom+' '+p.prenoms);const nf={...form,patient_isub:p.isub};setForm(nf);setPsug([]);if(nf.diagnostic){setSc(calcScore(nf));setRq(risqueEpidemio(nf));}};
+  const selDiag=m=>{const nf={...form,diagnostic:m.nom,code_cim10:m.code};setForm(nf);setDiagQ(m.nom);setDsug([]);setImmAlert(m.notif==='immédiate'?m:null);setSc(calcScore(nf));setRq(risqueEpidemio(nf));};
+  const upd=(f,v)=>{const nf={...form,[f]:v};setForm(nf);if(nf.diagnostic){setSc(calcScore(nf));setRq(risqueEpidemio(nf));}};
   const submit=async()=>{
     if(!sc||sc.score<70||!form.patient_isub)return;
     const pat=patients.find(p=>p.isub===form.patient_isub);
-    const c={id:uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),diagnostic:form.diagnostic,code_cim10:form.code_cim10,gravite:form.gravite,temperature:form.temperature,tension_s:form.tension_s,tension_d:form.tension_d,notes:form.notes,notif:MALADIES_SIMR.find(m=>m.nom===form.diagnostic)?.notif||'mensuelle',departement:pat?.departement||'',zone_sanitaire:pat?.zone_sanitaire||'',zone_nom:pat?.zone_nom||'',quality_score:sc?.score||0,risque:rq?.score||0,enregistre_par:user.nom,created_at:new Date().toISOString()};
+    const c={id:uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),diagnostic:form.diagnostic,code_cim10:form.code_cim10,gravite:form.gravite,temperature:form.temperature,tension_s:form.tension_s,tension_d:form.tension_d,notes:form.notes,plainte:form.plainte||null,autres_signes:form.autres_signes||null,pouls:form.pouls?Number(form.pouls):null,conduite:form.conduite||null,categorie_tarification:form.categorie_tarification||null,numero_ordre:form.numero_ordre||null,medicaments:[form.med1,form.med2,form.med3,form.med4,form.med5].filter(x=>x&&x.trim()),evolution:form.evolution||null,notif:MALADIES_SIMR.find(m=>m.nom===form.diagnostic)?.notif||'mensuelle',departement:pat?.departement||'',zone_sanitaire:pat?.zone_sanitaire||'',zone_nom:pat?.zone_nom||'',quality_score:sc?.score||0,risque:rq?.score||0,enregistre_par:user.nom,created_at:new Date().toISOString()};
     if(db)await db.put('consultations',c);
-    if(supaClient){try{await supaClient.from('consultations').insert(c);}catch(e){}}
+    await envoyerConsultation(c);
     setConsultations(prev=>[c,...prev]);setOk(true);setImmAlert(null);
-    setTimeout(()=>{setOk(false);setForm({patient_isub:'',diagnostic:'',code_cim10:'',gravite:'modérée',temperature:'',tension_s:'',tension_d:'',notes:''});setSrchP('');setDiagQ('');setSc(null);setRq(null);},2000);
+    setTimeout(()=>{setOk(false);setForm({...FORM_CONSULT_VIDE});setSrchP('');setDiagQ('');setSc(null);setRq(null);},2000);
   };
   return(<div>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
@@ -684,6 +699,22 @@ function Consultations({user,patients,consultations,setConsultations,db}){
           <div className="form-group"><label className="form-label">Tension systolique</label><input className="form-input" type="number" placeholder="120" value={form.tension_s} onChange={e=>upd('tension_s',e.target.value)}/></div>
           <div className="form-group"><label className="form-label">Tension diastolique</label><input className="form-input" type="number" placeholder="80" value={form.tension_d} onChange={e=>upd('tension_d',e.target.value)}/></div>
         </div>
+        <div className="form-group"><label className="form-label">Plainte dominante</label><input className="form-input" value={form.plainte} onChange={e=>upd('plainte',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Autres signes</label><input className="form-input" value={form.autres_signes} onChange={e=>upd('autres_signes',e.target.value)}/></div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Pouls (/min)</label><input className="form-input" type="number" min="20" max="250" value={form.pouls} onChange={e=>upd('pouls',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">N° d'ordre</label><input className="form-input" value={form.numero_ordre} onChange={e=>upd('numero_ordre',e.target.value)}/></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Conduite tenue</label>
+            <select className="form-select" value={form.conduite} onChange={e=>upd('conduite',e.target.value)}><option value="">—</option><option value="Traitement">Traitement</option><option value="Référence">Référence</option><option value="Traitement et référence">Traitement et référence</option></select>
+          </div>
+          <div className="form-group"><label className="form-label">Catégorie de tarification</label><input className="form-input" value={form.categorie_tarification} onChange={e=>upd('categorie_tarification',e.target.value)}/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Médicaments et posologie</label>
+          {['med1','med2','med3','med4','med5'].map((k,i)=><input key={k} className="form-input" style={{marginBottom:6}} placeholder={(i+1)+'.)'} value={form[k]} onChange={e=>upd(k,e.target.value)}/>)}
+        </div>
+        <div className="form-group"><label className="form-label">Évolution</label><textarea className="form-textarea" value={form.evolution} onChange={e=>upd('evolution',e.target.value)}/></div>
         <div className="form-group"><label className="form-label">Notes cliniques</label><textarea className="form-textarea" placeholder="Observations, traitements prescrits..." value={form.notes} onChange={e=>upd('notes',e.target.value)}/></div>
         <button className="btn btn-primary btn-full" onClick={submit} disabled={!form.patient_isub||!sc||sc.score<70}>💾 Enregistrer</button>
         {sc&&sc.score<70&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc?.score||0}/100 — minimum 70 requis</div>}
@@ -1540,9 +1571,396 @@ function Admin({user,patients,consultations}){
 // ═══════════════════════════════════════
 // CARNET PATIENT
 // ═══════════════════════════════════════
-function Carnet({user,consultations}){
+const WHO_LMS={"boys":[[0.3487,3.3464,0.14602],[0.2297,4.4709,0.13395],[0.197,5.5675,0.12385],[0.1738,6.3762,0.11727],[0.1553,7.0023,0.11316],[0.1395,7.5105,0.1108],[0.1257,7.934,0.10958],[0.1134,8.297,0.10902],[0.1021,8.6151,0.10882],[0.0917,8.9014,0.10881],[0.082,9.1649,0.10891],[0.073,9.4122,0.10906],[0.0644,9.6479,0.10925],[0.0563,9.8749,0.10949],[0.0487,10.0953,0.10976],[0.0413,10.3108,0.11007],[0.0343,10.5228,0.11041],[0.0275,10.7319,0.11079],[0.0211,10.9385,0.11119],[0.0148,11.143,0.11164],[0.0087,11.3462,0.11211],[0.0029,11.5486,0.11261],[-0.0028,11.7504,0.11314],[-0.0083,11.9514,0.11369],[-0.0137,12.1515,0.11426],[-0.0189,12.3502,0.11485],[-0.024,12.5466,0.11544],[-0.0289,12.7401,0.11604],[-0.0337,12.9303,0.11664],[-0.0385,13.1169,0.11723],[-0.0431,13.3,0.11781],[-0.0476,13.4798,0.11839],[-0.052,13.6567,0.11896],[-0.0564,13.8309,0.11953],[-0.0606,14.0031,0.12008],[-0.0648,14.1736,0.12062],[-0.0689,14.3429,0.12116],[-0.0729,14.5113,0.12168],[-0.0769,14.6791,0.1222],[-0.0808,14.8466,0.12271],[-0.0846,15.014,0.12322],[-0.0883,15.1813,0.12373],[-0.092,15.3486,0.12425],[-0.0957,15.5158,0.12478],[-0.0993,15.6828,0.12531],[-0.1028,15.8497,0.12586],[-0.1063,16.0163,0.12643],[-0.1097,16.1827,0.127],[-0.1131,16.3489,0.12759],[-0.1165,16.515,0.12819],[-0.1198,16.6811,0.1288],[-0.123,16.8471,0.12943],[-0.1262,17.0132,0.13005],[-0.1294,17.1792,0.13069],[-0.1325,17.3452,0.13133],[-0.1356,17.5111,0.13197],[-0.1387,17.6768,0.13261],[-0.1417,17.8422,0.13325],[-0.1447,18.0073,0.13389],[-0.1477,18.1722,0.13453],[-0.1506,18.3366,0.13517]],"girls":[[0.3809,3.2322,0.14171],[0.1714,4.1873,0.13724],[0.0962,5.1282,0.13],[0.0402,5.8458,0.12619],[-0.005,6.4237,0.12402],[-0.043,6.8985,0.12274],[-0.0756,7.297,0.12204],[-0.1039,7.6422,0.12178],[-0.1288,7.9487,0.12181],[-0.1507,8.2254,0.12199],[-0.17,8.48,0.12223],[-0.1872,8.7192,0.12247],[-0.2024,8.9481,0.12268],[-0.2158,9.1699,0.12283],[-0.2278,9.387,0.12294],[-0.2384,9.6008,0.12299],[-0.2478,9.8124,0.12303],[-0.2562,10.0226,0.12306],[-0.2637,10.2315,0.12309],[-0.2703,10.4393,0.12315],[-0.2762,10.6464,0.12323],[-0.2815,10.8534,0.12335],[-0.2862,11.0608,0.1235],[-0.2903,11.2688,0.12369],[-0.2941,11.4775,0.1239],[-0.2975,11.6864,0.12414],[-0.3005,11.8947,0.12441],[-0.3032,12.1015,0.12472],[-0.3057,12.3059,0.12506],[-0.308,12.5073,0.12545],[-0.3101,12.7055,0.12587],[-0.312,12.9006,0.12633],[-0.3138,13.093,0.12683],[-0.3155,13.2837,0.12737],[-0.3171,13.4731,0.12794],[-0.3186,13.6618,0.12855],[-0.3201,13.8503,0.12919],[-0.3216,14.0385,0.12988],[-0.323,14.2265,0.13059],[-0.3243,14.414,0.13135],[-0.3257,14.601,0.13213],[-0.327,14.7873,0.13293],[-0.3283,14.9727,0.13376],[-0.3296,15.1573,0.1346],[-0.3309,15.341,0.13545],[-0.3322,15.524,0.1363],[-0.3335,15.7064,0.13716],[-0.3348,15.8882,0.138],[-0.3361,16.0697,0.13884],[-0.3374,16.2511,0.13968],[-0.3387,16.4322,0.14051],[-0.34,16.6133,0.14132],[-0.3414,16.7942,0.14213],[-0.3427,16.9748,0.14293],[-0.344,17.1551,0.14371],[-0.3453,17.3347,0.14448],[-0.3466,17.5136,0.14525],[-0.3479,17.6916,0.146],[-0.3492,17.8686,0.14675],[-0.3505,18.0445,0.14748],[-0.3518,18.2193,0.14821]]};
+// ═══════════════════════════════════════
+// CARNET DE SANTÉ — modèle : carnet de santé béninois (HBR Bénin 2014, Ministère de la Santé)
+// Courbes : normes OMS poids-pour-l'âge 0-5 ans (tables LMS)
+// ═══════════════════════════════════════
+const whoKey=s=>s==='F'?'girls':'boys';
+const whoWeight=(sex,m,z)=>{const t=WHO_LMS[whoKey(sex)][m];if(!t)return null;const L=t[0],M=t[1],S=t[2];return L===0?M*Math.exp(S*z):M*Math.pow(1+L*S*z,1/L);};
+const whoZ=(sex,m,w)=>{const t=WHO_LMS[whoKey(sex)][m];if(!t)return null;const L=t[0],M=t[1],S=t[2];return L===0?Math.log(w/M)/S:(Math.pow(w/M,L)-1)/(L*S);};
+const ageMonths=(birth,at)=>{if(!birth)return null;const b=new Date(birth),a=new Date(at||Date.now());if(isNaN(b.getTime())||isNaN(a.getTime()))return null;return (a-b)/86400000/30.4375;};
+const fmtAge=m=>{if(m===null||m===undefined)return '—';if(m<24)return Math.max(0,Math.floor(m))+' mois';const y=Math.floor(m/12);return y+' an'+(y>1?'s':'');};
+const todayISO=()=>new Date().toISOString().slice(0,10);
+
+const VACCINS_CARNET=[
+  {id:'BCG',l:'BCG',g:'a'},{id:'PENTA1',l:'PENTA 1 (DTC1-HepB1-Hib1)',g:'a'},{id:'PENTA2',l:'PENTA 2 (DTC2-HepB2-Hib2)',g:'a'},{id:'PENTA3',l:'PENTA 3 (DTC3-HepB3-Hib3)',g:'a'},{id:'VAR1',l:'VAR 1ère dose',g:'a'},{id:'VAR2',l:'VAR 2ème dose',g:'a'},
+  {id:'POLIO0',l:'POLIO 0',g:'b'},{id:'POLIO1',l:'POLIO 1',g:'b'},{id:'POLIO2',l:'POLIO 2',g:'b'},{id:'POLIO3',l:'POLIO 3',g:'b'},{id:'VAA',l:'VAA',g:'b'},
+  {id:'VAT1',l:'VAT 1',g:'c'},{id:'VAT2',l:'VAT 2',g:'c'},{id:'VAT3',l:'VAT 3',g:'c'},{id:'VAT4',l:'VAT 4',g:'c'},{id:'VAT5',l:'VAT 5',g:'c'}
+];
+const FD=(k,l,t,o)=>Object.assign({k:k,l:l,t:t||'text'},o||{});
+const OUI_NON=['Oui','Non'];
+const CARNET_SECTIONS={
+  vaccination:{label:'Vaccinations',icon:'💉',required:['vaccin'],fields:[
+    FD('vaccin','Vaccin','select',{opts:VACCINS_CARNET.map(v=>v.l).concat(['Autre (préciser)'])}),
+    FD('autre','Si autre : nom du vaccin','text',{ph:'Ex : PCV, Rota, VPI, RR, MenA, HPV…'}),
+    FD('lot','N° de lot (optionnel)','text')
+  ]},
+  croissance:{label:'Croissance',icon:'📈',required:['poids_kg'],fields:[
+    FD('poids_kg','Poids (kg)','number',{min:0.3,max:30,step:0.01}),
+    FD('taille_cm','Taille / longueur (cm)','number',{min:30,max:130,step:0.1}),
+    FD('vitamine_a','Vitamine A reçue','check'),
+    FD('observations','Observations','area')
+  ]},
+  famille:{label:'Famille',icon:'👪',required:[],fields:[
+    FD('lieu_naissance','Lieu de naissance','text'),
+    FD('commune','Commune','text'),FD('formation_sanitaire','Formation sanitaire','text'),
+    FD('h1','MÈRE','h'),FD('mere_nom','Nom et prénoms','text'),FD('mere_age','Âge','number',{min:10,max:90,step:1}),FD('mere_ethnie','Ethnie','text'),FD('mere_profession','Profession','text'),FD('mere_adresse','Adresse','text'),
+    FD('h2','PÈRE','h'),FD('pere_nom','Nom et prénoms','text'),FD('pere_age','Âge','number',{min:10,max:110,step:1}),FD('pere_ethnie','Ethnie','text'),FD('pere_profession','Profession','text'),FD('pere_adresse','Adresse','text')
+  ]},
+  antecedents:{label:'Antécédents',icon:'🧬',required:[],fields:[
+    FD('h1','PÈRE','h'),FD('pere_bw_tpha','BW / TPHA','text'),FD('pere_gs','Groupe sanguin','text'),FD('pere_rh','Rhésus','text'),FD('pere_emmel','Test d’Emmel','select',{opts:['Positif','Négatif','Non fait']}),FD('pere_hb','Électrophorèse Hb','text'),
+    FD('h2','MÈRE','h'),FD('mere_bw_tpha','BW / TPHA','text'),FD('mere_gs','Groupe sanguin','text'),FD('mere_rh','Rhésus','text'),FD('mere_emmel','Test d’Emmel','select',{opts:['Positif','Négatif','Non fait']}),FD('mere_hb','Électrophorèse Hb','text'),FD('mere_hbs','Hbs','text'),
+    FD('h3','ANTÉCÉDENTS FAMILIAUX','h'),FD('diabete','Diabète','select',{opts:['Oui','Non','Ne sait pas']}),FD('hta','HTA','select',{opts:['Oui','Non','Ne sait pas']}),FD('asthme','Asthme','select',{opts:['Oui','Non','Ne sait pas']})
+  ]},
+  gyneco:{label:'Gynéco-obstétrical',icon:'🤰',required:[],fields:[
+    FD('taille_cm','Taille (cm)','number',{min:100,max:220,step:1}),FD('cesarienne','Césarienne (nombre)','number',{min:0,max:20,step:1}),FD('gestite','Gestité','number',{min:0,max:30,step:1}),
+    FD('avortement_spontane','Avortement spontané (nombre)','number',{min:0,max:20,step:1}),FD('avortement_provoque','Avortement provoqué (nombre)','number',{min:0,max:20,step:1}),FD('enfants_vivants','Nombre d’enfants vivants','number',{min:0,max:25,step:1}),FD('curetage','Curetage (nombre)','number',{min:0,max:20,step:1}),FD('autres','Autres','text'),
+    FD('h1','GROSSESSE ACTUELLE','h'),FD('dr','Date des dernières règles','date'),FD('terme_prevu','Terme prévu le','date'),FD('age_grossesse','Âge de la grossesse (semaines)','number',{min:1,max:45,step:1}),
+    FD('vat_complete','Complètement vaccinée (antitétanique)','check')
+  ]},
+  cpn:{label:'Consultation prénatale',icon:'🩺',required:['visite'],fields:[
+    FD('visite','Numéro de la visite','select',{opts:['1','2','3','4','5','6','7','8']}),
+    FD('mois_grossesse','Mois de grossesse','number',{min:1,max:10,step:1}),FD('temperature','Température (°C)','number',{min:34,max:42,step:0.1}),FD('ta','TA (ex : 120/80)','text',{pattern:'^[0-9]{2,3}\\/[0-9]{2,3}$',err:'Format attendu : 120/80'}),FD('bdc','BDC (battements/min)','number',{min:60,max:220,step:1}),
+    FD('urines_alb','Urines : albumine','text'),FD('urines_sucre','Urines : sucre','text'),FD('poids','Poids (kg)','number',{min:25,max:200,step:0.1}),FD('perimetre_ombilical','Périmètre ombilical (cm)','number',{min:50,max:160,step:0.5}),FD('hu','HU (cm)','number',{min:5,max:50,step:0.5}),
+    FD('oedemes','Œdèmes','select',{opts:OUI_NON}),FD('ictere','Ictère','select',{opts:OUI_NON}),FD('conjonctives','Conjonctives','text'),FD('presentation','Présentation','text'),FD('tv','TV','text'),FD('saignement','Saignement','text'),FD('seins','Examen des seins','text'),
+    FD('fer_acide_folique','Fer / Acide folique','text'),FD('tpi_sp','TPI/SP','text'),FD('miild','MIILD','text'),FD('speculum','Examen au spéculum','select',{opts:OUI_NON}),FD('observations','Observations','area')
+  ]},
+  accouchement:{label:'Accouchement',icon:'👶',required:['lieu'],fields:[
+    FD('lieu','Lieu','select',{opts:['Domicile','Maternité','UVS']}),FD('entree_le','Entrée le','date'),FD('poids_mere','Poids de la mère (kg)','number',{min:25,max:200,step:0.1}),FD('ta','TA (ex : 120/80)','text',{pattern:'^[0-9]{2,3}\\/[0-9]{2,3}$',err:'Format attendu : 120/80'}),FD('albumine','Albumine','text'),FD('oedemes','Œdèmes','select',{opts:OUI_NON}),
+    FD('h1','ÉTAT DU NOUVEAU-NÉ','h'),FD('heure_naissance','Heure de la naissance','time'),FD('respiration','Respiration','select',{opts:['Spontanée','Réanimation']}),FD('apgar_1','APGAR 1ère mn','number',{min:0,max:10,step:1}),FD('apgar_5','APGAR 5e mn','number',{min:0,max:10,step:1}),FD('apgar_10','APGAR 10e mn','number',{min:0,max:10,step:1}),FD('poids_nn','Poids du nouveau-né (kg)','number',{min:0.3,max:7,step:0.01}),FD('sexe_nn','Sexe du nouveau-né','select',{opts:['Masculin','Féminin']}),FD('ictere_nn','Ictère du nouveau-né','select',{opts:OUI_NON}),
+    FD('h2','DÉLIVRANCE','h'),FD('delivrance','Délivrance','select',{opts:['Naturelle','Artificielle']}),FD('delivrance_heure','Heure de la délivrance','time'),FD('placenta_integre','Placenta intègre','select',{opts:OUI_NON}),FD('placenta_poids','Poids du placenta (kg)','number',{min:0.1,max:2,step:0.01}),FD('hemorragie','Hémorragie','check'),FD('vit_a','Vitamine A à l’accouchée','select',{opts:OUI_NON}),
+    FD('observations','Observations','area'),FD('suite_couches','Suite de couches','area')
+  ]},
+  postnatal:{label:'Post-natal et PF',icon:'🤱',required:['visite'],fields:[
+    FD('visite','Consultation post-natale','select',{opts:['1ère (2 semaines après l’accouchement)','2ème (6 semaines après l’accouchement)']}),
+    FD('poids','Poids (kg)','number',{min:25,max:200,step:0.1}),FD('temperature','Température (°C)','number',{min:34,max:42,step:0.1}),FD('ta','TA (ex : 120/80)','text',{pattern:'^[0-9]{2,3}\\/[0-9]{2,3}$',err:'Format attendu : 120/80'}),FD('seins','Examen des seins','text'),FD('conjonctives','Coloration des conjonctives','text'),FD('involution','Involution utérine','text'),FD('autres_examens','Autres examens sur indications','text'),FD('speculum','Spéculum','text'),FD('tv','TV','text'),
+    FD('h1','PLANIFICATION FAMILIALE','h'),FD('pf_sensibilisee','La femme est sensibilisée sur la PF','select',{opts:OUI_NON}),FD('pf_accepte','La femme accepte une méthode','select',{opts:OUI_NON}),FD('pf_methode','Méthode acceptée','select',{opts:['MAMA','Préservatifs','DIU','CO','Cinj','Autre']}),FD('pf_methode_autre','Si autre : préciser','text'),FD('pf_fiche','N° de fiche de PF','text'),FD('conclusion','Conclusion et conduite tenue','area')
+  ]},
+  nutrition:{label:'Nutrition',icon:'🥗',required:['regime'],fields:[
+    FD('age_enfant','Âge de l’enfant','text',{ph:'Ex : 9 mois'}),FD('regime','Régime alimentaire','text'),FD('conseils','Conseils alimentaires','text'),FD('vit_a','Vitamine A administrée','check'),FD('fer_folique','Fer / Acide folique administré','check'),FD('deparasitage','Déparasitage','check')
+  ]}
+};
+const ROLES_ECRITURE_CARNET=['medecin','infirmier'];
+
+// Outbox hors ligne (localStorage) — jamais bloquant si le stockage est indisponible
+const lsGet=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const OUTBOX_KEY='snisb_carnet_outbox';
+
+async function carnetFlushOutbox(){
+  if(!supaClient)return{sent:0,left:lsGet(OUTBOX_KEY,[]).length,tableMissing:false};
+  const box=lsGet(OUTBOX_KEY,[]);const left=[];let sent=0,tableMissing=false;
+  for(const row of box){
+    try{
+      const{error}=await supaClient.from('carnet_entries').insert(row);
+      if(!error||error.code==='23505'){sent++;}
+      else{ if(error.code==='42P01'||(error.message||'').includes('carnet_entries'))tableMissing=true; left.push(row);}
+    }catch(e){left.push(row);}
+  }
+  lsSet(OUTBOX_KEY,left);
+  return{sent:sent,left:left.length,tableMissing:tableMissing};
+}
+
+function CarnetChampsForm({sec,vals,setVals}){
+  const def=CARNET_SECTIONS[sec];
+  const set=(k,v)=>setVals(prev=>Object.assign({},prev,{[k]:v}));
+  return(<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+    {def.fields.map(f=>{
+      if(f.t==='h')return <div key={f.k} style={{gridColumn:'1/-1',fontWeight:700,fontSize:12,color:'var(--primary)',letterSpacing:'0.5px',marginTop:6}}>{f.l}</div>;
+      const v=vals[f.k]===undefined?'':vals[f.k];
+      const id='cf_'+sec+'_'+f.k;
+      return(<div key={f.k} className="form-group" style={f.t==='area'?{gridColumn:'1/-1'}:undefined}>
+        {f.t==='check'
+          ?<label style={{display:'flex',alignItems:'center',gap:8,fontSize:14}}><input type="checkbox" checked={!!vals[f.k]} onChange={e=>set(f.k,e.target.checked)}/>{f.l}</label>
+          :<>
+            <label className="form-label" htmlFor={id}>{f.l}{def.required.indexOf(f.k)>=0?' *':''}</label>
+            {f.t==='select'?<select id={id} className="form-select" value={v} onChange={e=>set(f.k,e.target.value)}><option value="">—</option>{f.opts.map(o=><option key={o} value={o}>{o}</option>)}</select>
+            :f.t==='area'?<textarea id={id} className="form-input" rows={3} value={v} onChange={e=>set(f.k,e.target.value)}/>
+            :<input id={id} className="form-input" type={f.t==='number'?'number':f.t==='date'?'date':f.t==='time'?'time':'text'} step={f.step} min={f.min} max={f.max} placeholder={f.ph||''} value={v} onChange={e=>set(f.k,e.target.value)}/>}
+          </>}
+      </div>);
+    })}
+  </div>);
+}
+
+function validerSaisie(sec,vals,dateActe,patient){
+  const def=CARNET_SECTIONS[sec];const errs=[];
+  if(!dateActe)errs.push('La date est obligatoire.');
+  else{
+    if(dateActe>todayISO())errs.push('La date ne peut pas être dans le futur.');
+    if(patient&&patient.date_naissance&&sec!=='famille'&&sec!=='antecedents'&&dateActe<String(patient.date_naissance).slice(0,10)&&sec!=='gyneco')errs.push('La date ne peut pas précéder la naissance du patient.');
+  }
+  def.required.forEach(k=>{const f=def.fields.find(x=>x.k===k);if(vals[k]===undefined||vals[k]===''||vals[k]===null)errs.push('Champ obligatoire : '+(f?f.l:k));});
+  def.fields.forEach(f=>{
+    const v=vals[f.k];if(v===undefined||v===''||v===null||f.t==='h')return;
+    if(f.t==='number'){const n=Number(v);if(isNaN(n))errs.push(f.l+' : nombre attendu.');else if(f.min!==undefined&&n<f.min||f.max!==undefined&&n>f.max)errs.push(f.l+' : valeur hors limites ('+f.min+' à '+f.max+').');}
+    if(f.pattern&&!(new RegExp(f.pattern)).test(String(v)))errs.push(f.err||(f.l+' : format invalide.'));
+  });
+  if(sec==='vaccination'&&vals.vaccin==='Autre (préciser)'&&!(vals.autre||'').trim())errs.push('Précisez le nom du vaccin.');
+  return errs;
+}
+
+function CarnetCroissance({patient,entries}){
+  const sex=patient.sexe==='F'?'F':'M';
+  const W=640,H=360,PL=44,PR=14,PT=14,PB=36;
+  const x=m=>PL+(m/60)*(W-PL-PR);
+  const y=w=>PT+(1-(w/30))*(H-PT-PB);
+  const zs=[[-3,'#212121'],[-2,'#C62828'],[0,'#2E7D32'],[2,'#C62828'],[3,'#212121']];
+  const curve=z=>{let d='';for(let m=0;m<=60;m++){const w=whoWeight(sex,m,z);d+=(m===0?'M':'L')+x(m).toFixed(1)+' '+y(Math.min(w,30)).toFixed(1)+' ';}return d;};
+  const pts=entries.map(e=>{const mo=ageMonths(patient.date_naissance,e.date_acte);const w=Number(e.data&&e.data.poids_kg);if(mo===null||isNaN(w)||mo<0||mo>60)return null;const mi=Math.round(mo);return{m:mo,w:w,z:whoZ(sex,mi,w),date:e.date_acte};}).filter(Boolean).sort((a,b)=>a.m-b.m);
+  const last=pts.length?pts[pts.length-1]:null;
+  const etat=z=>z===null?'—':z<-3?'Insuffisance pondérale sévère':z<-2?'Insuffisance pondérale modérée':z>2?'Poids élevé pour l’âge (à interpréter avec la taille)':'Poids normal pour l’âge';
+  return(<div>
+    <div style={{background:sex==='F'?'#FCE4EC':'#E3F2FD',borderRadius:10,padding:10,marginBottom:10}}>
+      <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{sex==='F'?'Courbe de poids — Fille':'Courbe de poids — Garçon'} (normes OMS, 0 à 5 ans)</div>
+      <svg viewBox={'0 0 '+W+' '+H} style={{width:'100%',background:'white',borderRadius:6}} role="img" aria-label="Courbe de poids selon l'âge">
+        {[0,5,10,15,20,25,30].map(w=><g key={w}><line x1={PL} x2={W-PR} y1={y(w)} y2={y(w)} stroke="#E0E0E0" strokeWidth="1"/><text x={PL-6} y={y(w)+4} fontSize="11" textAnchor="end" fill="#616161">{w}</text></g>)}
+        {[0,12,24,36,48,60].map(m=><g key={m}><line x1={x(m)} x2={x(m)} y1={PT} y2={H-PB} stroke="#E0E0E0" strokeWidth="1"/><text x={x(m)} y={H-PB+16} fontSize="11" textAnchor="middle" fill="#616161">{m===0?'Naiss.':(m/12)+' an'+(m>12?'s':'')}</text></g>)}
+        <text x={12} y={PT+10} fontSize="11" fill="#616161">kg</text>
+        {zs.map(z=><path key={z[0]} d={curve(z[0])} fill="none" stroke={z[1]} strokeWidth={z[0]===0?2:1.5}/>)}
+        {zs.map(z=><text key={'l'+z[0]} x={W-PR-2} y={y(Math.min(whoWeight(sex,60,z[0]),30))-3} fontSize="10" textAnchor="end" fill={z[1]}>{z[0]>0?'+'+z[0]:z[0]}</text>)}
+        {pts.length>1&&<polyline fill="none" stroke="#1565C0" strokeWidth="2" points={pts.map(p=>x(p.m).toFixed(1)+','+y(Math.min(p.w,30)).toFixed(1)).join(' ')}/>}
+        {pts.map((p,i)=><circle key={i} cx={x(p.m)} cy={y(Math.min(p.w,30))} r="4" fill="#1565C0" stroke="white" strokeWidth="1.5"/>)}
+      </svg>
+    </div>
+    {last?<div className="alert alert-info" style={{marginBottom:10}}><span className="alert-icon">📊</span><div className="alert-content"><div className="alert-title">Dernière mesure : {last.w} kg à {fmtAge(last.m)} — z-score {last.z===null?'—':last.z.toFixed(1)}</div><div className="alert-text">{etat(last.z)}. Indication de dépistage : l’interprétation et la conduite à tenir relèvent du professionnel de santé.</div></div></div>
+      :<div className="empty-state" style={{padding:16}}><div className="empty-text">Aucune pesée enregistrée (0 à 5 ans)</div></div>}
+  </div>);
+}
+
+function CarnetVaccinGrille({entries}){
+  const fait={};
+  entries.forEach(e=>{const nom=e.data&&e.data.vaccin;const v=VACCINS_CARNET.find(x=>x.l===nom);if(v&&(!fait[v.id]||e.date_acte<fait[v.id]))fait[v.id]=e.date_acte;});
+  const col=g=>VACCINS_CARNET.filter(v=>v.g===g);
+  const bloc=(titre,g)=>(<div className="card" style={{margin:0}}>
+    <div style={{fontWeight:700,fontSize:12,color:'var(--primary)',marginBottom:6}}>{titre}</div>
+    {col(g).map(v=><div key={v.id} className="kpi-row"><div style={{fontSize:13}}>{v.l}</div><div style={{fontWeight:700,fontSize:13,color:fait[v.id]?'var(--success)':'var(--text-muted)'}}>{fait[v.id]?fmtDate(fait[v.id]):'—'}</div></div>)}
+  </div>);
+  const autres=entries.filter(e=>e.data&&e.data.vaccin==='Autre (préciser)');
+  return(<div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:12}}>{bloc('BCG · PENTA · VAR','a')}{bloc('POLIO · VAA','b')}{bloc('ANTITÉTANIQUE (VAT)','c')}</div>
+    {autres.length>0&&<div className="card" style={{marginTop:12}}><div style={{fontWeight:700,fontSize:12,color:'var(--primary)',marginBottom:6}}>AUTRES VACCINS</div>{autres.map(e=><div key={e.id} className="kpi-row"><div style={{fontSize:13}}>{e.data.autre}</div><div style={{fontWeight:700,fontSize:13}}>{fmtDate(e.date_acte)}</div></div>)}</div>}
+  </div>);
+}
+
+function CarnetCPNGrille({entries}){
+  const def=CARNET_SECTIONS.cpn;
+  const rows=def.fields.filter(f=>f.k!=='visite');
+  const byV={};entries.forEach(e=>{const n=e.data&&e.data.visite;if(n)byV[n]=e;});
+  const nums=Object.keys(byV).map(Number).sort((a,b)=>a-b);
+  const cols=nums.length?nums:[];
+  if(!cols.length)return <div className="empty-state" style={{padding:16}}><div className="empty-text">Aucune consultation prénatale enregistrée</div></div>;
+  return(<div className="table-wrap"><table>
+    <thead><tr><th>Consultation prénatale</th>{cols.map(n=><th key={n}>{n}{n===1?'ère':'ème'}</th>)}</tr></thead>
+    <tbody>
+      <tr><td><strong>Date</strong></td>{cols.map(n=><td key={n}>{fmtDate(byV[n].date_acte)}{byV[n].pending&&<span title="En attente de synchronisation"> ⏳</span>}</td>)}</tr>
+      {rows.map(f=><tr key={f.k}><td>{f.l}</td>{cols.map(n=>{const v=byV[n].data[f.k];return <td key={n}>{v===undefined||v===''?'—':(v===true?'Oui':String(v))}</td>;})}</tr>)}
+    </tbody>
+  </table></div>);
+}
+
+function CarnetEntree({e,sec}){
+  const def=CARNET_SECTIONS[sec];
+  const lignes=def.fields.filter(f=>f.t!=='h'&&e.data&&e.data[f.k]!==undefined&&e.data[f.k]!==''&&e.data[f.k]!==false);
+  return(<div style={{padding:12,borderLeft:'3px solid var(--primary)',background:'var(--light)',borderRadius:'0 8px 8px 0',marginBottom:8}}>
+    <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>{fmtDate(e.date_acte)}{e.saisi_par?' · saisi par '+e.saisi_par:''}{e.pending?' · ⏳ en attente de synchronisation':''}</div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'4px 16px',fontSize:13}}>
+      {lignes.map(f=><div key={f.k}><span style={{color:'var(--text-muted)'}}>{f.l} : </span><strong>{e.data[f.k]===true?'Oui':String(e.data[f.k])}</strong></div>)}
+      {lignes.length===0&&<div style={{color:'var(--text-muted)'}}>—</div>}
+    </div>
+  </div>);
+}
+
+function CarnetSoins({consultations,isub}){
+  const liste=consultations.filter(c=>c.patient_isub===isub).sort((a,b)=>String(b.date_consultation).localeCompare(String(a.date_consultation)));
+  if(!liste.length)return <div className="empty-state" style={{padding:20}}><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation enregistrée</div></div>;
+  return(<div>{liste.map(c=><div key={c.id} style={{padding:12,borderLeft:'3px solid var(--primary)',background:'var(--light)',borderRadius:'0 8px 8px 0',marginBottom:8}}>
+    <div style={{fontSize:11,color:'var(--text-muted)'}}>{fmtDate(c.date_consultation)}{c.numero_ordre?' · N° d’ordre '+c.numero_ordre:''}{c.zone_nom?' · '+c.zone_nom:''}</div>
+    <div style={{fontSize:14,fontWeight:600}}>{c.diagnostic}</div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'3px 16px',fontSize:13,marginTop:4}}>
+      {c.plainte&&<div><span style={{color:'var(--text-muted)'}}>Plainte dominante : </span>{c.plainte}</div>}
+      {c.autres_signes&&<div><span style={{color:'var(--text-muted)'}}>Autres signes : </span>{c.autres_signes}</div>}
+      {c.temperature&&<div><span style={{color:'var(--text-muted)'}}>Température : </span>{c.temperature} °C</div>}
+      {c.pouls&&<div><span style={{color:'var(--text-muted)'}}>Pouls : </span>{c.pouls}</div>}
+      {c.tension_s&&<div><span style={{color:'var(--text-muted)'}}>TA : </span>{c.tension_s}/{c.tension_d}</div>}
+      {c.conduite&&<div><span style={{color:'var(--text-muted)'}}>Conduite tenue : </span>{c.conduite}</div>}
+      {c.categorie_tarification&&<div><span style={{color:'var(--text-muted)'}}>Catégorie de tarification : </span>{c.categorie_tarification}</div>}
+    </div>
+    {Array.isArray(c.medicaments)&&c.medicaments.length>0&&<div style={{fontSize:13,marginTop:6}}><span style={{color:'var(--text-muted)'}}>Médicaments et posologie :</span><ol style={{margin:'2px 0 0 18px'}}>{c.medicaments.map((m,i)=><li key={i}>{m}</li>)}</ol></div>}
+    {c.evolution&&<div style={{fontSize:13,marginTop:6}}><span style={{color:'var(--text-muted)'}}>Évolution : </span>{c.evolution}</div>}
+    {c.notes&&<div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>{c.notes}</div>}
+  </div>)}</div>);
+}
+
+function CarnetSante({user,patient,consultations,readOnly}){
+  const isub=patient.isub;
+  const am=ageMonths(patient.date_naissance);
+  const estF=patient.sexe==='F';
+  const peutEcrire=!readOnly&&ROLES_ECRITURE_CARNET.indexOf(user.role)>=0;
+  const tabs=[['resume','📋','Résumé'],['vaccination','💉','Vaccinations']];
+  if(am===null||am<=60)tabs.push(['croissance','📈','Croissance']);
+  tabs.push(['soins','🩺','Soins']);
+  tabs.push(['famille','👪','Famille'],['antecedents','🧬','Antécédents']);
+  if(estF){tabs.push(['gyneco','🤰','Gynéco-obstétrical'],['cpn','🩺','Prénatale'],['accouchement','👶','Accouchement'],['postnatal','🤱','Post-natal / PF']);}
+  if(am===null||am<=60)tabs.push(['nutrition','🥗','Nutrition']);
+  const[sec,setSec]=useState('resume');
+  const[entries,setEntries]=useState(()=>lsGet('snisb_carnet_'+isub,[]));
+  const[loading,setLoading]=useState(false);
+  const[msg,setMsg]=useState(null);
+  const[vals,setVals]=useState({});
+  const[dateActe,setDateActe]=useState(todayISO());
+  const[errs,setErrs]=useState([]);
+  const[ajout,setAjout]=useState(false);
+  const[saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    let vivant=true;
+    setEntries(lsGet('snisb_carnet_'+isub,[]));setSec('resume');setAjout(false);setMsg(null);
+    if(!supaClient)return;
+    setLoading(true);
+    (async()=>{
+      try{
+        await carnetFlushOutbox();
+        const r=await supaClient.from('carnet_entries').select('*').eq('patient_isub',isub).order('date_acte',{ascending:true});
+        if(!vivant)return;
+        if(r.error){
+          if(r.error.code==='42P01'||(r.error.message||'').indexOf('carnet_entries')>=0)setMsg({t:'warning',m:'La base du carnet n’est pas encore installée (script 06_carnet_schema.sql à exécuter dans Supabase).'});
+          else setMsg({t:'warning',m:'Carnet affiché depuis la copie locale : '+(r.error.message||'erreur réseau')});
+        }else{
+          const att=lsGet(OUTBOX_KEY,[]).filter(x=>x.patient_isub===isub).map(x=>Object.assign({},x,{pending:true}));
+          const tous=(r.data||[]).concat(att);
+          setEntries(tous);lsSet('snisb_carnet_'+isub,(r.data||[]));
+        }
+      }catch(e){ if(vivant)setMsg({t:'warning',m:'Hors ligne : carnet affiché depuis la copie locale.'}); }
+      if(vivant)setLoading(false);
+    })();
+    return()=>{vivant=false;};
+  },[isub]);
+
+  const changerSection=s=>{setSec(s);setAjout(false);setVals({});setErrs([]);setDateActe(todayISO());};
+  const enregistrer=async()=>{
+    const er=validerSaisie(sec,vals,dateActe,patient);
+    setErrs(er);if(er.length)return;
+    setSaving(true);
+    const data={};Object.keys(vals).forEach(k=>{if(vals[k]!==''&&vals[k]!==undefined&&vals[k]!==false)data[k]=vals[k];});
+    const row={id:uuid(),patient_isub:isub,section:sec,date_acte:dateActe,data:data,zone_sanitaire:user.zone||patient.zone_sanitaire||null,saisi_par:user.nom,saisi_id:user.supabase_id||null};
+    let envoye=false,tableManquante=false;
+    if(supaClient&&navigator.onLine){
+      try{
+        const{error}=await supaClient.from('carnet_entries').insert(row);
+        if(!error||error.code==='23505')envoye=true;
+        else if(error.code==='42P01'||(error.message||'').indexOf('carnet_entries')>=0)tableManquante=true;
+        else if(error.code==='42501'||(error.message||'').toLowerCase().indexOf('row-level')>=0){setErrs(['Enregistrement refusé : votre rôle n’est pas autorisé à écrire dans le carnet.']);setSaving(false);return;}
+      }catch(e){}
+    }
+    if(!envoye){
+      if(tableManquante){setErrs(['La base du carnet n’est pas installée : exécutez 06_carnet_schema.sql dans Supabase, puis réessayez.']);setSaving(false);return;}
+      const box=lsGet(OUTBOX_KEY,[]);box.push(row);lsSet(OUTBOX_KEY,box);
+    }
+    const ajoute=Object.assign({},row,{pending:!envoye});
+    const suite=entries.concat([ajoute]);
+    setEntries(suite);
+    lsSet('snisb_carnet_'+isub,suite.filter(x=>!x.pending));
+    setVals({});setErrs([]);setAjout(false);setDateActe(todayISO());setSaving(false);
+    setMsg(envoye?{t:'success',m:'Enregistré dans le carnet.'}:{t:'warning',m:'Enregistré sur cet appareil. Envoi automatique dès le retour de la connexion.'});
+  };
+
+  useEffect(()=>{
+    const on=()=>{carnetFlushOutbox().then(r=>{if(r.sent>0)setEntries(prev=>prev.map(x=>x.pending?Object.assign({},x,{pending:false}):x));});};
+    window.addEventListener('online',on);
+    return()=>{window.removeEventListener('online',on);};
+  },[]);
+
+  const duSection=s=>entries.filter(e=>e.section===s).sort((a,b)=>String(a.date_acte).localeCompare(String(b.date_acte)));
+  const def=CARNET_SECTIONS[sec];
+  const liste=def?duSection(sec):[];
+
+  return(<div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}} role="tablist">
+      {tabs.map(t=><button key={t[0]} role="tab" aria-selected={sec===t[0]} className={'inner-tab '+(sec===t[0]?'active':'')} onClick={()=>changerSection(t[0])}>{t[1]} {t[2]}</button>)}
+    </div>
+    {msg&&<div className={'alert alert-'+msg.t} style={{marginBottom:10}}><span className="alert-icon">{msg.t==='success'?'✅':'⚠️'}</span><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>}
+    {loading&&<div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>Chargement du carnet…</div>}
+
+    {sec==='resume'&&<div className="grid-2">
+      <div className="card"><div className="card-title">🪪 Identification</div>
+        <div className="kpi-row"><div>Département</div><strong>{patient.departement||'—'}</strong></div>
+        <div className="kpi-row"><div>Zone sanitaire</div><strong>{patient.zone_nom||patient.zone_sanitaire||'—'}</strong></div>
+        <div className="kpi-row"><div>Date de naissance</div><strong>{fmtDate(patient.date_naissance)}</strong></div>
+        <div className="kpi-row"><div>Âge</div><strong>{fmtAge(am)}</strong></div>
+        <div className="kpi-row"><div>Sexe</div><strong>{patient.sexe==='F'?'Féminin':patient.sexe==='M'?'Masculin':'—'}</strong></div>
+        {(()=>{const f=duSection('famille');const d=f.length?f[f.length-1].data:{};return <>
+          <div className="kpi-row"><div>Commune</div><strong>{d.commune||'—'}</strong></div>
+          <div className="kpi-row"><div>Formation sanitaire</div><strong>{d.formation_sanitaire||'—'}</strong></div></>;})()}
+      </div>
+      <div className="card"><div className="card-title">📌 Où en est le carnet</div>
+        <div className="kpi-row"><div>Vaccins enregistrés</div><strong>{duSection('vaccination').length}</strong></div>
+        <div className="kpi-row"><div>Pesées enregistrées</div><strong>{duSection('croissance').length}</strong></div>
+        <div className="kpi-row"><div>Consultations de soins</div><strong>{consultations.filter(c=>c.patient_isub===isub).length}</strong></div>
+        {estF&&<div className="kpi-row"><div>Consultations prénatales</div><strong>{duSection('cpn').length}</strong></div>}
+        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:8}}>Modèle : carnet de santé du Ministère de la Santé du Bénin. Les inscriptions sont horodatées et attribuées à leur auteur ; elles ne sont pas modifiables.</div>
+      </div>
+    </div>}
+
+    {sec==='soins'&&<div className="card"><div className="card-title">🩺 Carnet de soins — consultations</div><CarnetSoins consultations={consultations} isub={isub}/></div>}
+
+    {def&&<div className="card">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,gap:8,flexWrap:'wrap'}}>
+        <div className="card-title" style={{marginBottom:0}}>{def.icon} {def.label}</div>
+        {peutEcrire&&!ajout&&<button className="btn btn-primary btn-sm" onClick={()=>{setAjout(true);setVals({});setErrs([]);}}>➕ Ajouter</button>}
+      </div>
+      {ajout&&<div style={{background:'var(--light)',borderRadius:10,padding:14,marginBottom:14}}>
+        <div className="form-group" style={{maxWidth:240}}><label className="form-label" htmlFor="cf_date">Date *</label><input id="cf_date" className="form-input" type="date" max={todayISO()} value={dateActe} onChange={e=>setDateActe(e.target.value)}/></div>
+        <CarnetChampsForm sec={sec} vals={vals} setVals={setVals}/>
+        {errs.length>0&&<div className="alert alert-danger" style={{marginTop:10}}><span className="alert-icon">❌</span><div className="alert-content">{errs.map((x,i)=><div key={i} className="alert-text">{x}</div>)}</div></div>}
+        <div style={{display:'flex',gap:8,marginTop:12}}><button className="btn btn-primary" disabled={saving} onClick={enregistrer}>{saving?'Enregistrement…':'💾 Enregistrer'}</button><button className="btn btn-outline" onClick={()=>{setAjout(false);setErrs([]);}}>Annuler</button></div>
+      </div>}
+      {sec==='vaccination'&&<CarnetVaccinGrille entries={liste}/>}
+      {sec==='croissance'&&<CarnetCroissance patient={patient} entries={liste}/>}
+      {sec==='cpn'&&<CarnetCPNGrille entries={liste}/>}
+      {sec!=='vaccination'&&sec!=='cpn'&&(liste.length===0&&sec!=='croissance'?<div className="empty-state" style={{padding:16}}><div className="empty-text">Aucune inscription pour le moment</div></div>
+        :liste.slice().reverse().map(e=><CarnetEntree key={e.id} e={e} sec={sec}/>))}
+    </div>}
+  </div>);
+}
+
+function CarnetStaff({user,patients,consultations}){
+  const[q,setQ]=useState('');
+  const[isub,setIsub]=useState(null);
+  const trouves=patients.filter(p=>q.length>=2&&((p.nom||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.prenoms||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.isub||'').toLowerCase().indexOf(q.toLowerCase())>=0)).slice(0,8);
+  const patient=isub?patients.find(p=>p.isub===isub):null;
+  return(<div>
+    <p className="page-title">📓 Carnet de santé</p>
+    <p className="page-sub">Dossier de santé du patient, calqué sur le carnet de santé du Ministère de la Santé</p>
+    <div className="card" style={{marginBottom:14}}>
+      <input className="form-input" placeholder="🔍 Rechercher un patient (nom, prénoms ou ISUB)…" value={q} onChange={e=>{setQ(e.target.value);}} aria-label="Rechercher un patient"/>
+      {trouves.map(p=><button key={p.isub} className="btn btn-outline" style={{display:'block',width:'100%',textAlign:'left',marginTop:6}} onClick={()=>{setIsub(p.isub);setQ('');}}><strong>{p.nom} {p.prenoms}</strong> <code style={{fontSize:11}}>{p.isub}</code></button>)}
+      {q.length>=2&&trouves.length===0&&<div style={{fontSize:13,color:'var(--text-muted)',marginTop:8}}>Aucun patient trouvé.</div>}
+    </div>
+    {patient?<>
+      <div className="carnet-header" style={{marginBottom:14}}>
+        <div style={{fontSize:12,opacity:0.7,textTransform:'uppercase'}}>Carnet de santé</div>
+        <div style={{fontSize:22,fontWeight:700}}>{patient.nom} {patient.prenoms}</div>
+        <div style={{fontFamily:'monospace',fontSize:13,opacity:0.85,marginTop:4}}>{patient.isub}</div>
+      </div>
+      <CarnetSante user={user} patient={patient} consultations={consultations} readOnly={false}/>
+    </>:<div className="empty-state"><div className="empty-icon">📓</div><div className="empty-text">Recherchez un patient pour ouvrir son carnet</div></div>}
+  </div>);
+}
+
+function Carnet({user,consultations,patients}){
   const isub=user.isub||null;
-  const myC=isub?consultations.filter(c=>c.patient_isub===isub):[];
+  const local=isub?(patients||[]).find(p=>p.isub===isub):null;
+  const[distant,setDistant]=useState(null);
+  const aLocal=!!local;
+  useEffect(()=>{
+    if(!isub||aLocal||!supaClient)return;
+    let vivant=true;
+    supaClient.from('patients').select('*').eq('isub',isub).maybeSingle().then(r=>{if(vivant&&r&&r.data)setDistant(r.data);}).catch(()=>{});
+    return()=>{vivant=false;};
+  },[isub,aLocal]);
+  const patient=local||distant||{isub:isub,nom:user.nom,sexe:null,date_naissance:null};
   if(!isub)return(<div>
     <p className="page-title">📓 Mon Carnet</p>
     <div className="alert alert-warning">
@@ -1560,32 +1978,19 @@ function Carnet({user,consultations}){
           <div style={{fontFamily:'monospace',fontSize:13,opacity:0.8,marginTop:6,letterSpacing:1}}>{isub}</div>
           <div style={{fontSize:11,opacity:0.65,marginTop:4}}>République du Bénin • Ministère de la Santé</div>
         </div>
-        <div style={{background:'white',borderRadius:10,padding:10,textAlign:'center'}}>
-          <div style={{fontSize:9,color:'var(--text-muted)',marginBottom:4}}>QR CODE</div>
-          <div style={{width:60,height:60,background:`repeating-conic-gradient(#333 0% 25%,white 0% 50%) 0 0/8px 8px`,border:'2px solid #333',borderRadius:4}}/>
-        </div>
       </div>
     </div>
-    <div className="grid-2">
-      <div className="card"><div className="card-title">🩺 Mes consultations ({myC.length})</div>
-        {myC.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation enregistrée</div></div>
-          :myC.slice(0,6).map(c=><div key={c.id} style={{padding:12,borderLeft:'3px solid var(--primary)',background:'var(--light)',borderRadius:'0 8px 8px 0',marginBottom:8}}>
-            <div style={{fontSize:11,color:'var(--text-muted)'}}>{fmtDate(c.date_consultation)}</div>
-            <div style={{fontSize:14,fontWeight:600}}>{c.diagnostic}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{c.zone_nom}</div>
-          </div>)}
+    <CarnetSante user={user} patient={patient} consultations={consultations} readOnly={true}/>
+    <div className="grid-2" style={{marginTop:16}}>
+      <div className="card"><div className="card-title">❤️ Conseils Santé</div>
+        {[['💧',"Boire au moins 1,5 L d'eau par jour"],['🦟','Dormir sous moustiquaire imprégnée (paludisme)'],['🧼','Se laver les mains au savon avant les repas'],['💉','Maintenir le carnet de vaccination à jour'],['🥗','Alimentation équilibrée et variée'],['🏃','Pratiquer une activité physique régulière']].map(([ic,tip],i)=>(
+          <div key={i} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:20}}>{ic}</span><span style={{fontSize:13,lineHeight:1.5}}>{tip}</span></div>
+        ))}
       </div>
-      <div>
-        <div className="card"><div className="card-title">❤️ Conseils Santé</div>
-          {[['💧',"Boire au moins 1,5 L d'eau par jour"],['🦟','Dormir sous moustiquaire imprégnée (paludisme)'],['🧼','Se laver les mains au savon avant les repas'],['💉','Maintenir le carnet de vaccination à jour'],['🥗','Alimentation équilibrée et variée'],['🏃','Pratiquer une activité physique régulière']].map(([ic,tip],i)=>(
-            <div key={i} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}}><span style={{fontSize:20}}>{ic}</span><span style={{fontSize:13,lineHeight:1.5}}>{tip}</span></div>
-          ))}
-        </div>
-        <div className="card"><div className="card-title">📞 Urgences Bénin</div>
-          {[['SAMU',161],['Police Nationale',117],['Pompiers',118],['CNHU Cotonou','+229 21 30 09 09'],['Centre Antipoison','+229 21 38 06 43']].map(([s,n])=>(
-            <div key={s} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{s}</div><div style={{fontWeight:700,color:'var(--danger)',fontSize:14}}>{n}</div></div>
-          ))}
-        </div>
+      <div className="card"><div className="card-title">📞 Urgences Bénin</div>
+        {[['SAMU',161],['Police Nationale',117],['Pompiers',118],['CNHU Cotonou','+229 21 30 09 09'],['Centre Antipoison','+229 21 38 06 43']].map(([s,n])=>(
+          <div key={s} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{s}</div><div style={{fontWeight:700,color:'var(--danger)',fontSize:14}}>{n}</div></div>
+        ))}
       </div>
     </div>
   </div>);
@@ -1660,6 +2065,12 @@ function App(){
     }catch(e){console.log('Sync error:',e);}
   };
 
+  // Synchronisation initiale après connexion (patients et consultations visibles par ce compte)
+  useEffect(()=>{
+    if(!user||!db||!supaClient)return;
+    syncWithSupabase();
+  },[user,db]);
+
   const installPwa=async()=>{
     if(!pwaPrompt)return;
     pwaPrompt.prompt();
@@ -1698,7 +2109,8 @@ function App(){
       case 'ia':return<IAClinique user={user} patients={patients} consultations={consultations}/>;
       case 'formation':return<Formation user={user}/>;
       case 'admin':return<Admin user={user} patients={patients} consultations={consultations}/>;
-      case 'carnet':case 'sante':return<Carnet user={user} consultations={consultations}/>;
+      case 'carnet_sante':return<CarnetStaff user={user} patients={patients} consultations={consultations}/>;
+      case 'carnet':case 'sante':return<Carnet user={user} consultations={consultations} patients={patients}/>;
       default:return<Dashboard user={user} patients={patients} consultations={consultations}/>;
     }
   };

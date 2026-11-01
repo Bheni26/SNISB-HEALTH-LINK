@@ -302,7 +302,7 @@ const ROLES={
   medecin:{label:'Médecin',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','export','epidemio','carte','ia','formation']},
   infirmier:{label:'Infirmier / Sage-femme',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','ia','formation']},
   statisticien:{label:'Statisticien SNIS',onglets:['dashboard','export','epidemio','carte','ia','formation']},
-  patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia','sante']}
+  patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia']}
 };
 
 const MODULES_FORMATION=[
@@ -464,7 +464,7 @@ function Nav({user,active,onChange,alerts}){
   return(<aside className="sidebar">
     {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
       <span className="material-symbols-rounded">{tabs[t]?.i}</span>
-      <span>{tabs[t]?.l||t}</span>
+      <span>{(user.role==='patient'&&t==='ia')?'Assistant santé':(tabs[t]?.l||t)}</span>
       {t==='dashboard'&&alerts>0&&<span className="sidebar-badge">{alerts}</span>}
     </button>)}
   </aside>);
@@ -744,27 +744,68 @@ function Consultations({user,patients,consultations,setConsultations,db}){
 }
 
 // ═══════════════════════════════════════
-// TÉLÉCONSULTATION — acte médical à distance
-// L'IA ne fait que suggérer ; le diagnostic et la conduite à tenir
-// sont toujours saisis, validés et signés par un professionnel de santé humain.
+// TÉLÉCONSULTATION — acte médical à distance (table Supabase "teleconsultations")
+// Le patient écrit sa demande ; un MÉDECIN répond. L'IA n'est jamais proposée au patient :
+// elle ne fait que suggérer au médecin, qui valide et signe. Infirmier : lecture seule.
 // ═══════════════════════════════════════
-function Teleconsultation({user,patients,consultations,setConsultations,db}){
+function Teleconsultation({user,patients}){
   const isPatient=user.role==='patient';
-  const[tab,setTab]=useState(isPatient?'demande':'attente');
-  const[srchP,setSrchP]=useState('');const[psug,setPsug]=useState([]);
-  const[form,setForm]=useState({patient_isub:'',motif:'',diagnostic:'',conduite:'',gravite:'modérée'});
+  const isMedecin=user.role==='medecin';
+  const enligne=!!(supaClient&&user.supabase_id);
+  const LS='snisb_tc_local';
+  const[items,setItems]=useState(()=>enligne?[]:lsGet(LS,[]));
+  const[loadErr,setLoadErr]=useState('');
+  const[tab,setTab]=useState('attente');
+  const[sel,setSel]=useState(null);
+  const[form,setForm]=useState({diagnostic:'',conduite:'',gravite:'modérée'});
   const[avisIA,setAvisIA]=useState('');const[loadingIA,setLoadingIA]=useState(false);
-  const[ok,setOk]=useState(false);
   const[demandeMotif,setDemandeMotif]=useState('');
+  const[msg,setMsg]=useState(null);const[busy,setBusy]=useState(false);
 
-  const enAttente=consultations.filter(c=>c.canal==='teleconsultation'&&c.statut_tc==='attente');
-  const mesTeleconsults=consultations.filter(c=>c.canal==='teleconsultation'&&c.patient_isub===user.isub);
+  const charger=async()=>{
+    if(!enligne)return;
+    try{
+      const{data,error}=await supaClient.from('teleconsultations').select('*').order('created_at',{ascending:false}).limit(100);
+      if(error){
+        const m=error.message||'';
+        setLoadErr(/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'La table des téléconsultations n’est pas installée : exécutez 08_teleconsultation_v18.sql dans Supabase.':'Chargement impossible : '+m);
+        return;
+      }
+      setLoadErr('');setItems(data||[]);
+    }catch(e){setLoadErr('Réseau indisponible — nouvel essai automatique.');}
+  };
+  useEffect(()=>{
+    charger();
+    const t=setInterval(charger,15000);
+    return()=>{clearInterval(t);};
+  },[]);
 
-  const srchPat=q=>{setSrchP(q);setPsug(q.length>1?patients.filter(p=>p.nom?.toLowerCase().includes(q.toLowerCase())||p.isub?.includes(q)).slice(0,6):[]);};
-  const selPat=p=>{setSrchP(`${p.nom} ${p.prenoms}`);setForm(f=>({...f,patient_isub:p.isub}));setPsug([]);};
+  const enAttente=items.filter(c=>c.statut==='attente');
+  const traitees=items.filter(c=>c.statut==='repondu');
+  const mes=items.filter(c=>c.patient_isub===user.isub);
+
+  const envoyerDemande=async()=>{
+    const motif=demandeMotif.trim();
+    if(motif.length<5||busy)return;
+    setBusy(true);setMsg(null);
+    const row={id:uuid(),patient_isub:user.isub,patient_nom:user.nom,motif:motif,statut:'attente',zone_sanitaire:user.zone||null,demandeur_id:user.supabase_id||null};
+    if(enligne){
+      const{error}=await supaClient.from('teleconsultations').insert(row);
+      if(error){
+        const m=error.message||'';
+        setMsg({t:'danger',m:/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'Service non installé côté serveur (exécuter 08_teleconsultation_v18.sql).':(/row-level|42501/i.test(error.code+' '+m)?'Demande refusée : votre compte patient n’est pas relié à une fiche (ISUB manquant).':'Envoi impossible : '+m)});
+        setBusy(false);return;
+      }
+      await charger();
+    }else{
+      const loc=[Object.assign({},row,{created_at:new Date().toISOString()})].concat(items);setItems(loc);lsSet(LS,loc);
+    }
+    setDemandeMotif('');setBusy(false);
+    setMsg({t:'success',m:'Demande envoyée — un médecin va y répondre. Revenez consulter cette page.'});
+  };
 
   const demanderAvisIA=async()=>{
-    if(!form.motif||loadingIA)return;
+    if(!sel||loadingIA)return;
     setLoadingIA(true);setAvisIA('');
     try{
       let token='';
@@ -772,60 +813,59 @@ function Teleconsultation({user,patients,consultations,setConsultations,db}){
       if(!token)throw new Error('Session Supabase requise pour obtenir un avis IA.');
       const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({messages:[{role:'user',content:'Avis rapide pour téléconsultation — motif rapporté par le patient : '+form.motif}],context:'Demande de suggestion diagnostique pour une téléconsultation en cours. Réponds brièvement : hypothèses possibles + niveau de confiance et ce qui devrait etre verifie en presentiel si besoin.'})
+        body:JSON.stringify({messages:[{role:'user',content:'Avis rapide pour téléconsultation — motif rapporté par le patient : '+sel.motif}],context:'Suggestion pour un médecin en téléconsultation. Réponds brièvement : hypothèses possibles avec niveau de confiance, et ce qui devrait être vérifié. Aucune prescription.'})
       });
-      if(!resp.ok){const err=await resp.json();throw new Error(err.error||'Erreur');}
+      if(!resp.ok){let e={};try{e=await resp.json();}catch(x){}throw new Error(e.error||('Erreur '+resp.status+' — fonction claude-proxy non déployée ?'));}
       const data=await resp.json();
       setAvisIA(data.content?.find(b=>b.type==='text')?.text||'Pas de réponse.');
-    }catch(e){ setAvisIA('⚠️ '+e.message); }
+    }catch(e){setAvisIA('⚠️ '+e.message);}
     setLoadingIA(false);
   };
 
-  const soumettreReponse=async(requeteId)=>{
-    const c={
-      id:requeteId||uuid(),patient_isub:form.patient_isub,date_consultation:new Date().toISOString(),
-      diagnostic:form.diagnostic,code_cim10:'',gravite:form.gravite,canal:'teleconsultation',statut_tc:'complete',
-      notes:'Motif rapporté : '+form.motif+' | Conduite à tenir : '+form.conduite+(avisIA?' | Avis IA consulté (suggestion, non prescriptive) : oui':''),
-      notif:'mensuelle',avis_ia_donne:!!avisIA,
-      enregistre_par:user.nom,valide_par_humain:true,created_at:new Date().toISOString()
-    };
-    if(db)await db.put('consultations',c);
-    setConsultations(prev=>requeteId?prev.map(x=>x.id===requeteId?{...x,...c}:x):[c,...prev]);
-    setOk(true);
-    setTimeout(()=>{setOk(false);setForm({patient_isub:'',motif:'',diagnostic:'',conduite:'',gravite:'modérée'});setSrchP('');setAvisIA('');setTab('attente');},1800);
+  const signerReponse=async()=>{
+    if(!sel||busy)return;
+    setBusy(true);setMsg(null);
+    const patch={statut:'repondu',reponse_diagnostic:form.diagnostic.trim(),reponse_conduite:form.conduite.trim(),gravite:form.gravite,avis_ia_consulte:!!avisIA,repondu_par:user.nom,repondu_id:user.supabase_id||null,repondu_at:new Date().toISOString()};
+    if(enligne){
+      const{data,error}=await supaClient.from('teleconsultations').update(patch).eq('id',sel.id).eq('statut','attente').select();
+      if(error){setMsg({t:'danger',m:'Enregistrement impossible : '+(error.message||'')});setBusy(false);return;}
+      if(!data||data.length===0){setMsg({t:'warning',m:'Cette demande a déjà été traitée par un autre médecin (ou vous n’y avez pas droit).'});setBusy(false);setSel(null);await charger();return;}
+      await charger();
+    }else{
+      const loc=items.map(x=>x.id===sel.id?Object.assign({},x,patch):x);setItems(loc);lsSet(LS,loc);
+    }
+    setBusy(false);setSel(null);setAvisIA('');setForm({diagnostic:'',conduite:'',gravite:'modérée'});
+    setMsg({t:'success',m:'Réponse signée par '+user.nom+' et transmise au patient.'});
   };
 
-  const envoyerDemande=async()=>{
-    if(!demandeMotif)return;
-    const c={id:uuid(),patient_isub:user.isub,date_consultation:new Date().toISOString(),diagnostic:'',
-      canal:'teleconsultation',statut_tc:'attente',notes:demandeMotif,notif:'mensuelle',
-      enregistre_par:user.nom,created_at:new Date().toISOString()};
-    if(db)await db.put('consultations',c);
-    setConsultations(prev=>[c,...prev]);
-    setOk(true);setDemandeMotif('');
-    setTimeout(()=>setOk(false),1800);
-  };
+  const Msg=()=>msg?<div className={'alert alert-'+(msg.t==='danger'?'danger':msg.t==='warning'?'warning':'success')}><span style={{fontSize:13}}>{msg.m}</span></div>:null;
+  const Err=()=>loadErr?<div className="alert alert-warning"><span style={{fontSize:13}}>{loadErr}</span></div>:null;
 
   if(isPatient){
     return(<div>
       <p className="page-title">Téléconsultation</p>
-      <p className="page-sub">Consultation à distance, par écrit — un professionnel de santé vous répond dès que possible.</p>
-      <div className="alert alert-info"><span className="alert-icon material-symbols-rounded">info</span><div className="alert-content"><div className="alert-text">Ceci n'est pas une urgence. En cas d'urgence, appelez le SAMU (161).</div></div></div>
+      <p className="page-sub">Consultation à distance, par écrit — un médecin vous répond dès que possible.</p>
+      <div className="alert alert-info"><span className="alert-icon material-symbols-rounded">info</span><div className="alert-content"><div className="alert-text">Ceci n’est pas une urgence. En cas d’urgence, appelez le SAMU (161).</div></div></div>
+      <Err/>
       <div className="card">
         <div className="card-title">Nouvelle demande</div>
-        {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13}}>Demande envoyée — un professionnel de santé va la traiter.</span></div>}
+        <Msg/>
         <div className="form-group"><label className="form-label">Décrivez votre motif *</label>
           <textarea className="form-textarea" placeholder="Symptômes, depuis quand, ce qui vous inquiète..." value={demandeMotif} onChange={e=>setDemandeMotif(e.target.value)}/>
         </div>
-        <button className="btn btn-primary" onClick={envoyerDemande} disabled={!demandeMotif}>Envoyer la demande</button>
+        <button className="btn btn-primary" onClick={envoyerDemande} disabled={demandeMotif.trim().length<5||busy}>{busy?'Envoi...':'Envoyer la demande'}</button>
       </div>
       <div className="card">
         <div className="card-title">Mes demandes</div>
-        {mesTeleconsults.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-text">Aucune demande envoyée</div></div>
-          :mesTeleconsults.map(c=><div key={c.id} className="consultation-item">
-            <div className="consultation-date">{fmtDT(c.date_consultation)}</div>
-            <span className={`badge ${c.statut_tc==='complete'?'badge-success':'badge-hebdo'}`}>{c.statut_tc==='complete'?'Répondu':'En attente'}</span>
-            {c.diagnostic&&<div style={{marginTop:8,fontSize:13}}><strong>Réponse du professionnel :</strong> {c.diagnostic}</div>}
+        {mes.length===0?<div className="empty-state" style={{padding:20}}><div className="empty-text">Aucune demande envoyée</div></div>
+          :mes.map(c=><div key={c.id} className="consultation-item">
+            <div className="consultation-date">{fmtDT(c.created_at)}</div>
+            <div style={{fontSize:13,margin:'4px 0'}}>{c.motif}</div>
+            <span className={'badge '+(c.statut==='repondu'?'badge-success':'badge-hebdo')}>{c.statut==='repondu'?'Répondu':'En attente'}</span>
+            {c.statut==='repondu'&&<div style={{marginTop:8,fontSize:13}}>
+              <div><strong>Réponse du médecin ({c.repondu_par}) :</strong> {c.reponse_diagnostic}</div>
+              <div style={{marginTop:4}}><strong>Conduite à tenir :</strong> {c.reponse_conduite}</div>
+            </div>}
           </div>)}
       </div>
     </div>);
@@ -833,50 +873,53 @@ function Teleconsultation({user,patients,consultations,setConsultations,db}){
 
   return(<div>
     <p className="page-title">Téléconsultation</p>
-    <p className="page-sub">Acte médical à distance — le diagnostic et la conduite à tenir sont toujours de votre responsabilité ; l'IA ne fait que suggérer.</p>
+    <p className="page-sub">{isMedecin?'Acte médical à distance — le diagnostic et la conduite à tenir sont toujours de votre responsabilité ; l’IA ne fait que suggérer.':'Demandes des patients. Seul un médecin peut y répondre : vous pouvez les consulter.'}</p>
+    <Err/><Msg/>
     <div className="inner-tabs">
-      {[['attente',`Demandes en attente (${enAttente.length})`],['nouvelle','Nouvelle téléconsultation']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+      {[['attente','Demandes en attente ('+enAttente.length+')'],['traitees','Traitées ('+traitees.length+')']].map(([t,l])=><button key={t} className={'inner-tab '+(tab===t?'active':'')} onClick={()=>{setTab(t);setSel(null);}}>{l}</button>)}
     </div>
-
-    {tab==='attente'?(<div className="card">
+    {tab==='attente'&&!sel&&<div className="card">
       {enAttente.length===0?<div className="empty-state"><div className="empty-icon material-symbols-rounded">inbox</div><div className="empty-text">Aucune demande en attente</div></div>
-        :enAttente.map(c=>{
-          const pat=patients.find(p=>p.isub===c.patient_isub);
-          return(<div key={c.id} className="consultation-item">
-            <div className="consultation-date">{fmtDT(c.date_consultation)}</div>
-            <div style={{fontWeight:600,fontSize:13}}>{pat?`${pat.nom} ${pat.prenoms}`:c.patient_isub}</div>
-            <div style={{fontSize:13,marginTop:4}}>{c.notes}</div>
-            <button className="btn btn-sm btn-primary" style={{marginTop:8}} onClick={()=>{setForm(f=>({...f,patient_isub:c.patient_isub,motif:c.notes}));setSrchP(pat?`${pat.nom} ${pat.prenoms}`:c.patient_isub);setTab('nouvelle');window.__tcRequeteId=c.id;}}>Répondre</button>
-          </div>);
-        })}
-    </div>):(<div className="grid-2">
+        :enAttente.map(c=><div key={c.id} className="consultation-item">
+          <div className="consultation-date">{fmtDT(c.created_at)}</div>
+          <div style={{fontWeight:600,fontSize:13}}>{c.patient_nom||c.patient_isub} <span style={{fontWeight:400,color:'var(--text-muted)'}}>— {c.patient_isub}</span></div>
+          <div style={{fontSize:13,marginTop:4}}>{c.motif}</div>
+          {isMedecin&&<button className="btn btn-sm btn-primary" style={{marginTop:8}} onClick={()=>{setSel(c);setAvisIA('');setMsg(null);}}>Répondre</button>}
+        </div>)}
+    </div>}
+    {tab==='attente'&&sel&&<div className="grid-2">
       <div className="card">
-        <div className="card-title">Téléconsultation</div>
-        {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13}}>Acte enregistré — signé par {user.nom}.</span></div>}
-        <div className="form-group"><label className="form-label">Patient *</label>
-          <div className="search-container"><input className="form-input" placeholder="Rechercher patient..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
-            {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>selPat(p)}><strong>{p.nom} {p.prenoms}</strong> — {p.isub}</div>)}</div>}
-          </div>
-        </div>
-        <div className="form-group"><label className="form-label">Motif rapporté</label>
-          <textarea className="form-textarea" value={form.motif} onChange={e=>setForm(f=>({...f,motif:e.target.value}))} placeholder="Symptômes décrits par le patient..."/>
-        </div>
-        <button className="btn btn-outline btn-sm" onClick={demanderAvisIA} disabled={!form.motif||loadingIA}>{loadingIA?'Analyse...':'💡 Demander un avis IA (suggestion uniquement)'}</button>
+        <div className="card-title">Répondre à {sel.patient_nom||sel.patient_isub}</div>
+        <div className="form-group"><label className="form-label">Motif rapporté</label><div style={{fontSize:13,padding:10,background:'var(--bg)',borderRadius:8}}>{sel.motif}</div></div>
+        <button className="btn btn-outline btn-sm" onClick={demanderAvisIA} disabled={loadingIA}>{loadingIA?'Analyse...':'💡 Demander un avis IA (suggestion uniquement)'}</button>
         {avisIA&&<div className="alert alert-info" style={{marginTop:10}}><span className="alert-icon material-symbols-rounded">smart_toy</span><div className="alert-content"><div className="alert-title">Suggestion IA — à valider par vous</div><div className="alert-text" style={{whiteSpace:'pre-wrap'}}>{avisIA}</div></div></div>}
         <div className="form-group" style={{marginTop:14}}><label className="form-label">Votre diagnostic *</label>
-          <input className="form-input" value={form.diagnostic} onChange={e=>setForm(f=>({...f,diagnostic:e.target.value}))} placeholder="Diagnostic retenu par vous"/>
+          <input className="form-input" value={form.diagnostic} onChange={e=>setForm(f=>Object.assign({},f,{diagnostic:e.target.value}))} placeholder="Diagnostic retenu par vous"/>
         </div>
         <div className="form-group"><label className="form-label">Conduite à tenir *</label>
-          <textarea className="form-textarea" value={form.conduite} onChange={e=>setForm(f=>({...f,conduite:e.target.value}))} placeholder="Traitement, orientation, recommandations..."/>
+          <textarea className="form-textarea" value={form.conduite} onChange={e=>setForm(f=>Object.assign({},f,{conduite:e.target.value}))} placeholder="Traitement, orientation, recommandations..."/>
         </div>
-        <button className="btn btn-primary btn-full" onClick={()=>soumettreReponse(window.__tcRequeteId)} disabled={!form.patient_isub||!form.diagnostic||!form.conduite}>Valider et signer l'acte</button>
+        <div className="form-group"><label className="form-label">Gravité</label>
+          <select className="form-select" value={form.gravite} onChange={e=>setForm(f=>Object.assign({},f,{gravite:e.target.value}))}>{['légère','modérée','grave','critique'].map(g=><option key={g}>{g}</option>)}</select>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-primary" onClick={signerReponse} disabled={form.diagnostic.trim().length<3||form.conduite.trim().length<3||busy}>{busy?'Enregistrement...':'Valider et signer l’acte'}</button>
+          <button className="btn btn-outline" onClick={()=>setSel(null)}>Annuler</button>
+        </div>
         <div className="form-hint">Cet acte sera enregistré à votre nom, {user.nom}.</div>
       </div>
-      <div className="alert alert-warning">
-        <span className="alert-icon material-symbols-rounded">gavel</span>
-        <div className="alert-content"><div className="alert-title">Rappel</div><div className="alert-text">L'IA propose des hypothèses à titre indicatif. Le diagnostic, la prescription et la responsabilité de l'acte restent entièrement les vôtres, conformément aux règles de l'exercice médical.</div></div>
-      </div>
-    </div>)}
+      <div className="alert alert-warning"><span className="alert-icon material-symbols-rounded">gavel</span><div className="alert-content"><div className="alert-title">Rappel</div><div className="alert-text">L’IA propose des hypothèses à titre indicatif. Le diagnostic, la prescription et la responsabilité de l’acte restent entièrement les vôtres.</div></div></div>
+    </div>}
+    {tab==='traitees'&&<div className="card">
+      {traitees.length===0?<div className="empty-state"><div className="empty-text">Aucune téléconsultation traitée</div></div>
+        :traitees.map(c=><div key={c.id} className="consultation-item">
+          <div className="consultation-date">{fmtDT(c.repondu_at||c.created_at)}</div>
+          <div style={{fontWeight:600,fontSize:13}}>{c.patient_nom||c.patient_isub}</div>
+          <div style={{fontSize:13,marginTop:4}}>Motif : {c.motif}</div>
+          <div style={{fontSize:13,marginTop:4}}><strong>Diagnostic :</strong> {c.reponse_diagnostic} — <strong>Conduite :</strong> {c.reponse_conduite}</div>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Signé : {c.repondu_par}{c.avis_ia_consulte?' • avis IA consulté (suggestion)':''}</div>
+        </div>)}
+    </div>}
   </div>);
 }
 
@@ -1307,16 +1350,18 @@ function Carte({consultations}){
 // IA CLINIQUE (Claude API)
 // ═══════════════════════════════════════
 function IAClinique({user,patients,consultations}){
-  const welcomeMsg='Bonjour Dr. '+user.nom+' ! Je suis votre assistant IA clinique SNISB.\n\nJe peux vous aider avec :\n\u{1F50D} Analyse diagnostique — Diagnostics différentiels\n\u{1F9A0} Épidémiologie — Tendances dans votre zone\n\u{1F48A} Protocoles — Guides thérapeutiques béninois\n\u{1F4CA} Données SNISB — Vos statistiques locales\n\nComment puis-je vous aider ?';
+  const estPatient=user.role==='patient';
+  const welcomeMsg=estPatient?('Bonjour '+user.nom+' ! Je suis l\u2019assistant sant\u00e9 SNISB.\n\nJe donne des informations g\u00e9n\u00e9rales de pr\u00e9vention (hygi\u00e8ne, vaccination, paludisme, nutrition, grossesse) et je vous dis quand consulter.\n\nJe ne pose pas de diagnostic, je ne prescris rien et je ne remplace pas une consultation. Pour un probl\u00e8me de sant\u00e9, utilisez l\u2019onglet T\u00e9l\u00e9consultation. En urgence : SAMU 161.'):('Bonjour Dr. '+user.nom+' ! Je suis votre assistant IA clinique SNISB.\n\nJe peux vous aider avec :\n\u{1F50D} Analyse diagnostique — Diagnostics différentiels\n\u{1F9A0} Épidémiologie — Tendances dans votre zone\n\u{1F48A} Protocoles — Guides thérapeutiques béninois\n\u{1F4CA} Données SNISB — Vos statistiques locales\n\nComment puis-je vous aider ?');
   const[messages,setMessages]=useState([{role:'ai',content:welcomeMsg}]);
   const[input,setInput]=useState('');
   const[loading,setLoading]=useState(false);
   const endRef=useRef(null);
-  const QUICK_PROMPTS=['Protocole traitement paludisme simple Bénin','Critères de gravité méningite','Seuil alerte épidémique choléra','Analyse épidémio de ma zone','Définition de cas rougeole SIMR'];
+  const QUICK_PROMPTS=estPatient?['Comment prévenir le paludisme ?','Calendrier des vaccins de l\u2019enfant','Bonnes pratiques d\u2019hygiène des mains','Quand dois-je consulter pendant la grossesse ?','Alimentation saine du nourrisson']:['Protocole traitement paludisme simple Bénin','Critères de gravité méningite','Seuil alerte épidémique choléra','Analyse épidémio de ma zone','Définition de cas rougeole SIMR'];
 
   useEffect(()=>{ if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'}); },[messages]);
 
   const buildContext=()=>{
+    if(estPatient)return 'Patient du Bénin. Information de santé publique uniquement.';
     const totalP=patients.length;
     const totalC=consultations.length;
     const alertes=consultations.filter(c=>c.notif==='immédiate').length;
@@ -1372,10 +1417,10 @@ function IAClinique({user,patients,consultations}){
   };
 
   return(<div>
-    <p className="page-title">🤖 IA Clinique — Assistant SNISB</p>
+    <p className="page-title">{estPatient?'🤖 Assistant santé SNISB':'🤖 IA Clinique — Assistant SNISB'}</p>
     <div className="grid-2">
       <div className="ai-panel" style={{marginBottom:16}}>
-        <div className="ai-panel-title">🤖 Assistant IA Clinique</div>
+        <div className="ai-panel-title">{estPatient?'🤖 Assistant santé (information générale)':'🤖 Assistant IA Clinique'}</div>
         <div className="ai-panel-sub">Propulsé par Claude • Contexte SNISB intégré</div>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,opacity:0.6,marginBottom:8,textTransform:'uppercase',letterSpacing:'0.5px'}}>Questions rapides :</div>
@@ -1383,10 +1428,10 @@ function IAClinique({user,patients,consultations}){
         </div>
         <div style={{padding:12,background:'rgba(255,255,255,0.06)',borderRadius:10,fontSize:12,opacity:0.7}}>
           <div style={{fontWeight:600,marginBottom:4}}>⚠️ Avertissement</div>
-          L'IA complète sans remplacer le jugement clinique. Toujours valider avec un médecin. En urgence, appeler le SAMU (161).
+          {estPatient?'Cet assistant ne fait ni diagnostic, ni prescription, ni consultation. Pour un souci de santé : onglet Téléconsultation. Urgence : SAMU 161.':'L\'IA complète sans remplacer le jugement clinique. Toujours valider avec un médecin. En urgence, appeler le SAMU (161).'}
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,display:estPatient?'none':'grid'}}>
         {[{i:'👤',l:'Patients',v:patients.length,c:'var(--success)'},{i:'🩺',l:'Consultations',v:consultations.length,c:'var(--info)'},{i:'🚨',l:'Alertes',v:consultations.filter(c=>c.notif==='immédiate').length,c:'var(--danger)'},{i:'🦠',l:'Maladies SIMR',v:29,c:'var(--warning)'}].map((s,i)=>(
           <div key={i} style={{background:'white',borderRadius:12,padding:16,boxShadow:'var(--shadow)'}}>
             <div style={{fontSize:24}}>{s.i}</div>
@@ -1399,7 +1444,7 @@ function IAClinique({user,patients,consultations}){
     <div className="card" style={{padding:0,overflow:'hidden'}}>
       <div style={{padding:'14px 20px',background:'linear-gradient(135deg,#0D1B2A,#1B2838)',color:'white',display:'flex',alignItems:'center',gap:10}}>
         <span style={{fontSize:20}}>🤖</span>
-        <div><div style={{fontWeight:700,fontSize:14}}>Assistant IA Clinique SNISB</div><div style={{fontSize:11,opacity:0.6}}>Claude • Contexte Bénin intégré</div></div>
+        <div><div style={{fontWeight:700,fontSize:14}}>{estPatient?'Assistant santé SNISB':'Assistant IA Clinique SNISB'}</div><div style={{fontSize:11,opacity:0.6}}>{estPatient?'Information générale de prévention':'Claude • Contexte Bénin intégré'}</div></div>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <span style={{fontSize:10,padding:'3px 8px',background:'rgba(0,133,62,0.3)',borderRadius:10,color:'#2ECC71'}}>● En ligne</span>
         </div>
@@ -1415,7 +1460,7 @@ function IAClinique({user,patients,consultations}){
         <div ref={endRef}/>
       </div>
       <div className="ai-input-row">
-        <input className="ai-input" placeholder="Posez votre question clinique ou épidémiologique..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} disabled={loading}/>
+        <input className="ai-input" placeholder={estPatient?'Posez une question de prévention...':'Posez votre question clinique ou épidémiologique...'} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} disabled={loading}/>
         <button className="btn btn-primary btn-sm" onClick={()=>send()} disabled={!input.trim()||loading}>{loading?'⏳':'📤'}</button>
       </div>
     </div>
@@ -1847,15 +1892,20 @@ function CarnetSante({user,patient,consultations,readOnly}){
     const row={id:uuid(),patient_isub:isub,section:sec,date_acte:dateActe,data:data,zone_sanitaire:user.zone||patient.zone_sanitaire||null,saisi_par:user.nom,saisi_id:user.supabase_id||null};
     let envoye=false,tableManquante=false;
     if(supaClient&&navigator.onLine){
+      if(!user.supabase_id){setErrs(['Session Supabase absente : déconnectez-vous puis reconnectez-vous avec votre vrai mot de passe.']);setSaving(false);return;}
       try{
         const{error}=await supaClient.from('carnet_entries').insert(row);
         if(!error||error.code==='23505')envoye=true;
-        else if(error.code==='42P01'||(error.message||'').indexOf('carnet_entries')>=0)tableManquante=true;
-        else if(error.code==='42501'||(error.message||'').toLowerCase().indexOf('row-level')>=0){setErrs(['Enregistrement refusé : votre rôle n’est pas autorisé à écrire dans le carnet.']);setSaving(false);return;}
-      }catch(e){}
+        else{
+          const em=(error.message||'')+' '+(error.code||'');
+          if(/42P01|PGRST205|schema cache|carnet_entries.*(exist|find)/i.test(em))tableManquante=true;
+          else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte n’a pas le droit d’écrire ce carnet (rôle médecin/infirmier requis, patient existant). Détail : '+(error.message||error.code)]);setSaving(false);return;}
+          else{setErrs(['Erreur de la base : '+(error.message||error.code)+(error.details?' — '+error.details:'')]);setSaving(false);return;}
+        }
+      }catch(e){/* panne réseau : file d’attente locale */}
     }
     if(!envoye){
-      if(tableManquante){setErrs(['La base du carnet n’est pas installée : exécutez 06_carnet_schema.sql dans Supabase, puis réessayez.']);setSaving(false);return;}
+      if(tableManquante){setErrs(['La base du carnet n’est pas prête : exécutez 06_carnet_schema.sql puis 08_teleconsultation_v18.sql (qui recharge le cache) dans Supabase, puis réessayez.']);setSaving(false);return;}
       const box=lsGet(OUTBOX_KEY,[]);box.push(row);lsSet(OUTBOX_KEY,box);
     }
     const ajoute=Object.assign({},row,{pending:!envoye});
@@ -2100,7 +2150,7 @@ function App(){
       case 'dashboard':return<Dashboard user={user} patients={patients} consultations={consultations}/>;
       case 'patients':return<Patients {...props}/>;
       case 'consultations':return<Consultations {...props}/>;
-      case 'teleconsultation':return<Teleconsultation user={user} patients={patients} consultations={consultations} setConsultations={setConsultations} db={db}/>;
+      case 'teleconsultation':return<Teleconsultation user={user} patients={patients}/>;
       case 'dossiers':return<Dossiers patients={patients} consultations={consultations}/>;
       case 'rappels':return<Rappels {...props}/>;
       case 'export':return<Export consultations={consultations} patients={patients}/>;

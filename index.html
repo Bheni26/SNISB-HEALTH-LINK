@@ -298,10 +298,13 @@ const COMPTES_DEMO=[
 ];
 
 const ROLES={
-  admin:{label:'Administrateur National',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','export','epidemio','carte','ia','formation','admin']},
-  medecin:{label:'Médecin',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','export','epidemio','carte','ia','formation']},
-  infirmier:{label:'Infirmier / Sage-femme',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','rappels','ia','formation']},
-  statisticien:{label:'Statisticien SNIS',onglets:['dashboard','export','epidemio','carte','ia','formation']},
+  admin:{label:'Administrateur National',niveau:'central',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','export','epidemio','carte','pyramide','ia','formation','admin']},
+  superviseur:{label:'Superviseur (département)',niveau:'intermediaire',onglets:['dashboard','communautaire','export','epidemio','carte','pyramide','ia','formation']},
+  medecin:{label:'Médecin',niveau:'peripherique',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','export','epidemio','carte','pyramide','ia','formation']},
+  infirmier:{label:'Infirmier / Sage-femme',niveau:'peripherique',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','pyramide','ia','formation']},
+  statisticien:{label:'Statisticien SNIS',niveau:'central',onglets:['dashboard','communautaire','export','epidemio','carte','pyramide','ia','formation']},
+  asc:{label:'Agent de santé communautaire qualifié',niveau:'communautaire',onglets:['communautaire','pyramide','formation']},
+  relais:{label:'Relais communautaire',niveau:'communautaire',onglets:['communautaire','pyramide','formation']},
   patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia']}
 };
 
@@ -458,9 +461,9 @@ function Login({onLogin}){
       if(ident.indexOf('@')>0){try{const r=await supaClient.rpc('login_email',{ident:ident});loginEmail=(r&&r.data)||ident;}catch(e){loginEmail=ident;}}
       const{data,error}=await supaClient.auth.signInWithPassword({email:loginEmail,password:p});
       if(error||!data?.user){setErr('Identifiant ou mot de passe incorrect.');setLd(false);return;}
-      const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub,username').eq('id',data.user.id).single();
+      const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub,username,niveau,structure_type,structure_nom,commune,arrondissement,village').eq('id',data.user.id).single();
       if(profErr||!profile){setErr('Compte authentifié mais profil introuvable — contactez un administrateur.');setLd(false);return;}
-      onLogin({username:(profile.username||u),must_change:!!(data.user.user_metadata&&data.user.user_metadata.must_change),supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub});
+      onLogin({username:(profile.username||u),must_change:!!(data.user.user_metadata&&data.user.user_metadata.must_change),supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub,niveau:profile.niveau,structure_type:profile.structure_type,structure_nom:profile.structure_nom,commune:profile.commune,arrondissement:profile.arrondissement,village:profile.village});
     }catch(e){setErr('Erreur de connexion. Vérifiez votre réseau et réessayez.');}
     setLd(false);
   };
@@ -510,7 +513,7 @@ function Header({user,online,onLogout,syncPending}){
       </div>
       <div style={{textAlign:'right'}}>
         <div className="header-user-name">{user.nom}</div>
-        <div className="header-user-role" style={{fontSize:11,opacity:0.75}}>{ROLES[user.role]?.label}</div>
+        <div className="header-user-role" style={{fontSize:11,opacity:0.75}}>{ROLES[user.role]?.label}{user.structure_nom?' · '+user.structure_nom:''}{user.village?' · '+user.village:''}</div>
       </div>
       <button className="btn-icon" onClick={onLogout} title="Déconnexion">🚪</button>
     </div>
@@ -524,7 +527,7 @@ function Nav({user,active,onChange,alerts}){
     rappels:{l:'Rappels',i:'notifications'},export:{l:'Export DHIS2',i:'upload_file'},
     epidemio:{l:'Épidémiologie',i:'coronavirus'},carte:{l:'Carte',i:'map'},
     ia:{l:'IA Clinique',i:'smart_toy'},formation:{l:'Formation',i:'school'},
-    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},carnet_sante:{l:'Carnet de santé',i:'menu_book'},sante:{l:'Ma Santé',i:'favorite'}
+    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},carnet_sante:{l:'Carnet de santé',i:'menu_book'},communautaire:{l:'Santé communautaire',i:'diversity_3'},pyramide:{l:'Pyramide sanitaire',i:'account_tree'},sante:{l:'Ma Santé',i:'favorite'}
   };
   return(<aside className="sidebar">
     {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
@@ -562,20 +565,14 @@ function Dashboard({user,patients,consultations}){
       <div className="card"><div className="card-title">📈 Consultations (7 jours)</div><div className="chart-container"><canvas ref={r1}/></div></div>
       <div className="card"><div className="card-title">🦠 Répartition pathologies — Bénin</div><div className="chart-container"><canvas ref={r2}/></div></div>
     </div>
-    <div className="grid-2">
-      <div className="card"><div className="card-title">🎯 Impact SNISB v7</div>
-        {[['Délai disponibilité données','15-30j','<24h','-95%'],['Temps saisie/agent','3-4h/j','15-20min','-85%'],["Taux d'erreurs saisie",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%'],['Couverture zones rurales','60%','95%','+58%']].map(([l,a,b,g],i)=>(
-          <div key={i} className="kpi-row"><div><div style={{fontSize:12,fontWeight:600}}>{l}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{a} → <strong style={{color:'var(--primary)'}}>{b}</strong></div></div><span className="kpi-gain">{g}</span></div>
-        ))}
+    <div className="card"><div className="card-title">🏛️ Votre place dans la pyramide sanitaire</div>
+      <div style={{fontSize:13,lineHeight:1.7}}>
+        <div><strong>Rôle :</strong> {ROLES[user.role]?.label}</div>
+        <div><strong>Niveau :</strong> {({central:'Central',intermediaire:'Intermédiaire (département)',peripherique:'Périphérique (zone sanitaire)',communautaire:'Communautaire'})[user.niveau||(ROLES[user.role]||{}).niveau]||'—'}</div>
+        {user.zone&&<div><strong>Zone sanitaire :</strong> {(TOUTES_ZONES.find(z=>z.code===user.zone)||{}).nom||user.zone}</div>}
+        {user.structure_nom&&<div><strong>Structure :</strong> {user.structure_nom}</div>}
       </div>
-      <div className="card"><div className="card-title">🆕 Nouveautés v7</div>
-        {[['🔐','Authentification Supabase','Connexion sécurisée JWT + base cloud'],['🗺️','Carte épidémique interactive','Visualisation par département'],['🤖','IA Clinique (Claude)','Assistant diagnostic & épidémio'],['📱','PWA installable','Application Android/iOS sans store'],['🔄','Sync temps réel','Supabase Realtime pour toutes les zones']].map(([ic,t,d],i)=>(
-          <div key={i} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start'}}>
-            <span style={{fontSize:20,flexShrink:0}}>{ic}</span>
-            <div><div style={{fontSize:13,fontWeight:600}}>{t}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{d}</div></div>
-          </div>
-        ))}
-      </div>
+      <div className="form-hint">Consultez l’onglet « Pyramide sanitaire » pour l’organisation officielle (Décret 2022-148).</div>
     </div>
   </div>);
 }
@@ -1140,7 +1137,7 @@ function Export({consultations,patients}){
   const fil=()=>{let r=[...consultations];if(d1)r=r.filter(c=>new Date(c.date_consultation)>=new Date(d1));if(d2)r=r.filter(c=>new Date(c.date_consultation)<=new Date(d2+'T23:59:59'));return r;};
   const log=(fmt,nb)=>setHist(h=>[{fmt,nb,date:new Date().toISOString()},...h.slice(0,9)]);
   const expCSV=()=>{const data=fil();const csv=[['ID','Patient_ISUB','Date','Diagnostic','Code_CIM10','Gravite','Notification','Zone','Departement','Score_Qualite','Risque'].join(','),...data.map(c=>[c.id,c.patient_isub,c.date_consultation,c.diagnostic,c.code_cim10,c.gravite,c.notif,c.zone_nom,c.departement,c.quality_score,c.risque].map(v=>'"'+(v===null||v===undefined?'':v)+'"').join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='SNISB_DHIS2_'+new Date().toISOString().slice(0,10)+'.csv';a.click();log('CSV',data.length);};
-  const expJSON=()=>{const data=fil();const payload={version:'2.0',source:'SNISB-Health-Link-v7',generatedAt:new Date().toISOString(),country:'BEN',dataValues:data.map(c=>({dataElement:c.code_cim10||'UNKNOWN',period:(c.date_consultation||'').slice(0,10).replace(/-/g,''),orgUnit:c.zone_sanitaire||'BEN-UNKNOWN',value:1,storedBy:'SNISB-v7',comment:'Zone:'+(c.zone_nom||'')+'|Q:'+(c.quality_score||0)+'/100'}))};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download='SNISB_DHIS2_'+new Date().toISOString().slice(0,10)+'.json';a.click();log('JSON',data.length);};
+  const expJSON=()=>{const data=fil();const payload={version:'2.0',source:'SNISB-Health-Link',generatedAt:new Date().toISOString(),country:'BEN',dataValues:data.map(c=>({dataElement:c.code_cim10||'UNKNOWN',period:(c.date_consultation||'').slice(0,10).replace(/-/g,''),orgUnit:c.zone_sanitaire||'BEN-UNKNOWN',value:1,storedBy:'SNISB-v7',comment:'Zone:'+(c.zone_nom||'')+'|Q:'+(c.quality_score||0)+'/100'}))};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download='SNISB_DHIS2_'+new Date().toISOString().slice(0,10)+'.json';a.click();log('JSON',data.length);};
   const expPDF=()=>{
     const data=fil();const{jsPDF}=window.jspdf;const doc=new jsPDF();
     doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('REPUBLIQUE DU BENIN',105,18,{align:'center'});
@@ -1322,13 +1319,12 @@ function Carte({consultations}){
 
   useEffect(()=>{
     if(!mapRef.current||mapInstance.current)return;
-    const map=L.map(mapRef.current,{zoomControl:true,attributionControl:true}).setView([9.3077,2.3158],7);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-      attribution:'&copy; OpenStreetMap &copy; CARTO',
-      maxZoom:12, minZoom:6
-    }).addTo(map);
+    // Aucun fond de carte externe : les contours des départements sont embarqués dans l'application
+    // (fonctionne hors ligne, aucune clé ni service tiers requis).
+    mapRef.current.style.background='#E9F0F6';
+    const map=L.map(mapRef.current,{zoomControl:true,attributionControl:false,zoomSnap:0.25,minZoom:5.5,maxZoom:10}).setView([9.3077,2.3158],7);
     mapInstance.current=map;
-    return()=>{ try{map.remove();}catch(e){} mapInstance.current=null; };
+    return()=>{ try{map.stop();}catch(e){} try{map.remove();}catch(e){} mapInstance.current=null; };
   },[]);
 
   useEffect(()=>{
@@ -1373,6 +1369,7 @@ function Carte({consultations}){
       }
     }).addTo(map);
     geoLayerRef.current=layer;
+    if(!map.__cadre){map.__cadre=true;try{if(mapInstance.current===map&&map._loaded)map.fitBounds(layer.getBounds(),{padding:[12,12],animate:false});}catch(e){}}
   },[deptData,metric,selectedDept]);
 
   const selDept=selectedDept?(ZONES_SANITAIRES[selectedDept]||[]):[];
@@ -1636,19 +1633,19 @@ function Admin({user,patients,consultations}){
   const[realLogs,setRealLogs]=useState([]);
   const[loadingUsers,setLoadingUsers]=useState(false);
   const[loadingLogs,setLoadingLogs]=useState(false);
-  const[nc,setNc]=useState({nom:'',username:'',role:'medecin',zone:'',departement:'',email:''});
+  const[nc,setNc]=useState({nom:'',username:'',role:'medecin',zone:'',departement:'',email:'',commune:'',arrondissement:'',village:'',structure_type:'',structure_nom:''});
   const[ncAcces,setNcAcces]=useState(null);const[ncErr,setNcErr]=useState('');const[ncBusy,setNcBusy]=useState(false);
   const creerCompte=async()=>{
     setNcBusy(true);setNcErr('');
     const r=await callCreateAccount(Object.assign({action:'staff'},nc,{email:nc.email||null}));
     setNcBusy(false);
-    if(r.data){setNcAcces(Object.assign({nom:nc.nom},r.data));setNc({nom:'',username:'',role:'medecin',zone:'',departement:'',email:''});setRealUsers([]);}else setNcErr(r.error);
+    if(r.data){setNcAcces(Object.assign({nom:nc.nom},r.data));setNc({nom:'',username:'',role:'medecin',zone:'',departement:'',email:'',commune:'',arrondissement:'',village:'',structure_type:'',structure_nom:''});setRealUsers([]);}else setNcErr(r.error);
   };
 
   useEffect(()=>{
     if(tab==='users'&&supaClient&&realUsers.length===0){
       setLoadingUsers(true);
-      supaClient.from('profiles').select('username,nom,role,zone,departement,actif').order('nom')
+      supaClient.from('profiles').select('username,nom,role,zone,departement,actif,niveau,structure_nom,village').order('nom')
         .then(({data,error})=>{ if(!error&&data)setRealUsers(data); setLoadingUsers(false); });
     }
     if(tab==='logs'&&supaClient&&realLogs.length===0){
@@ -1672,15 +1669,26 @@ function Admin({user,patients,consultations}){
           <div className="form-group"><label className="form-label">Identifiant * (lettres/chiffres)</label><input className="form-input" value={nc.username} onChange={e=>setNc(Object.assign({},nc,{username:e.target.value}))}/></div>
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Rôle *</label><select className="form-select" value={nc.role} onChange={e=>setNc(Object.assign({},nc,{role:e.target.value}))}>{['medecin','infirmier','statisticien','superviseur','admin'].map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Rôle *</label><select className="form-select" value={nc.role} onChange={e=>setNc(Object.assign({},nc,{role:e.target.value}))}>{['medecin','infirmier','statisticien','superviseur','admin','asc','relais'].map(r=><option key={r} value={r}>{ROLES[r]?ROLES[r].label:r}</option>)}</select></div>
           <div className="form-group"><label className="form-label">E-mail (facultatif)</label><input className="form-input" type="email" value={nc.email} onChange={e=>setNc(Object.assign({},nc,{email:e.target.value}))}/></div>
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Zone sanitaire (code)</label><input className="form-input" placeholder="ex. ZS-OUE-03" value={nc.zone} onChange={e=>setNc(Object.assign({},nc,{zone:e.target.value}))}/></div>
-          <div className="form-group"><label className="form-label">Département</label><input className="form-input" placeholder="ex. OUEME" value={nc.departement} onChange={e=>setNc(Object.assign({},nc,{departement:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Département</label>
+            <select className="form-select" value={nc.departement} onChange={e=>setNc(Object.assign({},nc,{departement:e.target.value,zone:''}))}><option value="">— Choisir —</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d} value={d}>{d}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Zone sanitaire{(nc.role==='relais'||nc.role==='asc'||nc.role==='medecin'||nc.role==='infirmier')?' *':''}</label>
+            <select className="form-select" value={nc.zone} disabled={!nc.departement} onChange={e=>setNc(Object.assign({},nc,{zone:e.target.value}))}><option value="">— Choisir —</option>{(ZONES_SANITAIRES[nc.departement]||[]).map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select></div>
         </div>
-        <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3}>{ncBusy?'Création...':'Créer le compte'}</button>
-        <div className="form-hint">Un mot de passe temporaire est généré ; la personne devra le changer à sa première connexion. Médecin et infirmier d’une même zone voient les mêmes patients.</div>
+        {(nc.role==='relais'||nc.role==='asc')&&<div className="form-row">
+          <div className="form-group"><label className="form-label">Commune</label><input className="form-input" value={nc.commune} onChange={e=>setNc(Object.assign({},nc,{commune:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Arrondissement *</label><input className="form-input" value={nc.arrondissement} onChange={e=>setNc(Object.assign({},nc,{arrondissement:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Village / quartier{nc.role==='relais'?' *':''}</label><input className="form-input" value={nc.village} onChange={e=>setNc(Object.assign({},nc,{village:e.target.value}))}/></div>
+        </div>}
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Type de structure (facultatif)</label><select className="form-select" value={nc.structure_type} onChange={e=>setNc(Object.assign({},nc,{structure_type:e.target.value}))}><option value="">—</option>{STRUCTURES_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Nom de la structure (centre de santé de rattachement)</label><input className="form-input" value={nc.structure_nom} onChange={e=>setNc(Object.assign({},nc,{structure_nom:e.target.value}))}/></div>
+        </div>
+        <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3||((nc.role==='relais'||nc.role==='asc')&&(!nc.zone||!nc.arrondissement.trim()||(nc.role==='relais'&&!nc.village.trim())))}>{ncBusy?'Création...':'Créer le compte'}</button>
+        <div className="form-hint">Un mot de passe temporaire est généré ; la personne devra le changer à sa première connexion. Médecin et infirmier d’une même zone voient les mêmes patients. Relais et ASCQ : zone, arrondissement et village obligatoires ; ils ne voient aucun dossier médical.</div>
       </div>
     </div>}
     {tab==='users'&&<div className="card"><div className="card-title">👥 Utilisateurs du système</div>
@@ -1688,14 +1696,14 @@ function Admin({user,patients,consultations}){
       :loadingUsers?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
       :realUsers.length===0?<div className="empty-state"><div className="empty-text">Aucun utilisateur trouvé dans la base.</div></div>
       :<div className="table-wrap"><table>
-      <thead><tr><th>Nom</th><th>Username</th><th>Rôle</th><th>Zone</th><th>Département</th><th>Statut</th></tr></thead>
-      <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'—'}</td><td>{u.departement||'—'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
+      <thead><tr><th>Nom</th><th>Username</th><th>Rôle</th><th>Zone</th><th>Département</th><th>Structure / village</th><th>Statut</th></tr></thead>
+      <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'—'}</td><td>{u.departement||'—'}</td><td style={{fontSize:11}}>{[u.structure_nom,u.village].filter(Boolean).join(' · ')||'—'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
     </table></div>}</div>}
     {tab==='zones'&&<div className="card"><div className="card-title">🗺️ 34 Zones Sanitaires — 12 Départements</div><div className="table-wrap"><table>
       <thead><tr><th>Code</th><th>Zone Sanitaire</th><th>Département</th><th>Population</th></tr></thead>
       <tbody>{TOUTES_ZONES.map(z=><tr key={z.code}><td><code style={{fontSize:11}}>{z.code}</code></td><td>{z.nom}</td><td>{z.departement}</td><td>{z.pop?.toLocaleString('fr-FR')} hab.</td></tr>)}</tbody>
     </table></div></div>}
-    {tab==='kpi'&&<div className="card"><div className="card-title">📊 KPIs Nationaux SNISB v7</div>
+    {tab==='kpi'&&<div className="card"><div className="card-title">📊 KPIs Nationaux SNISB</div>
       <div className="grid-2">
         {[['Patients enregistrés','—',patients.length,'↑'],['Consultations totales','—',consultations.length,'↑'],['Délai disponibilité','15-30j','<24h','-95%'],['Temps saisie','3-4h/j','15-20min','-85%'],["Taux d'erreurs",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%']].map(([l,a,b,g],i)=>(
           <div key={i} className="kpi-row"><div><div style={{fontSize:12,fontWeight:600}}>{l}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{a} → <strong style={{color:'var(--primary)'}}>{b}</strong></div></div><span className="kpi-gain">{g}</span></div>
@@ -2165,6 +2173,234 @@ function Carnet({user,consultations,patients}){
   </div>);
 }
 // ═══════════════════════════════════════
+// PYRAMIDE SANITAIRE DU BÉNIN + SANTÉ COMMUNAUTAIRE
+// Sources : Décret n° 2022-148 du 02 mars 2022 portant organisation de la pyramide sanitaire (art. 3 à 26) ;
+//           Politique nationale de santé communautaire (ASCQ, relais communautaires, SIBC intégré au SNIGS).
+// ═══════════════════════════════════════
+const PYRAMIDE=[
+  {niveau:'central',titre:'Niveau central',ref:'Décret 2022-148, art. 23 à 26',
+   structures:['Ministère de la Santé : cabinet, secrétariat général, directions centrales et techniques, agences','Hôpitaux nationaux de dernière référence (soins très spécialisés, formation universitaire, recherche)'],
+   role:'Pilotage, politiques, données nationales.',snisb:['Administrateur national','Statisticien SNIS']},
+  {niveau:'intermediaire',titre:'Niveau intermédiaire (département)',ref:'Décret 2022-148, art. 18 à 22',
+   structures:['Direction départementale de la santé : supervise les zones sanitaires et appuie les communes','Centre hospitalier départemental (CHD) : référence départementale, médecine et chirurgie spécialisées, urgences et réanimation'],
+   role:'Supervision des zones sanitaires, plan d’action départemental.',snisb:['Superviseur']},
+  {niveau:'peripherique',titre:'Niveau périphérique (zone sanitaire)',ref:'Décret 2022-148, art. 5 à 17',
+   structures:['Structures de premier contact : centres de santé d’arrondissement ou de commune, maternités et dispensaires isolés, services de santé communautaire, infirmeries, cabinets et cliniques','Hôpital de commune (certaines communes enclavées)','Hôpital de zone : structure de référence de la zone (médecine générale, chirurgie générale, obstétrique, pédiatrie, urgences)','Bureau de coordination de zone, placé sous l’autorité du directeur départemental de la santé'],
+   role:'Soins de premier contact et première référence ; une zone couvre plusieurs arrondissements d’une ou plusieurs communes.',snisb:['Médecin','Infirmier / Sage-femme']},
+  {niveau:'communautaire',titre:'Niveau communautaire (village ou quartier de ville)',ref:'Politique nationale de santé communautaire',
+   structures:['Agent de santé communautaire qualifié (ASCQ) : encadre en moyenne trois relais ; recruté par la mairie, mis à disposition des aires de santé','Relais communautaire : volontaire choisi par sa communauté, visite les ménages, conseille, oriente et aide à la référence','Tutelle technique : le chef de poste du centre de santé de l’aire ; les données remontent vers le centre de santé puis le SNIGS'],
+   role:'Promotion de la santé, repérage des cas, orientation, information à base communautaire.',snisb:['Agent de santé communautaire qualifié','Relais communautaire']}
+];
+const CAT_SIG={
+  maladie_surveillance:'Cas suspect de maladie sous surveillance (SIMR)',
+  femme_enceinte:'Femme enceinte à orienter vers le centre de santé',
+  enfant_malnutri:'Enfant suspect de malnutrition',
+  enfant_non_vaccine:'Enfant non vacciné ou perdu de vue',
+  deces:'Décès dans la communauté',
+  evenement_inhabituel:'Événement ou rumeur inhabituelle'
+};
+const STRUCTURES_TYPES=['Centre de santé d’arrondissement','Centre de santé de commune','Hôpital de commune','Hôpital de zone','Maternité / dispensaire isolé','Service de santé communautaire','Bureau de coordination de zone','Direction départementale de la santé','Centre hospitalier départemental (CHD)','Niveau central (Ministère)'];
+const SIG_OUTBOX='snisb_sig_outbox';
+
+function PyramideSanitaire({user}){
+  const mon=user.niveau||(ROLES[user.role]&&ROLES[user.role].niveau)||'';
+  return(<div>
+    <p className="page-title">🏛️ Pyramide sanitaire du Bénin</p>
+    <p className="page-sub">L’organisation officielle du système de santé, et la place de chaque rôle SNISB dans cette pyramide.</p>
+    {PYRAMIDE.map((n,i)=><div key={n.niveau} className="card" style={{borderLeft:'5px solid '+(n.niveau===mon?'var(--primary)':'var(--border)'),background:n.niveau===mon?'#F1F8F4':undefined}}>
+      <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+        <div className="card-title" style={{marginBottom:6}}>{n.titre}{n.niveau===mon&&<span className="badge badge-success" style={{marginLeft:8}}>Votre niveau</span>}</div>
+        <span style={{fontSize:11,color:'var(--text-muted)'}}>{n.ref}</span>
+      </div>
+      <div style={{fontSize:13,marginBottom:6}}>{n.role}</div>
+      <ul style={{fontSize:13,paddingLeft:18,margin:'0 0 8px'}}>{n.structures.map((s,j)=><li key={j} style={{marginBottom:3}}>{s}</li>)}</ul>
+      <div style={{fontSize:12}}><strong>Rôles SNISB :</strong> {n.snisb.join(' • ')}</div>
+      {i<PYRAMIDE.length-1&&<div style={{textAlign:'center',fontSize:11,color:'var(--text-muted)',marginTop:8}}>↓ référence des cas vers le haut ↑ — supervision vers le bas</div>}
+    </div>)}
+    <div className="alert alert-info"><div className="alert-content"><div className="alert-title">Circuit de l’information</div><div className="alert-text">Relais communautaire → agent de santé communautaire → chef de poste du centre de santé (validation) → zone sanitaire → direction départementale → niveau central. Dans SNISB, un signalement communautaire n’entre dans la surveillance qu’après confirmation par un agent de santé.</div></div></div>
+    <div className="form-hint">Sources : Décret n° 2022-148 du 02 mars 2022 portant organisation de la pyramide sanitaire (le décret ne décrit pas de circuit de référence formel ; celui-ci découle de la structure) ; Politique nationale de santé communautaire du Bénin. Le niveau communautaire est décrit dans la politique de santé communautaire, non dans le décret.</div>
+  </div>);
+}
+
+function SanteCommunautaire({user}){
+  const estAuteur=user.role==='relais'||user.role==='asc';
+  const peutValider=['medecin','infirmier','admin','superviseur'].includes(user.role);
+  const enligne=!!(supaClient&&user.supabase_id);
+  const aujourdhui=new Date().toISOString().slice(0,10);
+  const vide={village:user.village||'',date_evenement:aujourdhui,categorie:'maladie_surveillance',maladie_code:'',nb_cas:'1',nb_deces:'0',nb_orientes:'0',description:''};
+  const[items,setItems]=useState([]);
+  const[attente,setAttente]=useState(()=>lsGet(SIG_OUTBOX,[]));
+  const[loadErr,setLoadErr]=useState('');
+  const[form,setForm]=useState(vide);
+  const[errs,setErrs]=useState([]);
+  const[msg,setMsg]=useState(null);
+  const[busy,setBusy]=useState(false);
+  const[tab,setTab]=useState(peutValider?'avalider':'saisie');
+  const[rejetId,setRejetId]=useState(null);const[motif,setMotif]=useState('');
+
+  const charger=async()=>{
+    if(!enligne)return;
+    try{
+      const{data,error}=await supaClient.from('signalements_communautaires').select('*').order('created_at',{ascending:false}).limit(300);
+      if(error){setLoadErr(/signalements_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module communautaire n’est pas installé : exécutez 12_pyramide_communautaire.sql dans Supabase.':'Chargement impossible : '+error.message);return;}
+      setLoadErr('');setItems(data||[]);
+    }catch(e){setLoadErr('Réseau indisponible — les signalements déjà saisis restent affichés.');}
+  };
+  const envoyerAttente=async()=>{
+    const box=lsGet(SIG_OUTBOX,[]);if(!box.length||!enligne||!navigator.onLine)return;
+    const restant=[];
+    for(const r of box){
+      try{const{error}=await supaClient.from('signalements_communautaires').insert(r);if(error&&error.code!=='23505')restant.push(r);}
+      catch(e){restant.push(r);}
+    }
+    lsSet(SIG_OUTBOX,restant);setAttente(restant);if(restant.length<box.length)charger();
+  };
+  useEffect(()=>{
+    charger();envoyerAttente();
+    const t=setInterval(charger,20000);
+    const on=()=>{envoyerAttente();};
+    window.addEventListener('online',on);
+    return()=>{clearInterval(t);window.removeEventListener('online',on);};
+  },[]);
+
+  const maladie=MALADIES_SIMR.find(m=>m.code===form.maladie_code)||null;
+  const valider=()=>{
+    const e=[];
+    if(!form.village.trim())e.push('Indiquez le village ou quartier.');
+    if(form.date_evenement>aujourdhui)e.push('La date ne peut pas être dans le futur.');
+    if(form.categorie==='maladie_surveillance'&&!maladie)e.push('Choisissez la maladie suspectée.');
+    ['nb_cas','nb_deces','nb_orientes'].forEach(k=>{const v=Number(form[k]);if(!Number.isInteger(v)||v<0)e.push('Les nombres doivent être des entiers positifs ou nuls.');});
+    if(Number(form.nb_orientes)>Number(form.nb_cas))e.push('Le nombre de personnes orientées ne peut pas dépasser le nombre de cas.');
+    if(Number(form.nb_cas)<1&&form.categorie!=='evenement_inhabituel')e.push('Indiquez au moins 1 cas.');
+    if(form.categorie==='evenement_inhabituel'&&form.description.trim().length<10)e.push('Décrivez l’événement (10 caractères minimum).');
+    return Array.from(new Set(e));
+  };
+  const envoyer=async()=>{
+    const e=valider();setErrs(e);if(e.length||busy)return;
+    setBusy(true);setMsg(null);
+    const row={id:uuid(),auteur_id:user.supabase_id||null,auteur_nom:user.nom,auteur_role:user.role,zone_sanitaire:user.zone||null,departement:user.dept||null,commune:user.commune||null,arrondissement:user.arrondissement||null,
+      village:form.village.trim(),date_evenement:form.date_evenement,categorie:form.categorie,
+      maladie_code:form.categorie==='maladie_surveillance'?maladie.code:null,maladie_nom:form.categorie==='maladie_surveillance'?maladie.nom:null,maladie_notif:form.categorie==='maladie_surveillance'?maladie.notif:null,
+      nb_cas:Number(form.nb_cas),nb_deces:Number(form.nb_deces),nb_orientes:Number(form.nb_orientes),description:form.description.trim()||null,statut:'soumis'};
+    if(!user.supabase_id){setErrs(['Session absente : déconnectez-vous puis reconnectez-vous.']);setBusy(false);return;}
+    let envoye=false;
+    if(enligne&&navigator.onLine){
+      try{
+        const{error}=await supaClient.from('signalements_communautaires').insert(row);
+        if(!error||error.code==='23505')envoye=true;
+        else{
+          const em=(error.message||'')+' '+(error.code||'');
+          if(/42P01|PGRST205|schema cache/i.test(em))setErrs(['Le module communautaire n’est pas prêt : exécutez 12_pyramide_communautaire.sql dans Supabase.']);
+          else if(/42501|row-level/i.test(em))setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);
+          else setErrs(['Erreur de la base : '+(error.message||error.code)]);
+          setBusy(false);return;
+        }
+      }catch(x){/* panne réseau : mise en attente locale */}
+    }
+    if(!envoye){const box=lsGet(SIG_OUTBOX,[]);box.push(row);lsSet(SIG_OUTBOX,box);setAttente(box);}
+    setForm(Object.assign({},vide,{village:form.village}));setErrs([]);setBusy(false);
+    setMsg(envoye?{t:'success',m:'Signalement envoyé. Un agent de santé de votre centre va le vérifier.'}:{t:'warning',m:'Pas de réseau : signalement gardé sur cet appareil. Il partira automatiquement dès le retour de la connexion.'});
+    if(envoye)charger();
+  };
+
+  const decider=async(s,statut,motifRejet)=>{
+    if(!enligne||busy)return;
+    if(statut==='rejete'&&(motifRejet||'').trim().length<3){setMsg({t:'danger',m:'Indiquez le motif du rejet.'});return;}
+    setBusy(true);setMsg(null);
+    const{data,error}=await supaClient.from('signalements_communautaires').update({statut:statut,valide_par:user.nom,valide_id:user.supabase_id,motif_rejet:statut==='rejete'?motifRejet.trim():null}).eq('id',s.id).eq('statut','soumis').select();
+    setBusy(false);
+    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||'')});return;}
+    if(!data||data.length===0){setMsg({t:'warning',m:'Ce signalement a déjà été traité ou n’est pas dans votre zone.'});await charger();return;}
+    setRejetId(null);setMotif('');
+    setMsg({t:'success',m:statut==='confirme'?('Signalement confirmé par '+user.nom+(s.maladie_notif==='immédiate'?' — une alerte épidémique a été ouverte (onglet Épidémiologie).':'.')):'Signalement rejeté.'});
+    await charger();
+  };
+
+  const aValider=items.filter(x=>x.statut==='soumis');
+  const confirmes=items.filter(x=>x.statut==='confirme');
+  const parVillage={};
+  confirmes.forEach(x=>{const k=(x.village||'—')+'|'+(x.commune||'')+'|'+(x.zone_sanitaire||'');const o=parVillage[k]||(parVillage[k]={village:x.village,commune:x.commune,zone:x.zone_sanitaire,cas:0,deces:0,orientes:0,n:0});o.cas+=x.nb_cas;o.deces+=x.nb_deces;o.orientes+=x.nb_orientes;o.n+=1;});
+  const lignes=Object.values(parVillage).sort((a,b)=>b.cas-a.cas);
+  const exporterCSV=()=>{
+    const cols=['date_evenement','zone_sanitaire','commune','arrondissement','village','categorie','maladie_code','maladie_nom','nb_cas','nb_deces','nb_orientes','auteur_nom','valide_par','valide_at'];
+    const esc=v=>{const s=v==null?'':String(v);return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const csv='﻿'+[cols.join(';')].concat(confirmes.map(r=>cols.map(c=>esc(r[c])).join(';'))).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='signalements_communautaires_confirmes.csv';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);},200);
+  };
+  const badge=s=><span className={'badge '+(s==='confirme'?'badge-success':s==='rejete'?'badge-immediate':'badge-hebdo')}>{s==='confirme'?'Confirmé':s==='rejete'?'Rejeté':'À vérifier'}</span>;
+  const carte=(s,actions)=><div key={s.id} className="consultation-item">
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{fmtDate(s.date_evenement)} — {s.village}{s.commune?' ('+s.commune+')':''}</div>{badge(s.statut)}</div>
+    <div style={{fontWeight:600,fontSize:13,marginTop:2}}>{CAT_SIG[s.categorie]||s.categorie}{s.maladie_nom?' : '+s.maladie_nom:''}{s.maladie_notif==='immédiate'&&<span className="badge badge-immediate" style={{marginLeft:6}}>Notification immédiate</span>}</div>
+    <div style={{fontSize:12,margin:'2px 0'}}>{s.nb_cas} cas • {s.nb_deces} décès • {s.nb_orientes} orienté(s) vers un centre de santé</div>
+    {s.description&&<div style={{fontSize:13}}>{s.description}</div>}
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {s.auteur_nom} ({s.auteur_role==='asc'?'ASCQ':'relais'}){s.valide_par?' • Traité par '+s.valide_par:''}{s.motif_rejet?' • Motif du rejet : '+s.motif_rejet:''}</div>
+    {actions}
+  </div>;
+  const Msg=()=>msg?<div className={'alert alert-'+(msg.t==='danger'?'danger':msg.t==='warning'?'warning':'success')}><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>:null;
+
+  return(<div>
+    <p className="page-title">🏘️ Santé communautaire</p>
+    <p className="page-sub">{estAuteur?'Signalez ce que vous constatez dans votre village. Un agent de santé du centre de santé vérifie avant que l’information entre dans la surveillance.':'Signalements des relais communautaires et des agents de santé communautaires qualifiés de votre zone.'}</p>
+    {loadErr&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{loadErr}</div></div></div>}
+    <Msg/>
+    {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} signalement(s) en attente d’envoi sur cet appareil.</div></div></div>}
+    <div className="inner-tabs">
+      {(estAuteur?[['saisie','Nouveau signalement'],['liste','Mes signalements ('+items.length+')']]:[]).concat(estAuteur?[]:[['avalider','À vérifier ('+aValider.length+')'],['synthese','Synthèse par village'],['liste','Historique ('+items.length+')']]).map(([t,l])=><button key={t} className={'inner-tab '+(tab===t?'active':'')} onClick={()=>setTab(t)}>{l}</button>)}
+    </div>
+
+    {estAuteur&&tab==='saisie'&&<div className="card">
+      <div className="card-title">Nouveau signalement</div>
+      {errs.length>0&&<div className="alert alert-danger"><div className="alert-content">{errs.map((x,i)=><div key={i} className="alert-text">{x}</div>)}</div></div>}
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Village ou quartier *</label><input className="form-input" value={form.village} onChange={e=>setForm(Object.assign({},form,{village:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Date de l’événement *</label><input className="form-input" type="date" max={aujourdhui} value={form.date_evenement} onChange={e=>setForm(Object.assign({},form,{date_evenement:e.target.value}))}/></div>
+      </div>
+      <div className="form-group"><label className="form-label">Que signalez-vous ? *</label>
+        <select className="form-select" value={form.categorie} onChange={e=>setForm(Object.assign({},form,{categorie:e.target.value,maladie_code:''}))}>{Object.keys(CAT_SIG).map(k=><option key={k} value={k}>{CAT_SIG[k]}</option>)}</select></div>
+      {form.categorie==='maladie_surveillance'&&<div className="form-group"><label className="form-label">Maladie suspectée *</label>
+        <select className="form-select" value={form.maladie_code} onChange={e=>setForm(Object.assign({},form,{maladie_code:e.target.value}))}><option value="">— Choisir —</option>{MALADIES_SIMR.map(m=><option key={m.code} value={m.code}>{m.nom} ({m.code})</option>)}</select></div>}
+      {maladie&&maladie.notif==='immédiate'&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-title">Maladie à notification immédiate</div><div className="alert-text">Prévenez tout de suite le chef de poste du centre de santé (téléphone ou en personne). Ce formulaire ne remplace pas cet appel.</div></div></div>}
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Nombre de cas</label><input className="form-input" type="number" min="0" value={form.nb_cas} onChange={e=>setForm(Object.assign({},form,{nb_cas:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">dont décès</label><input className="form-input" type="number" min="0" value={form.nb_deces} onChange={e=>setForm(Object.assign({},form,{nb_deces:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Orientés vers le centre</label><input className="form-input" type="number" min="0" value={form.nb_orientes} onChange={e=>setForm(Object.assign({},form,{nb_orientes:e.target.value}))}/></div>
+      </div>
+      <div className="form-group"><label className="form-label">Description (facultatif)</label><textarea className="form-textarea" placeholder="Ce que vous avez vu, depuis quand..." value={form.description} onChange={e=>setForm(Object.assign({},form,{description:e.target.value}))}/></div>
+      <button className="btn btn-primary" onClick={envoyer} disabled={busy}>{busy?'Envoi...':'📤 Envoyer le signalement'}</button>
+      <div className="form-hint">Signé à votre nom ({user.nom}), horodaté, et non modifiable après envoi. N’écrivez aucun nom de personne : seulement des nombres.</div>
+    </div>}
+
+    {!estAuteur&&tab==='avalider'&&<div className="card">
+      {aValider.length===0?<div className="empty-state"><div className="empty-icon material-symbols-rounded">inbox</div><div className="empty-text">Aucun signalement à vérifier</div></div>
+        :aValider.map(s=>carte(s,peutValider?<div style={{marginTop:8}}>
+          {rejetId===s.id?<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            <input className="form-input" style={{flex:1,minWidth:180}} placeholder="Motif du rejet *" value={motif} onChange={e=>setMotif(e.target.value)}/>
+            <button className="btn btn-sm btn-danger" disabled={busy} onClick={()=>decider(s,'rejete',motif)}>Rejeter</button>
+            <button className="btn btn-sm btn-outline" onClick={()=>{setRejetId(null);setMotif('');}}>Annuler</button>
+          </div>:<div style={{display:'flex',gap:6}}>
+            <button className="btn btn-sm btn-primary" disabled={busy} onClick={()=>decider(s,'confirme','')}>✔ Confirmer</button>
+            <button className="btn btn-sm btn-outline" onClick={()=>{setRejetId(s.id);setMotif('');}}>Rejeter…</button>
+          </div>}
+        </div>:null))}
+      <div className="form-hint" style={{marginTop:8}}>Confirmer = vous avez vérifié l’information (appel au relais, visite, cohérence). Une maladie à notification immédiate confirmée ouvre une alerte épidémique à votre nom.</div>
+    </div>}
+
+    {!estAuteur&&tab==='synthese'&&<div className="card">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="card-title">Signalements confirmés par village</div>
+        <button className="btn btn-outline btn-sm" onClick={exporterCSV} disabled={confirmes.length===0}>⬇️ Exporter (CSV)</button></div>
+      {lignes.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement confirmé pour le moment</div></div>
+        :<div className="table-wrap"><table><thead><tr><th>Village</th><th>Commune</th><th>Zone</th><th>Signalements</th><th>Cas</th><th>Décès</th><th>Orientés</th></tr></thead>
+          <tbody>{lignes.map((l,i)=><tr key={i}><td><strong>{l.village}</strong></td><td>{l.commune||'—'}</td><td>{l.zone||'—'}</td><td>{l.n}</td><td>{l.cas}</td><td>{l.deces}</td><td>{l.orientes}</td></tr>)}</tbody></table></div>}
+      <div className="form-hint">L’export CSV sert de base de transmission ; l’envoi vers DHIS2 (SNIGS) demande les codes officiels des éléments de données du Bénin, à intégrer avec la direction en charge du SNIGS.</div>
+    </div>}
+
+    {tab==='liste'&&<div className="card">
+      {items.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement</div></div>:items.map(s=>carte(s,null))}
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
 // APP PRINCIPALE
 // ═══════════════════════════════════════
 function App(){
@@ -2247,7 +2483,7 @@ function App(){
     if(outcome==='accepted')setPwaPrompt(null);
   };
 
-  const login=c=>{setUser(c);setTab(c.role==='patient'?'carnet':'dashboard');};
+  const login=c=>{setUser(c);setTab(c.role==='patient'?'carnet':(c.role==='relais'||c.role==='asc')?'communautaire':c.role==='superviseur'?'dashboard':'dashboard');};
   const logout=()=>{setUser(null);setTab('dashboard');if(supaClient)supaClient.auth.signOut();};
 
   const alerts=consultations.filter(c=>matchMaladie(c.diagnostic)?.notif==='immédiate').length;
@@ -2279,6 +2515,8 @@ function App(){
       case 'ia':return<IAClinique user={user} patients={patients} consultations={consultations}/>;
       case 'formation':return<Formation user={user}/>;
       case 'admin':return<Admin user={user} patients={patients} consultations={consultations}/>;
+      case 'communautaire':return<SanteCommunautaire user={user}/>;
+      case 'pyramide':return<PyramideSanitaire user={user}/>;
       case 'carnet_sante':return<CarnetStaff user={user} patients={patients} consultations={consultations}/>;
       case 'carnet':case 'sante':return<Carnet user={user} consultations={consultations} patients={patients}/>;
       default:return<Dashboard user={user} patients={patients} consultations={consultations}/>;

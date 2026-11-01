@@ -384,6 +384,68 @@ class DB{
 // ═══════════════════════════════════════
 // COMPOSANTS UI DE BASE
 // ═══════════════════════════════════════
+
+// ═══════════════════════════════════════
+// COMPTES : création / réinitialisation d'accès (Edge Function create-account)
+// ═══════════════════════════════════════
+async function callCreateAccount(payload){
+  try{
+    if(!supaClient)return{error:'Serveur indisponible.'};
+    const{data:sd}=await supaClient.auth.getSession();
+    const token=sd&&sd.session?sd.session.access_token:'';
+    if(!token)return{error:'Session absente : reconnectez-vous.'};
+    const resp=await fetch(EDGE_FUNCTIONS_URL+'/create-account',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
+    let j={};try{j=await resp.json();}catch(e){}
+    if(!resp.ok)return{error:j.error||('Erreur '+resp.status+' — fonction create-account non déployée ?'),status:resp.status};
+    return{data:j};
+  }catch(e){return{error:'Réseau indisponible : '+e.message};}
+}
+
+function CredentialsCard({acces,onClose}){
+  const[copie,setCopie]=useState(false);
+  const texte='SNISB Health Link — '+(typeof location!=='undefined'?location.origin:'')+'\nIdentifiant : '+acces.username+'\nMot de passe temporaire : '+acces.password+(acces.email?'\nE-mail de connexion possible : '+acces.email:'');
+  const copier=()=>{try{navigator.clipboard.writeText(texte).then(()=>setCopie(true));}catch(e){}};
+  const imprimer=()=>{const w=window.open('','_blank','width=480,height=520');if(!w)return;w.document.write('<pre style="font:16px/1.7 sans-serif;white-space:pre-wrap;padding:24px"><b>'+(acces.nom||'Accès SNISB')+'</b>\n\n'+texte.replace(/</g,'&lt;')+'\n\nÀ changer à la première connexion. Ne partagez pas ce mot de passe.</pre>');w.document.close();w.print();};
+  return(<div className="card" style={{borderLeft:'4px solid var(--success)'}}>
+    <div className="card-title">🔑 {acces.reset?'Mot de passe réinitialisé':'Accès créé'}{acces.nom?' — '+acces.nom:''}</div>
+    <div className="alert alert-warning"><div className="alert-content"><div className="alert-text">Ce mot de passe n’est affiché <strong>qu’une seule fois</strong>. Remettez-le à la personne : il lui sera demandé de le changer à la première connexion.</div></div></div>
+    <div style={{fontSize:15,lineHeight:2}}>
+      <div>Identifiant : <code style={{fontSize:16,fontWeight:700}}>{acces.username}</code></div>
+      <div>Mot de passe temporaire : <code style={{fontSize:16,fontWeight:700}}>{acces.password}</code></div>
+      {acces.email&&<div style={{fontSize:13}}>Elle pourra aussi se connecter avec : {acces.email}</div>}
+    </div>
+    <div style={{display:'flex',gap:8,marginTop:12}}>
+      <button className="btn btn-primary btn-sm" onClick={copier}>{copie?'✅ Copié':'📋 Copier'}</button>
+      <button className="btn btn-outline btn-sm" onClick={imprimer}>🖨️ Imprimer</button>
+      <button className="btn btn-outline btn-sm" onClick={onClose}>J’ai remis l’accès — fermer</button>
+    </div>
+  </div>);
+}
+
+function ChangePassword({user,onDone,onLogout}){
+  const[a,setA]=useState('');const[b,setB]=useState('');const[err,setErr]=useState('');const[ld,setLd]=useState(false);
+  const go=async()=>{
+    if(a.length<8){setErr('8 caractères minimum.');return;}
+    if(!/[A-Za-z]/.test(a)||!/[0-9]/.test(a)){setErr('Le mot de passe doit contenir au moins une lettre et un chiffre.');return;}
+    if(a!==b){setErr('Les deux mots de passe ne sont pas identiques.');return;}
+    setLd(true);setErr('');
+    try{
+      const{error}=await supaClient.auth.updateUser({password:a,data:{must_change:false}});
+      if(error){setErr(error.message);setLd(false);return;}
+      onDone();
+    }catch(e){setErr('Erreur réseau.');}
+    setLd(false);
+  };
+  return(<div className="login-page"><div className="login-card">
+    <div className="login-logo"><div className="logo-icon">🔐</div><h1>Choisissez votre mot de passe</h1><p>Bienvenue {user.nom}. Le mot de passe temporaire qui vous a été remis doit être remplacé avant de continuer.</p></div>
+    {err&&<div className="alert alert-danger" style={{marginBottom:12}}><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
+    <div className="form-group"><label className="form-label">Nouveau mot de passe</label><input className="form-input" type="password" value={a} onChange={e=>setA(e.target.value)}/></div>
+    <div className="form-group"><label className="form-label">Confirmer</label><input className="form-input" type="password" value={b} onChange={e=>setB(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/></div>
+    <button className="btn btn-primary btn-full" onClick={go} disabled={ld||!a||!b}>{ld?'⏳ ...':'Enregistrer et continuer'}</button>
+    <button className="btn btn-outline btn-full" style={{marginTop:8}} onClick={onLogout}>Annuler</button>
+  </div></div>);
+}
+
 function Login({onLogin}){
   const[u,setU]=useState('');const[p,setP]=useState('');const[err,setErr]=useState('');const[ld,setLd]=useState(false);
   const go=async()=>{
@@ -391,11 +453,14 @@ function Login({onLogin}){
     setLd(true);setErr('');
     if(!supaClient){setErr('Connexion au serveur indisponible. Réessayez plus tard.');setLd(false);return;}
     try{
-      const{data,error}=await supaClient.auth.signInWithPassword({email:u+'@snibs.bj',password:p});
+      const ident=u.trim().toLowerCase();
+      let loginEmail=ident+'@snibs.bj';
+      if(ident.indexOf('@')>0){try{const r=await supaClient.rpc('login_email',{ident:ident});loginEmail=(r&&r.data)||ident;}catch(e){loginEmail=ident;}}
+      const{data,error}=await supaClient.auth.signInWithPassword({email:loginEmail,password:p});
       if(error||!data?.user){setErr('Identifiant ou mot de passe incorrect.');setLd(false);return;}
-      const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub').eq('id',data.user.id).single();
+      const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub,username').eq('id',data.user.id).single();
       if(profErr||!profile){setErr('Compte authentifié mais profil introuvable — contactez un administrateur.');setLd(false);return;}
-      onLogin({username:u,supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub});
+      onLogin({username:(profile.username||u),must_change:!!(data.user.user_metadata&&data.user.user_metadata.must_change),supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub});
     }catch(e){setErr('Erreur de connexion. Vérifiez votre réseau et réessayez.');}
     setLd(false);
   };
@@ -414,8 +479,8 @@ function Login({onLogin}){
       <div className="form-hint" style={{marginTop:6}}>Cliquer remplit l'identifiant — le mot de passe reste celui défini pour ce compte dans Supabase.</div>
     </div>
     {err&&<div className="alert alert-danger" style={{marginBottom:12}}><span className="alert-icon">⚠️</span><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
-    <div className="form-group"><label className="form-label">Identifiant</label>
-      <input className="form-input" type="text" placeholder="Votre identifiant" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
+    <div className="form-group"><label className="form-label">Identifiant ou e-mail</label>
+      <input className="form-input" type="text" placeholder="Identifiant ou adresse e-mail" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
     </div>
     <div className="form-group"><label className="form-label">Mot de passe</label>
       <input className="form-input" type="password" placeholder="Votre mot de passe" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
@@ -519,23 +584,47 @@ function Dashboard({user,patients,consultations}){
 // ═══════════════════════════════════════
 function Patients({user,patients,setPatients,db}){
   const[tab,setTab]=useState('liste');
-  const[form,setForm]=useState({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:''});
+  const[form,setForm]=useState({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:'',email:''});
   const[sc,setSc]=useState(null);const[isub,setIsub]=useState('');
   const[dbl,setDbl]=useState([]);const[showDbl,setShowDbl]=useState(false);
   const[ok,setOk]=useState(false);const[srch,setSrch]=useState('');
+  const[acces,setAcces]=useState(null);const[accMsg,setAccMsg]=useState(null);const[wait,setWait]=useState('');
   const zones=(ZONES_SANITAIRES[form.departement]||[]);
   const upd=(f,v)=>{const nf={...form,[f]:v};setForm(nf);setSc(scoreQualite(nf));if(nf.zone_sanitaire&&nf.nom)setIsub(genISUB(nf.npi,nf.zone_sanitaire));};
   const submit=()=>{if(!sc||sc.score<50)return;const d=detectDoublons(patients,form);if(d.length>0&&!showDbl){setDbl(d);setShowDbl(true);return;}save();};
   const save=async()=>{
     const p={isub,npi:form.npi||('TEMP'+Date.now().toString().slice(-6)),nom:form.nom,prenoms:form.prenoms,date_naissance:form.date_naissance,sexe:form.sexe,telephone:form.telephone,departement:form.departement,zone_sanitaire:form.zone_sanitaire,zone_nom:TOUTES_ZONES.find(z=>z.code===form.zone_sanitaire)?.nom||'',source:form.npi?'ANIP':'TEMPORAIRE',quality_score:sc?.score||0,allergies:form.allergies,maladies_chroniques:form.maladies_chroniques,enregistre_par:user.nom,created_at:new Date().toISOString()};
     if(db)await db.put('patients',p);
-    if(supaClient){try{await supaClient.from('patients').upsert(p);}catch(e){}}
+    let serverOk=false,srvErr='';
+    if(supaClient){try{const r=await supaClient.from('patients').upsert(p);if(r&&r.error)srvErr=r.error.message||r.error.code;else serverOk=true;}catch(e){srvErr='réseau indisponible';}}
     setPatients(prev=>[...prev.filter(x=>x.isub!==isub),p]);
+    setAccMsg(null);
+    if(supaClient&&!serverOk)setAccMsg({t:'warning',m:'Patient enregistré sur cet appareil seulement (serveur : '+srvErr+'). Son accès de connexion ne peut être créé qu’une fois le patient présent sur le serveur.'});
+    else if(serverOk&&user.supabase_id){
+      setWait(isub);
+      const r=await callCreateAccount({action:'patient',isub:isub,email:form.email||null,zone:p.zone_sanitaire,departement:p.departement});
+      setWait('');
+      if(r.data)setAcces(Object.assign({nom:p.nom+' '+(p.prenoms||'')},r.data));
+      else setAccMsg({t:'warning',m:'Patient enregistré, mais accès non créé : '+r.error+' — vous pourrez le créer depuis la liste (colonne Accès).'});
+    }
     setOk(true);setShowDbl(false);
-    setTimeout(()=>{setOk(false);setForm({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:''});setSc(null);setIsub('');},2000);
+    setTimeout(()=>{setOk(false);setForm({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:'',email:''});setSc(null);setIsub('');},2000);
+  };
+  const gererAcces=async(p)=>{
+    setWait(p.isub);setAccMsg(null);
+    let r=await callCreateAccount({action:'patient',isub:p.isub,zone:p.zone_sanitaire,departement:p.departement});
+    if(r.error&&r.status===409&&/déjà un accès/.test(r.error)){
+      if(window.confirm('Ce patient a déjà un accès. Générer un NOUVEAU mot de passe temporaire (l’ancien ne marchera plus) ?'))r=await callCreateAccount({action:'reset',isub:p.isub});
+      else{setWait('');return;}
+    }
+    setWait('');
+    if(r.data)setAcces(Object.assign({nom:p.nom+' '+(p.prenoms||'')},r.data));else setAccMsg({t:'danger',m:r.error});
   };
   const filtered=patients.filter(p=>!srch||p.nom?.toLowerCase().includes(srch.toLowerCase())||p.isub?.includes(srch)||p.npi?.includes(srch));
   return(<div>
+    {acces&&<CredentialsCard acces={acces} onClose={()=>setAcces(null)}/>}
+    {accMsg&&<div className={'alert alert-'+(accMsg.t==='danger'?'danger':'warning')}><div className="alert-content"><div className="alert-text">{accMsg.m}</div></div></div>}
+    {wait&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">Création de l’accès en cours...</div></div></div>}
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
       <p className="page-title" style={{marginBottom:0}}>👤 Patients</p>
       <div className="inner-tabs" style={{marginBottom:0}}>
@@ -545,8 +634,8 @@ function Patients({user,patients,setPatients,db}){
     {tab==='liste'?(<div className="card">
       <input className="form-input" placeholder="🔍 Nom, ISUB ou NPI..." value={srch} onChange={e=>setSrch(e.target.value)} style={{marginBottom:12}}/>
       <div className="table-wrap"><table>
-        <thead><tr><th>ISUB</th><th>Nom complet</th><th>Naissance</th><th>Sexe</th><th>Zone</th><th>Source</th><th>Score</th></tr></thead>
-        <tbody>{filtered.length===0?<tr><td colSpan={7}><div className="empty-state"><div className="empty-icon">👤</div><div className="empty-text">Aucun patient — Cliquez sur "Nouveau"</div></div></td></tr>
+        <thead><tr><th>ISUB</th><th>Nom complet</th><th>Naissance</th><th>Sexe</th><th>Zone</th><th>Source</th><th>Score</th><th>Accès</th></tr></thead>
+        <tbody>{filtered.length===0?<tr><td colSpan={8}><div className="empty-state"><div className="empty-icon">👤</div><div className="empty-text">Aucun patient — Cliquez sur "Nouveau"</div></div></td></tr>
           :filtered.map(p=><tr key={p.isub}>
             <td><code style={{fontSize:11}}>{p.isub}</code></td>
             <td><strong>{p.nom} {p.prenoms}</strong></td>
@@ -555,6 +644,7 @@ function Patients({user,patients,setPatients,db}){
             <td style={{fontSize:12}}>{p.zone_nom||p.zone_sanitaire}</td>
             <td><span className={`badge ${p.source==='ANIP'?'badge-success':'badge-hebdo'}`}>{p.source}</span></td>
             <td><div style={{display:'flex',alignItems:'center',gap:6}}><div className="quality-bar" style={{width:50,marginBottom:0}}><div className={`quality-fill quality-${p.quality_score>=90?'excellent':p.quality_score>=70?'bon':p.quality_score>=50?'moyen':'insuffisant'}`} style={{width:`${p.quality_score}%`}}/></div><span style={{fontSize:12,fontWeight:600}}>{p.quality_score}</span></div></td>
+            <td><button className="btn btn-outline btn-sm" disabled={wait===p.isub||!user.supabase_id} onClick={()=>gererAcces(p)}>{wait===p.isub?'...':'🔑 Accès'}</button></td>
           </tr>)}
         </tbody>
       </table></div>
@@ -574,6 +664,7 @@ function Patients({user,patients,setPatients,db}){
           </div>
         </div>
         <div className="form-group"><label className="form-label">Téléphone</label><input className="form-input" placeholder="+229 ..." value={form.telephone} onChange={e=>upd('telephone',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">E-mail (facultatif)</label><input className="form-input" type="email" placeholder="Pour se connecter avec son e-mail" value={form.email} onChange={e=>upd('email',e.target.value)}/><div className="form-hint">Un identifiant et un mot de passe temporaire sont créés automatiquement à l’enregistrement.</div></div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Allergies connues</label><input className="form-input" placeholder="Ex: pénicilline — laisser vide si aucune" value={form.allergies} onChange={e=>upd('allergies',e.target.value)}/></div>
           <div className="form-group"><label className="form-label">Maladies chroniques</label><input className="form-input" placeholder="Ex: diabète, hypertension" value={form.maladies_chroniques} onChange={e=>upd('maladies_chroniques',e.target.value)}/></div>
@@ -1545,6 +1636,14 @@ function Admin({user,patients,consultations}){
   const[realLogs,setRealLogs]=useState([]);
   const[loadingUsers,setLoadingUsers]=useState(false);
   const[loadingLogs,setLoadingLogs]=useState(false);
+  const[nc,setNc]=useState({nom:'',username:'',role:'medecin',zone:'',departement:'',email:''});
+  const[ncAcces,setNcAcces]=useState(null);const[ncErr,setNcErr]=useState('');const[ncBusy,setNcBusy]=useState(false);
+  const creerCompte=async()=>{
+    setNcBusy(true);setNcErr('');
+    const r=await callCreateAccount(Object.assign({action:'staff'},nc,{email:nc.email||null}));
+    setNcBusy(false);
+    if(r.data){setNcAcces(Object.assign({nom:nc.nom},r.data));setNc({nom:'',username:'',role:'medecin',zone:'',departement:'',email:''});setRealUsers([]);}else setNcErr(r.error);
+  };
 
   useEffect(()=>{
     if(tab==='users'&&supaClient&&realUsers.length===0){
@@ -1562,8 +1661,28 @@ function Admin({user,patients,consultations}){
   return(<div>
     <p className="page-title">⚙️ Administration</p>
     <div className="inner-tabs">
-      {[['users','👥 Utilisateurs'],['zones','🗺️ Zones sanitaires'],['kpi','📊 KPIs'],['logs','📝 Audit'],['pwa','📱 PWA & Sync']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
+      {[['users','👥 Utilisateurs'],['comptes','➕ Créer un compte'],['zones','🗺️ Zones sanitaires'],['kpi','📊 KPIs'],['logs','📝 Audit'],['pwa','📱 PWA & Sync']].map(([t,l])=><button key={t} className={`inner-tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{l}</button>)}
     </div>
+    {tab==='comptes'&&<div>
+      {ncAcces&&<CredentialsCard acces={ncAcces} onClose={()=>setNcAcces(null)}/>}
+      <div className="card"><div className="card-title">➕ Créer un compte du personnel</div>
+        {ncErr&&<div className="alert alert-danger"><div className="alert-content"><div className="alert-text">{ncErr}</div></div></div>}
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Nom complet *</label><input className="form-input" value={nc.nom} onChange={e=>setNc(Object.assign({},nc,{nom:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Identifiant * (lettres/chiffres)</label><input className="form-input" value={nc.username} onChange={e=>setNc(Object.assign({},nc,{username:e.target.value}))}/></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Rôle *</label><select className="form-select" value={nc.role} onChange={e=>setNc(Object.assign({},nc,{role:e.target.value}))}>{['medecin','infirmier','statisticien','superviseur','admin'].map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">E-mail (facultatif)</label><input className="form-input" type="email" value={nc.email} onChange={e=>setNc(Object.assign({},nc,{email:e.target.value}))}/></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Zone sanitaire (code)</label><input className="form-input" placeholder="ex. ZS-OUE-03" value={nc.zone} onChange={e=>setNc(Object.assign({},nc,{zone:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Département</label><input className="form-input" placeholder="ex. OUEME" value={nc.departement} onChange={e=>setNc(Object.assign({},nc,{departement:e.target.value}))}/></div>
+        </div>
+        <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3}>{ncBusy?'Création...':'Créer le compte'}</button>
+        <div className="form-hint">Un mot de passe temporaire est généré ; la personne devra le changer à sa première connexion. Médecin et infirmier d’une même zone voient les mêmes patients.</div>
+      </div>
+    </div>}
     {tab==='users'&&<div className="card"><div className="card-title">👥 Utilisateurs du système</div>
       {!supaClient?<div className="empty-state"><div className="empty-text">Connexion serveur requise pour afficher les utilisateurs réels.</div></div>
       :loadingUsers?<div className="empty-state"><div className="empty-text">Chargement...</div></div>
@@ -2143,6 +2262,7 @@ function App(){
   );
 
   if(!user)return <Login onLogin={login}/>;
+  if(user.must_change)return <ChangePassword user={user} onDone={()=>setUser(u=>Object.assign({},u,{must_change:false}))} onLogout={logout}/>;
 
   const renderTab=()=>{
     const props={user,patients,setPatients,consultations,setConsultations,rappels,setRappels,db};

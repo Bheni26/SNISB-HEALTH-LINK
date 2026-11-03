@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..500,0..1,0" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* ============================================================
        SNISB — DESIGN SYSTEM INSTITUTIONNEL
@@ -189,10 +189,12 @@
     /* MAP */
     .map-shell{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
     .map-toolbar{display:flex;gap:6px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-    #leaflet-map{height:520px;width:100%;background:#EAF1F5;}
-    @media(max-width:768px){#leaflet-map{height:70vh;}}
-    .leaflet-popup-content-wrapper{border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.18);}
-    .leaflet-popup-content{font-family:'Inter',sans-serif;font-size:13px;margin:12px 14px;}
+    .svgmap{width:100%;height:520px;background:#E9F0F6;display:block;}
+    @media(max-width:768px){.svgmap{height:70vh;}}
+    .svgmap path{cursor:pointer;transition:fill-opacity .15s;}
+    .svgmap path:hover{fill-opacity:.95;}
+    .echelon-step{flex:1;min-width:120px;padding:10px;border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;background:#fff;}
+    .echelon-step.on{border:2px solid var(--primary);background:#F1F8F4;font-weight:700;}
     .map-legend{position:absolute;bottom:16px;right:16px;background:rgba(255,255,255,0.95);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:11px;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
     .map-legend-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
     .map-legend-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
@@ -241,19 +243,20 @@ try{
 // ═══════════════════════════════════════
 // CONSTANTES
 // ═══════════════════════════════════════
+// Les 34 zones sanitaires (noms complets : annuaires statistiques 2016 et 2022 du Ministère de la Santé). Les codes ZS-… sont ceux de l’application.
 const ZONES_SANITAIRES={
-  ALIBORI:[{code:'ZS-ALI-01',nom:'Banikoara',pop:150000},{code:'ZS-ALI-02',nom:'Kandi-Gogounou-Ségbana',pop:180000},{code:'ZS-ALI-03',nom:'Malanville-Karimama',pop:120000}],
-  ATACORA:[{code:'ZS-ATA-01',nom:'Kouandé-Péhunco-Kérou',pop:145000},{code:'ZS-ATA-02',nom:'Natitingou-Boukoumbé',pop:175000},{code:'ZS-ATA-03',nom:'Tanguiéta-Cobly-Matéri',pop:135000}],
-  ATLANTIQUE:[{code:'ZS-ATL-01',nom:'Abomey-Calavi-So-Ava',pop:195000},{code:'ZS-ATL-02',nom:'Allada-Toffo-Zè',pop:165000},{code:'ZS-ATL-03',nom:'Ouidah-Kpomassè',pop:155000}],
-  BORGOU:[{code:'ZS-BOR-01',nom:'Bembéréké-Sinendé',pop:140000},{code:'ZS-BOR-02',nom:"N'Dali-Parakou",pop:200000},{code:'ZS-BOR-03',nom:'Nikki-Kalalé-Pèrèrè',pop:130000},{code:'ZS-BOR-04',nom:'Tchaourou',pop:125000}],
-  COLLINES:[{code:'ZS-COL-01',nom:'Dassa-Glazoué',pop:160000},{code:'ZS-COL-02',nom:'Savalou-Bantè',pop:145000},{code:'ZS-COL-03',nom:'Savè-Ouèssè',pop:155000}],
-  COUFFO:[{code:'ZS-COU-01',nom:'Aplahoué-Djakotomey-Dogbo',pop:150000},{code:'ZS-COU-02',nom:'Klouékanmè-Toviklin',pop:135000}],
-  DONGA:[{code:'ZS-DON-01',nom:'Bassila',pop:110000},{code:'ZS-DON-02',nom:'Djougou-Ouaké-Copargo',pop:165000}],
-  LITTORAL:[{code:'ZS-LIT-01',nom:'Cotonou 1-4',pop:180000},{code:'ZS-LIT-02',nom:'Cotonou 2-3',pop:175000},{code:'ZS-LIT-03',nom:'Cotonou 5',pop:165000},{code:'ZS-LIT-04',nom:'Cotonou 6',pop:160000}],
-  MONO:[{code:'ZS-MON-01',nom:'Comè-Grand Popo-Houèyogbé',pop:145000},{code:'ZS-MON-02',nom:'Lokossa-Athiémè',pop:130000}],
-  OUEME:[{code:'ZS-OUE-01',nom:'Adjohoun-Bonou-Dangbo',pop:135000},{code:'ZS-OUE-02',nom:'Akpro-Missérété-Avrankou',pop:170000},{code:'ZS-OUE-03',nom:'Porto-Novo-Sèmè-Kpodji',pop:190000}],
-  PLATEAU:[{code:'ZS-PLA-01',nom:'Pobè-Kétou-Adja-Ouèrè',pop:155000},{code:'ZS-PLA-02',nom:'Sakété-Ifangni',pop:125000}],
-  ZOU:[{code:'ZS-ZOU-01',nom:'Bohicon-Za-Kpota-Zogbodomey',pop:175000},{code:'ZS-ZOU-02',nom:'Cové-Zagnanado-Ouinhi',pop:140000},{code:'ZS-ZOU-03',nom:'Djidja-Abomey-Agbangnizoun',pop:165000}]
+  ALIBORI:[{code:'ZS-ALI-01',nom:'Banikoara'},{code:'ZS-ALI-02',nom:'Kandi-Gogounou-Ségbana'},{code:'ZS-ALI-03',nom:'Malanville-Karimama'}],
+  ATACORA:[{code:'ZS-ATA-01',nom:'Kouandé-Péhunco-Kérou'},{code:'ZS-ATA-02',nom:'Natitingou-Boukoumbé-Toucountouna'},{code:'ZS-ATA-03',nom:'Tanguiéta-Cobly-Matéri'}],
+  ATLANTIQUE:[{code:'ZS-ATL-01',nom:'Abomey-Calavi-So-Ava'},{code:'ZS-ATL-02',nom:'Allada-Toffo-Zè'},{code:'ZS-ATL-03',nom:'Ouidah-Kpomassè-Tori-Bossito'}],
+  BORGOU:[{code:'ZS-BOR-01',nom:'Bembèrèkè-Sinendé'},{code:'ZS-BOR-02',nom:"N'Dali-Parakou"},{code:'ZS-BOR-03',nom:'Nikki-Kalalé-Pèrèrè'},{code:'ZS-BOR-04',nom:'Tchaourou'}],
+  COLLINES:[{code:'ZS-COL-01',nom:'Dassa-Glazoué'},{code:'ZS-COL-02',nom:'Savalou-Bantè'},{code:'ZS-COL-03',nom:'Savè-Ouèssè'}],
+  COUFFO:[{code:'ZS-COU-01',nom:'Aplahoué-Djakotomey-Dogbo'},{code:'ZS-COU-02',nom:'Klouékanmè-Lalo-Toviklin'}],
+  DONGA:[{code:'ZS-DON-01',nom:'Bassila'},{code:'ZS-DON-02',nom:'Djougou-Ouaké-Copargo'}],
+  LITTORAL:[{code:'ZS-LIT-01',nom:'Cotonou 1-Cotonou 4'},{code:'ZS-LIT-02',nom:'Cotonou 2-Cotonou 3'},{code:'ZS-LIT-03',nom:'Cotonou 5'},{code:'ZS-LIT-04',nom:'Cotonou 6'}],
+  MONO:[{code:'ZS-MON-01',nom:'Comè-Grand-Popo-Houèyogbé-Bopa'},{code:'ZS-MON-02',nom:'Lokossa-Athiémè'}],
+  OUEME:[{code:'ZS-OUE-01',nom:'Adjohoun-Bonou-Dangbo'},{code:'ZS-OUE-02',nom:'Akpro-Missérété-Avrankou-Adjarra'},{code:'ZS-OUE-03',nom:'Porto-Novo-Sèmè-Kpodji-Aguégués'}],
+  PLATEAU:[{code:'ZS-PLA-01',nom:'Pobè-Kétou-Adja-Ouèrè'},{code:'ZS-PLA-02',nom:'Sakété-Ifangni'}],
+  ZOU:[{code:'ZS-ZOU-01',nom:'Bohicon-Za-Kpota-Zogbodomey'},{code:'ZS-ZOU-02',nom:'Covè-Zagnanado-Ouinhi'},{code:'ZS-ZOU-03',nom:'Djidja-Abomey-Agbangnizoun'}]
 };
 const TOUTES_ZONES=Object.entries(ZONES_SANITAIRES).flatMap(([d,z])=>z.map(x=>({...x,departement:d})));
 
@@ -298,13 +301,13 @@ const COMPTES_DEMO=[
 ];
 
 const ROLES={
-  admin:{label:'Administrateur National',niveau:'central',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','export','epidemio','carte','pyramide','ia','formation','admin']},
-  superviseur:{label:'Superviseur (département)',niveau:'intermediaire',onglets:['dashboard','communautaire','export','epidemio','carte','pyramide','ia','formation']},
-  medecin:{label:'Médecin',niveau:'peripherique',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','export','epidemio','carte','pyramide','ia','formation']},
-  infirmier:{label:'Infirmier / Sage-femme',niveau:'peripherique',onglets:['dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rappels','pyramide','ia','formation']},
-  statisticien:{label:'Statisticien SNIS',niveau:'central',onglets:['dashboard','communautaire','export','epidemio','carte','pyramide','ia','formation']},
-  asc:{label:'Agent de santé communautaire qualifié',niveau:'communautaire',onglets:['communautaire','pyramide','formation']},
-  relais:{label:'Relais communautaire',niveau:'communautaire',onglets:['communautaire','pyramide','formation']},
+  admin:{label:'Administrateur système (niveau central)',niveau:'central',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','formation','conformite','admin']},
+  superviseur:{label:'Superviseur (département)',niveau:'intermediaire',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','ia','formation']},
+  medecin:{label:'Médecin',niveau:'peripherique',onglets:['espace','dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rapports','references','rappels','export','epidemio','carte','pyramide','ia','formation']},
+  infirmier:{label:'Infirmier / Sage-femme',niveau:'peripherique',onglets:['espace','dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rapports','references','rappels','pyramide','ia','formation']},
+  statisticien:{label:'Statisticien SNIS',niveau:'central',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','conformite','ia','formation']},
+  asc:{label:'Agent de santé communautaire qualifié',niveau:'communautaire',onglets:['espace','communautaire','rapports','references','pyramide','formation']},
+  relais:{label:'Relais communautaire',niveau:'communautaire',onglets:['espace','communautaire','rapports','references','pyramide','formation']},
   patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia']}
 };
 
@@ -449,12 +452,13 @@ function ChangePassword({user,onDone,onLogout}){
   </div></div>);
 }
 
-function Login({onLogin}){
+function Login({onLogin,onResume}){
+  const reprise=(()=>{const c=lsGet(LAST_USER_KEY,null);return c&&ROLES_HORS_LIGNE.includes(c.role)?c:null;})();
   const[u,setU]=useState('');const[p,setP]=useState('');const[err,setErr]=useState('');const[ld,setLd]=useState(false);
   const go=async()=>{
     if(!u||!p)return;
     setLd(true);setErr('');
-    if(!supaClient){setErr('Connexion au serveur indisponible. Réessayez plus tard.');setLd(false);return;}
+    if(!supaClient||!navigator.onLine){setErr('Pas de réseau. '+(reprise?'Utilisez le bouton « Reprendre hors connexion » ci-dessous : vos signalements partiront au retour du réseau.':'La première connexion demande du réseau.'));setLd(false);return;}
     try{
       const ident=u.trim().toLowerCase();
       let loginEmail=ident+'@snibs.bj';
@@ -489,6 +493,7 @@ function Login({onLogin}){
       <input className="form-input" type="password" placeholder="Votre mot de passe" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
     </div>
     <button className="btn btn-primary btn-full" onClick={go} disabled={ld||!u||!p}>{ld?'⏳ Connexion...':'🔐 Se connecter'}</button>
+    {reprise&&<button className="btn btn-outline btn-full" style={{marginTop:10}} onClick={()=>onResume(reprise)}>📵 Reprendre hors connexion — {reprise.nom}</button>}
     <p style={{textAlign:'center',marginTop:16,fontSize:11,color:'var(--text-muted)'}}>
       République du Bénin • Ministère de la Santé<br/>
       Porteur : KOUPHIN Bhéni | TSPS<br/>
@@ -527,7 +532,7 @@ function Nav({user,active,onChange,alerts}){
     rappels:{l:'Rappels',i:'notifications'},export:{l:'Export DHIS2',i:'upload_file'},
     epidemio:{l:'Épidémiologie',i:'coronavirus'},carte:{l:'Carte',i:'map'},
     ia:{l:'IA Clinique',i:'smart_toy'},formation:{l:'Formation',i:'school'},
-    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},carnet_sante:{l:'Carnet de santé',i:'menu_book'},communautaire:{l:'Santé communautaire',i:'diversity_3'},pyramide:{l:'Pyramide sanitaire',i:'account_tree'},sante:{l:'Ma Santé',i:'favorite'}
+    admin:{l:'Administration',i:'settings'},carnet:{l:'Mon Carnet',i:'menu_book'},carnet_sante:{l:'Carnet de santé',i:'menu_book'},communautaire:{l:'Santé communautaire',i:'diversity_3'},pyramide:{l:'Pyramide sanitaire',i:'account_tree'},references:{l:'Référence / contre-référence',i:'swap_horiz'},rapports:{l:'Rapports communautaires',i:'assignment'},conformite:{l:'Protection des données',i:'shield'},espace:{l:ECHELONS[echelonDe(user)].nav,i:'home_pin'},sante:{l:'Ma Santé',i:'favorite'}
   };
   return(<aside className="sidebar">
     {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
@@ -564,15 +569,6 @@ function Dashboard({user,patients,consultations}){
     <div className="grid-2" style={{marginBottom:16}}>
       <div className="card"><div className="card-title">📈 Consultations (7 jours)</div><div className="chart-container"><canvas ref={r1}/></div></div>
       <div className="card"><div className="card-title">🦠 Répartition pathologies — Bénin</div><div className="chart-container"><canvas ref={r2}/></div></div>
-    </div>
-    <div className="card"><div className="card-title">🏛️ Votre place dans la pyramide sanitaire</div>
-      <div style={{fontSize:13,lineHeight:1.7}}>
-        <div><strong>Rôle :</strong> {ROLES[user.role]?.label}</div>
-        <div><strong>Niveau :</strong> {({central:'Central',intermediaire:'Intermédiaire (département)',peripherique:'Périphérique (zone sanitaire)',communautaire:'Communautaire'})[user.niveau||(ROLES[user.role]||{}).niveau]||'—'}</div>
-        {user.zone&&<div><strong>Zone sanitaire :</strong> {(TOUTES_ZONES.find(z=>z.code===user.zone)||{}).nom||user.zone}</div>}
-        {user.structure_nom&&<div><strong>Structure :</strong> {user.structure_nom}</div>}
-      </div>
-      <div className="form-hint">Consultez l’onglet « Pyramide sanitaire » pour l’organisation officielle (Décret 2022-148).</div>
     </div>
   </div>);
 }
@@ -1273,16 +1269,14 @@ function Epidemio({user,consultations}){
 }
 
 // ═══════════════════════════════════════
-// CARTE ÉPIDÉMIQUE — Leaflet.js + GeoJSON réel
+// CARTE ÉPIDÉMIQUE — SVG + contours embarqués
 // ═══════════════════════════════════════
 const BENIN_DEPARTMENTS_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Alibori","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[3.837,10.631],[3.458,10.589],[2.976,10.521],[2.775,10.552],[2.457,10.542],[2.255,10.518],[2.266,10.524],[2.261,10.842],[2.297,10.911],[2.356,10.96],[2.324,10.991],[2.264,11.012],[2.215,11.082],[2.02,11.426],[2.015,11.432],[2.22,11.623],[2.287,11.665],[2.291,11.675],[2.302,11.732],[2.354,11.8],[2.39,11.897],[2.377,11.924],[2.389,11.95],[2.407,11.951],[2.457,11.979],[2.455,12.009],[2.439,12.016],[2.418,12.029],[2.372,12.14],[2.362,12.196],[2.37,12.236],[2.408,12.249],[2.446,12.252],[2.454,12.263],[2.467,12.265],[2.483,12.268],[2.495,12.283],[2.516,12.281],[2.521,12.274],[2.537,12.27],[2.546,12.282],[2.586,12.294],[2.599,12.288],[2.61,12.291],[2.622,12.3],[2.664,12.292],[2.687,12.318],[2.692,12.334],[2.7,12.347],[2.711,12.351],[2.732,12.347],[2.757,12.373],[2.778,12.382],[2.808,12.383],[2.844,12.399],[2.913,12.346],[2.937,12.301],[2.945,12.292],[2.968,12.283],[3.001,12.279],[3.013,12.271],[3.063,12.194],[3.235,12.04],[3.252,12.024],[3.258,11.997],[3.27,11.957],[3.293,11.919],[3.315,11.895],[3.341,11.883],[3.369,11.897],[3.392,11.889],[3.448,11.858],[3.495,11.838],[3.537,11.783],[3.549,11.774],[3.562,11.762],[3.568,11.73],[3.58,11.717],[3.596,11.696],[3.574,11.673],[3.505,11.557],[3.487,11.496],[3.467,11.442],[3.483,11.392],[3.663,11.143],[3.695,11.119],[3.712,11.12],[3.722,11.112],[3.712,11.052],[3.723,11.014],[3.734,10.996],[3.754,10.907],[3.731,10.825],[3.735,10.796],[3.751,10.78],[3.764,10.761],[3.783,10.717],[3.81,10.71],[3.832,10.684],[3.837,10.631]]]},"id":1},{"type":"Feature","properties":{"name":"Borgou","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.255,10.518],[2.406,10.533],[2.615,10.531],[2.83,10.551],[3.217,10.541],[3.837,10.631],[3.837,10.6],[3.804,10.523],[3.794,10.445],[3.773,10.408],[3.671,10.442],[3.633,10.417],[3.622,10.381],[3.593,10.331],[3.573,10.286],[3.588,10.244],[3.656,10.175],[3.667,10.147],[3.664,10.123],[3.612,10.07],[3.6,9.969],[3.557,9.911],[3.513,9.847],[3.414,9.843],[3.326,9.802],[3.315,9.759],[3.331,9.709],[3.332,9.652],[3.262,9.635],[3.238,9.609],[3.245,9.59],[3.183,9.505],[3.152,9.354],[3.151,9.289],[3.125,9.229],[3.076,9.095],[2.983,9.061],[2.952,9.072],[2.899,9.077],[2.846,9.051],[2.769,9.057],[2.77,8.967],[2.762,8.934],[2.748,8.907],[2.763,8.895],[2.75,8.812],[2.746,8.798],[2.723,8.782],[2.723,8.771],[2.195,8.777],[2.203,8.812],[2.194,8.82],[2.088,8.85],[2.059,8.866],[2.044,8.879],[2.031,8.903],[2.025,8.94],[2.029,9.0],[2.041,9.058],[2.051,9.085],[2.05,9.092],[2.038,9.109],[2.009,9.126],[1.997,9.136],[1.985,9.15],[1.977,9.164],[1.97,9.217],[1.975,9.308],[1.999,9.358],[2.028,9.367],[2.089,9.367],[2.1,9.37],[2.114,9.381],[2.161,9.656],[2.152,9.688],[2.115,9.725],[2.1,9.75],[2.081,9.805],[2.088,9.888],[2.097,9.936],[2.096,9.936],[2.087,9.985],[2.099,10.006],[2.092,10.031],[2.088,10.05],[2.089,10.06],[2.1,10.077],[2.12,10.09],[2.185,10.094],[2.241,10.112],[2.257,10.123],[2.267,10.135],[2.271,10.167],[2.263,10.238],[2.248,10.284],[2.23,10.339],[2.219,10.354],[2.188,10.386],[2.182,10.401],[2.184,10.431],[2.203,10.468],[2.23,10.503],[2.255,10.518]]]},"id":2},{"type":"Feature","properties":{"name":"Plateau","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.718,7.659],[2.715,7.626],[2.721,7.587],[2.741,7.549],[2.77,7.514],[2.792,7.478],[2.79,7.436],[2.787,7.427],[2.787,7.421],[2.783,7.419],[2.762,7.424],[2.751,7.424],[2.744,7.419],[2.741,7.408],[2.762,7.162],[2.761,7.148],[2.758,7.139],[2.75,7.129],[2.741,7.11],[2.736,7.103],[2.735,7.096],[2.739,7.083],[2.748,7.072],[2.774,7.051],[2.78,7.041],[2.776,7.031],[2.766,7.025],[2.753,7.021],[2.741,7.016],[2.715,6.98],[2.718,6.944],[2.732,6.905],[2.737,6.863],[2.726,6.821],[2.724,6.8],[2.729,6.78],[2.736,6.77],[2.745,6.764],[2.755,6.761],[2.767,6.76],[2.773,6.755],[2.775,6.745],[2.779,6.699],[2.773,6.687],[2.761,6.679],[2.743,6.663],[2.731,6.642],[2.731,6.621],[2.739,6.579],[2.737,6.558],[2.719,6.504],[2.719,6.505],[2.68,6.57],[2.664,6.587],[2.616,6.628],[2.596,6.659],[2.576,6.776],[2.528,6.892],[2.518,6.942],[2.52,6.993],[2.539,6.992],[2.546,6.992],[2.552,6.993],[2.557,6.995],[2.559,6.998],[2.56,7.0],[2.56,7.0],[2.555,7.045],[2.533,7.156],[2.534,7.173],[2.534,7.178],[2.528,7.185],[2.481,7.217],[2.466,7.25],[2.45,7.309],[2.447,7.321],[2.447,7.337],[2.442,7.346],[2.436,7.354],[2.433,7.363],[2.433,7.407],[2.428,7.426],[2.42,7.451],[2.418,7.475],[2.43,7.497],[2.461,7.541],[2.471,7.548],[2.485,7.552],[2.488,7.563],[2.481,7.589],[2.483,7.618],[2.498,7.659],[2.512,7.66],[2.717,7.659],[2.718,7.659]]]},"id":3},{"type":"Feature","properties":{"name":"Collines","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.195,8.777],[2.723,8.771],[2.742,8.527],[2.745,8.498],[2.737,8.465],[2.703,8.418],[2.706,8.391],[2.698,8.34],[2.701,8.297],[2.708,8.275],[2.728,8.233],[2.735,8.212],[2.727,8.172],[2.708,8.138],[2.704,8.06],[2.687,7.934],[2.673,7.906],[2.672,7.89],[2.692,7.849],[2.724,7.808],[2.727,7.793],[2.718,7.659],[2.499,7.66],[2.485,7.552],[2.461,7.541],[2.43,7.497],[2.418,7.475],[2.428,7.426],[2.248,7.508],[2.119,7.535],[2.019,7.542],[1.944,7.6],[1.845,7.632],[1.643,7.621],[1.623,7.622],[1.621,7.996],[1.626,8.27],[1.615,8.356],[1.606,8.372],[1.606,8.413],[1.64,8.476],[1.64,8.503],[1.609,8.547],[1.607,8.589],[1.679,8.585],[1.703,8.587],[1.801,8.611],[1.83,8.615],[1.847,8.609],[1.863,8.598],[1.897,8.568],[1.898,8.563],[1.915,8.558],[1.946,8.559],[1.964,8.55],[1.98,8.531],[1.995,8.518],[2.034,8.504],[2.055,8.49],[2.097,8.487],[2.159,8.476],[2.189,8.487],[2.212,8.503],[2.214,8.521],[2.22,8.631],[2.204,8.72],[2.187,8.746],[2.195,8.777]]]},"id":4},{"type":"Feature","properties":{"name":"Ou\u00e9m\u00e9","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.52,6.993],[2.518,6.942],[2.576,6.776],[2.615,6.628],[2.68,6.57],[2.719,6.504],[2.715,6.494],[2.704,6.429],[2.703,6.368],[2.484,6.348],[2.477,6.368],[2.464,6.375],[2.468,6.396],[2.487,6.459],[2.483,6.505],[2.467,6.515],[2.455,6.519],[2.444,6.538],[2.437,6.629],[2.432,6.767],[2.419,6.865],[2.385,6.921],[2.398,6.96],[2.414,6.982],[2.43,6.991],[2.458,6.994],[2.52,6.993]]]},"id":5},{"type":"Feature","properties":{"name":"Atakora","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.015,11.432],[2.02,11.426],[2.215,11.082],[2.264,11.012],[2.274,11.012],[2.286,11.01],[2.295,11.005],[2.324,10.991],[2.297,10.911],[2.277,10.889],[2.267,10.871],[2.263,10.859],[2.261,10.842],[2.266,10.524],[2.255,10.518],[2.234,10.506],[2.23,10.503],[2.228,10.501],[2.202,10.468],[2.19,10.447],[2.184,10.431],[2.182,10.416],[2.183,10.396],[2.184,10.393],[2.188,10.386],[2.194,10.378],[2.219,10.354],[2.225,10.346],[2.23,10.339],[2.245,10.3],[2.248,10.284],[2.263,10.238],[2.271,10.167],[2.27,10.147],[2.267,10.135],[2.264,10.13],[2.257,10.123],[2.25,10.117],[2.241,10.112],[2.201,10.098],[2.185,10.094],[2.13,10.093],[2.12,10.09],[2.111,10.085],[2.105,10.082],[2.1,10.077],[2.092,10.067],[2.089,10.06],[2.087,10.054],[2.088,10.05],[2.092,10.032],[1.808,10.04],[1.77,10.026],[1.735,10.006],[1.702,9.98],[1.66,9.959],[1.61,9.947],[1.546,9.954],[1.504,9.963],[1.455,9.969],[1.413,9.97],[1.357,9.959],[1.344,9.955],[1.344,9.962],[1.331,9.996],[1.225,10.066],[1.082,10.16],[0.997,10.217],[0.939,10.255],[0.844,10.317],[0.769,10.367],[0.761,10.382],[0.76,10.405],[0.774,10.508],[0.789,10.564],[0.789,10.603],[0.781,10.693],[0.796,10.726],[0.85,10.778],[0.863,10.796],[0.866,10.806],[0.868,10.829],[0.87,10.84],[0.885,10.869],[0.884,10.88],[0.875,10.901],[0.873,10.911],[0.876,10.931],[0.901,10.993],[0.932,10.976],[0.945,10.974],[0.963,10.974],[0.968,10.979],[0.97,10.991],[0.969,11.003],[0.963,11.008],[0.955,11.012],[0.952,11.021],[0.951,11.032],[0.952,11.042],[0.956,11.045],[0.964,11.057],[0.97,11.069],[0.977,11.078],[0.981,11.08],[0.986,11.078],[1.008,11.075],[1.015,11.07],[1.02,11.066],[1.025,11.064],[1.028,11.061],[1.033,11.052],[1.035,11.049],[1.041,11.05],[1.052,11.055],[1.056,11.056],[1.087,11.053],[1.097,11.049],[1.1,11.044],[1.107,11.034],[1.114,11.028],[1.117,11.032],[1.119,11.048],[1.107,11.06],[1.101,11.07],[1.099,11.081],[1.099,11.093],[1.097,11.104],[1.095,11.104],[1.086,11.109],[1.083,11.111],[1.082,11.115],[1.084,11.128],[1.083,11.132],[1.073,11.134],[1.067,11.128],[1.063,11.127],[1.062,11.142],[1.067,11.144],[1.1,11.152],[1.106,11.156],[1.113,11.174],[1.117,11.179],[1.128,11.179],[1.148,11.17],[1.158,11.166],[1.153,11.183],[1.149,11.217],[1.131,11.248],[1.136,11.26],[1.146,11.27],[1.156,11.286],[1.166,11.278],[1.173,11.267],[1.172,11.261],[1.181,11.261],[1.186,11.264],[1.191,11.267],[1.2,11.269],[1.219,11.268],[1.235,11.263],[1.268,11.248],[1.281,11.271],[1.283,11.279],[1.28,11.289],[1.271,11.298],[1.268,11.306],[1.273,11.318],[1.284,11.313],[1.296,11.3],[1.302,11.289],[1.309,11.297],[1.316,11.3],[1.323,11.297],[1.33,11.289],[1.348,11.303],[1.346,11.316],[1.336,11.33],[1.33,11.347],[1.339,11.366],[1.359,11.379],[1.382,11.389],[1.398,11.399],[1.389,11.42],[1.39,11.428],[1.398,11.44],[1.411,11.45],[1.423,11.454],[1.424,11.454],[1.434,11.459],[1.44,11.474],[1.456,11.465],[1.475,11.461],[1.569,11.453],[1.567,11.447],[1.565,11.433],[1.563,11.426],[1.581,11.427],[1.602,11.389],[1.621,11.395],[1.638,11.404],[1.684,11.414],[1.703,11.423],[1.719,11.428],[1.763,11.425],[1.782,11.426],[1.822,11.442],[1.841,11.445],[1.858,11.44],[1.868,11.447],[1.88,11.445],[1.906,11.433],[1.948,11.417],[1.983,11.414],[2.011,11.427],[2.015,11.432]]]},"id":6},{"type":"Feature","properties":{"name":"Donga","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.092,10.032],[2.1,10.011],[2.1,10.007],[2.098,10.002],[2.097,10.001],[2.096,10.0],[2.088,9.985],[2.097,9.936],[2.097,9.917],[2.089,9.888],[2.08,9.836],[2.079,9.818],[2.081,9.805],[2.1,9.75],[2.102,9.745],[2.115,9.725],[2.136,9.703],[2.152,9.688],[2.161,9.671],[2.161,9.656],[2.122,9.4],[2.118,9.387],[2.114,9.381],[2.108,9.375],[2.104,9.372],[2.1,9.37],[2.095,9.368],[2.089,9.367],[2.051,9.368],[2.028,9.367],[2.012,9.364],[2.007,9.362],[1.999,9.358],[1.99,9.351],[1.976,9.308],[1.971,9.274],[1.97,9.217],[1.973,9.185],[1.978,9.164],[1.98,9.159],[1.985,9.15],[1.99,9.142],[1.997,9.136],[2.001,9.131],[2.009,9.126],[2.039,9.113],[2.042,9.11],[2.045,9.106],[2.049,9.098],[2.051,9.091],[2.051,9.085],[2.049,9.079],[2.041,9.059],[2.034,9.035],[2.029,9.0],[2.029,9.0],[2.027,8.989],[2.025,8.94],[2.027,8.923],[2.031,8.903],[2.034,8.894],[2.038,8.887],[2.044,8.879],[2.051,8.872],[2.059,8.866],[2.068,8.86],[2.088,8.85],[2.188,8.822],[2.194,8.82],[2.197,8.818],[2.203,8.812],[2.195,8.777],[2.187,8.746],[2.196,8.734],[2.204,8.72],[2.22,8.631],[2.207,8.545],[2.214,8.521],[2.219,8.515],[2.212,8.503],[2.198,8.492],[2.189,8.487],[2.177,8.481],[2.16,8.476],[2.136,8.476],[2.13,8.476],[2.124,8.477],[2.097,8.487],[2.085,8.49],[2.06,8.489],[2.055,8.49],[2.05,8.492],[2.034,8.504],[2.005,8.513],[1.995,8.518],[1.987,8.524],[1.979,8.531],[1.965,8.55],[1.961,8.553],[1.957,8.556],[1.952,8.558],[1.946,8.559],[1.915,8.558],[1.909,8.559],[1.904,8.561],[1.898,8.563],[1.894,8.566],[1.89,8.568],[1.863,8.597],[1.855,8.604],[1.847,8.609],[1.836,8.613],[1.83,8.615],[1.818,8.614],[1.801,8.611],[1.714,8.588],[1.703,8.587],[1.698,8.587],[1.679,8.585],[1.625,8.587],[1.607,8.589],[1.606,8.722],[1.604,8.815],[1.603,8.924],[1.601,9.05],[1.596,9.077],[1.588,9.101],[1.567,9.137],[1.505,9.201],[1.425,9.284],[1.42,9.292],[1.401,9.321],[1.387,9.361],[1.38,9.462],[1.368,9.491],[1.351,9.483],[1.336,9.498],[1.326,9.522],[1.323,9.542],[1.327,9.555],[1.345,9.582],[1.351,9.595],[1.353,9.605],[1.352,9.625],[1.355,9.635],[1.356,9.647],[1.348,9.694],[1.347,9.772],[1.345,9.881],[1.344,9.955],[1.357,9.959],[1.413,9.97],[1.455,9.969],[1.504,9.963],[1.546,9.954],[1.61,9.947],[1.66,9.959],[1.702,9.98],[1.735,10.006],[1.77,10.026],[1.808,10.04],[2.092,10.032]]]},"id":7},{"type":"Feature","properties":{"name":"Zou","precision":"reelle"},"geometry":{"type":"Polygon","coordinates":[[[2.428,7.426],[2.433,7.407],[2.433,7.363],[2.436,7.354],[2.442,7.346],[2.447,7.337],[2.447,7.321],[2.45,7.309],[2.466,7.25],[2.481,7.217],[2.528,7.185],[2.534,7.178],[2.534,7.173],[2.533,7.156],[2.555,7.045],[2.56,7.0],[2.56,7.0],[2.56,7.0],[2.559,6.999],[2.558,6.998],[2.557,6.995],[2.552,6.993],[2.546,6.992],[2.539,6.992],[2.52,6.993],[2.458,6.994],[2.43,6.991],[2.414,6.982],[2.398,6.96],[2.387,6.941],[2.385,6.921],[2.084,6.919],[2.077,6.925],[2.06,6.916],[2.05,6.912],[2.043,6.913],[2.035,6.916],[2.001,6.941],[1.995,6.946],[1.993,6.951],[1.988,6.969],[1.975,6.989],[1.959,6.997],[1.942,7.02],[1.921,7.052],[1.905,7.064],[1.9,7.067],[1.893,7.072],[1.88,7.093],[1.871,7.136],[1.858,7.183],[1.843,7.21],[1.83,7.218],[1.826,7.224],[1.821,7.235],[1.783,7.284],[1.767,7.296],[1.759,7.306],[1.755,7.314],[1.754,7.332],[1.752,7.339],[1.746,7.348],[1.743,7.355],[1.737,7.381],[1.684,7.492],[1.677,7.504],[1.656,7.53],[1.623,7.536],[1.623,7.622],[1.642,7.621],[1.845,7.632],[1.889,7.623],[1.944,7.6],[1.981,7.567],[2.019,7.542],[2.067,7.534],[2.119,7.535],[2.178,7.53],[2.248,7.508],[2.428,7.426]]]},"id":8},{"type":"Feature","properties":{"name":"Kouffo","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[1.623,7.536],[1.656,7.53],[1.677,7.504],[1.684,7.492],[1.737,7.381],[1.743,7.355],[1.746,7.348],[1.752,7.339],[1.754,7.332],[1.755,7.314],[1.6,7.2],[1.55,7.05],[1.5,6.9],[1.45,6.75],[1.42,6.68],[1.4,6.69],[1.35,6.72],[1.31,6.75],[1.3,6.85],[1.32,6.95],[1.35,7.05],[1.4,7.15],[1.45,7.25],[1.5,7.35],[1.55,7.45],[1.62,7.53],[1.623,7.536]]]},"id":9},{"type":"Feature","properties":{"name":"Mono","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[1.3,6.85],[1.31,6.75],[1.35,6.72],[1.4,6.69],[1.42,6.68],[1.55,6.6],[1.62,6.55],[1.68,6.51],[1.7,6.45],[1.68,6.4],[1.62,6.38],[1.55,6.36],[1.48,6.35],[1.4,6.36],[1.35,6.4],[1.3,6.48],[1.28,6.58],[1.27,6.68],[1.28,6.78],[1.3,6.85]]]},"id":10},{"type":"Feature","properties":{"name":"Atlantique","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[2.084,6.919],[2.077,6.925],[2.06,6.916],[2.05,6.912],[2.043,6.913],[2.035,6.916],[2.001,6.941],[1.995,6.946],[1.9,6.95],[1.8,6.9],[1.7,6.8],[1.68,6.7],[1.7,6.6],[1.75,6.5],[1.85,6.42],[1.95,6.38],[2.05,6.35],[2.1,6.34],[2.15,6.37],[2.18,6.45],[2.18,6.55],[2.15,6.65],[2.1,6.75],[2.084,6.919]]]},"id":11},{"type":"Feature","properties":{"name":"Littoral","precision":"simplifiee"},"geometry":{"type":"Polygon","coordinates":[[[2.42,6.395],[2.44,6.375],[2.46,6.365],[2.42,6.35],[2.38,6.355],[2.36,6.375],[2.38,6.4],[2.4,6.41],[2.42,6.395]]]},"id":12}]};
 
 function Carte({consultations}){
-  const mapRef=useRef(null);
-  const mapInstance=useRef(null);
-  const geoLayerRef=useRef(null);
   const[metric,setMetric]=useState('cas');
   const[selectedDept,setSelectedDept]=useState(null);
+  const[hover,setHover]=useState(null);
 
   const zoneToDept={};
   Object.entries(ZONES_SANITAIRES).forEach(([dept,zones])=>{
@@ -1299,14 +1293,12 @@ function Carte({consultations}){
       const zoneCodes=zones.map(z=>z.code);
       const cas=consultations.filter(c=>zoneCodes.includes(c.zone_sanitaire)).length;
       const imm=consultations.filter(c=>zoneCodes.includes(c.zone_sanitaire)&&c.notif==='immédiate').length;
-      const pop=zones.reduce((a,z)=>a+(z.pop||0),0);
-      const incidence=pop>0?Math.round(cas/pop*100000):0;
-      d[dept]={cas,imm,pop,incidence};
+      d[dept]={cas,imm};
     });
     return d;
   },[consultations]);
 
-  const maxVal=Math.max(1,...Object.values(deptData).map(d=>metric==='cas'?d.cas:metric==='imm'?d.imm:d.incidence));
+  const maxVal=Math.max(1,...Object.values(deptData).map(d=>metric==='cas'?d.cas:d.imm));
 
   const getColor=(val)=>{
     const ratio=Math.min(1,val/maxVal);
@@ -1317,76 +1309,41 @@ function Carte({consultations}){
     return'#F44336';
   };
 
-  useEffect(()=>{
-    if(!mapRef.current||mapInstance.current)return;
-    // Aucun fond de carte externe : les contours des départements sont embarqués dans l'application
-    // (fonctionne hors ligne, aucune clé ni service tiers requis).
-    mapRef.current.style.background='#E9F0F6';
-    const map=L.map(mapRef.current,{zoomControl:true,attributionControl:false,zoomSnap:0.25,minZoom:5.5,maxZoom:10}).setView([9.3077,2.3158],7);
-    mapInstance.current=map;
-    return()=>{ try{map.stop();}catch(e){} try{map.remove();}catch(e){} mapInstance.current=null; };
+  // Carte dessinée en SVG à partir des contours embarqués : aucune bibliothèque ni service externe.
+  const carteGeo=useMemo(()=>{
+    const feats=BENIN_DEPARTMENTS_GEOJSON.features;
+    const rings=f=>f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+    let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+    feats.forEach(f=>rings(f).forEach(poly=>poly.forEach(r=>r.forEach(p=>{if(p[0]<minX)minX=p[0];if(p[0]>maxX)maxX=p[0];if(p[1]<minY)minY=p[1];if(p[1]>maxY)maxY=p[1];}))));
+    const k=Math.cos(((minY+maxY)/2)*Math.PI/180);
+    const W=(maxX-minX)*k,H=maxY-minY,sc=100/Math.max(W,H);
+    const pt=p=>((p[0]-minX)*k*sc).toFixed(2)+','+((maxY-p[1])*sc).toFixed(2);
+    return{w:W*sc,h:H*sc,items:feats.map(f=>({name:f.properties.name,simplifie:f.properties.precision==='simplifiee',d:rings(f).map(poly=>poly.map(r=>'M'+r.map(pt).join('L')+'Z').join('')).join('')}))};
   },[]);
-
-  useEffect(()=>{
-    const map=mapInstance.current;
-    if(!map)return;
-    if(geoLayerRef.current){ map.removeLayer(geoLayerRef.current); }
-
-    const findDeptKey=(geoName)=>{
-      const norm=(geoName||'').toUpperCase();
-      return Object.keys(ZONES_SANITAIRES).find(k=>k===norm||k.includes(norm)||norm.includes(k));
-    };
-
-    const layer=L.geoJSON(BENIN_DEPARTMENTS_GEOJSON,{
-      style:(feature)=>{
-        const key=findDeptKey(feature.properties.name);
-        const d=key?deptData[key]:null;
-        const val=d?(metric==='cas'?d.cas:metric==='imm'?d.imm:d.incidence):0;
-        return{
-          fillColor:getColor(val),
-          fillOpacity:0.72,
-          color:'#ffffff',
-          weight:selectedDept===key?2.5:1.2,
-          dashArray:feature.properties.precision==='simplifiee'?'4,3':null
-        };
-      },
-      onEachFeature:(feature,lyr)=>{
-        const key=findDeptKey(feature.properties.name);
-        const d=key?deptData[key]:{cas:0,imm:0,incidence:0,pop:0};
-        const precisionNote=feature.properties.precision==='simplifiee'
-          ?'<div style="color:#B26A00;font-size:11px;margin-top:6px;">Contour simplifié (données précises à venir)</div>':'';
-        lyr.bindPopup(
-          '<div style="font-weight:600;font-size:13px;margin-bottom:6px;">'+feature.properties.name+'</div>'+
-          '<div style="font-size:12px;line-height:1.7;">'+
-          'Consultations : <strong>'+d.cas+'</strong><br/>'+
-          'Alertes immédiates : <strong style="color:#D32F2F;">'+d.imm+'</strong><br/>'+
-          'Incidence : <strong>'+d.incidence+'</strong> / 100 000 hab.'+
-          '</div>'+precisionNote
-        );
-        lyr.on('mouseover',function(){ this.setStyle({fillOpacity:0.88,weight:2}); });
-        lyr.on('mouseout',function(){ layer.resetStyle(this); });
-        lyr.on('click',function(){ setSelectedDept(key===selectedDept?null:key); });
-      }
-    }).addTo(map);
-    geoLayerRef.current=layer;
-    if(!map.__cadre){map.__cadre=true;try{if(mapInstance.current===map&&map._loaded)map.fitBounds(layer.getBounds(),{padding:[12,12],animate:false});}catch(e){}}
-  },[deptData,metric,selectedDept]);
+  const findDeptKey=(geoName)=>{
+    const norm=(geoName||'').toUpperCase();
+    return Object.keys(ZONES_SANITAIRES).find(k=>k===norm||k.includes(norm)||norm.includes(k));
+  };
+  const valDe=key=>{const d=key?deptData[key]:null;return d?(metric==='cas'?d.cas:d.imm):0;};
 
   const selDept=selectedDept?(ZONES_SANITAIRES[selectedDept]||[]):[];
 
   return(<div>
     <p className="page-title">Carte Épidémique du Bénin</p>
-    <p className="page-sub">12 départements, 34 zones sanitaires — Limites administratives réelles (source : données SIG publiques, licence CC-BY 4.0)</p>
+    <p className="page-sub">12 départements, 34 zones sanitaires — Cliquez sur un département pour voir ses zones. Carte intégrée à l’application : elle s’affiche sans Internet.</p>
     <div className="grid-2">
       <div>
         <div className="map-shell">
           <div className="map-toolbar">
-            {[['cas','Consultations'],['imm','Alertes immédiates'],['incidence','Incidence /100k']].map(([v,l])=>(
+            {[['cas','Consultations'],['imm','Alertes immédiates']].map(([v,l])=>(
               <button key={v} className={`inner-tab ${metric===v?'active':''}`} style={{marginBottom:0}} onClick={()=>setMetric(v)}>{l}</button>
             ))}
           </div>
           <div style={{position:'relative'}}>
-            <div id="leaflet-map" ref={mapRef}></div>
+            <svg className="svgmap" data-testid="carte-svg" viewBox={'-4 -4 '+(carteGeo.w+8)+' '+(carteGeo.h+8)} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Carte des 12 départements du Bénin">
+              {carteGeo.items.map(it=>{const key=findDeptKey(it.name);return <path key={it.name} d={it.d} fill={getColor(valDe(key))} fillOpacity="0.8" stroke={selectedDept===key?'#0F3D2A':'#ffffff'} strokeWidth={selectedDept===key?0.7:0.35} strokeDasharray={it.simplifie?'1.2,0.9':undefined} fillRule="evenodd" onClick={()=>setSelectedDept(key===selectedDept?null:key)} onMouseEnter={()=>setHover(key)} onMouseLeave={()=>setHover(null)}><title>{it.name}</title></path>;})}
+            </svg>
+            {(hover||selectedDept)&&(()=>{const k=hover||selectedDept;const d=deptData[k]||{cas:0,imm:0};return <div style={{position:'absolute',left:10,top:10,background:'#fff',border:'1px solid var(--border)',borderRadius:8,padding:'8px 12px',fontSize:12,lineHeight:1.6,boxShadow:'0 2px 8px rgba(0,0,0,.12)'}}><div style={{fontWeight:700}}>{k.charAt(0)+k.slice(1).toLowerCase()}</div>Consultations : <strong>{d.cas}</strong><br/>Alertes immédiates : <strong style={{color:'#D32F2F'}}>{d.imm}</strong></div>;})()}
             <div className="map-legend">
               <div style={{fontWeight:600,marginBottom:6,fontSize:11}}>Légende</div>
               {[['Aucun cas','#EEEEEE'],['Faible','#4CAF50'],['Modéré','#FFEB3B'],['Élevé','#FF9800'],['Alerte','#F44336']].map(([l,c])=>(
@@ -1419,7 +1376,7 @@ function Carte({consultations}){
             const cnt=consultations.filter(c=>c.zone_sanitaire===z.code).length;
             return(<div key={z.code} style={{padding:'9px 0',borderBottom:'1px solid var(--gray-100)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div><div style={{fontSize:13,fontWeight:500}}>{z.nom}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{z.code} · {z.pop?.toLocaleString('fr-FR')} hab.</div></div>
+                <div><div style={{fontSize:13,fontWeight:500}}>{z.nom}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{z.code}</div></div>
                 <span style={{fontWeight:600,fontSize:13,color:cnt>0?'var(--primary)':'var(--text-muted)'}}>{cnt}</span>
               </div>
             </div>);
@@ -1684,7 +1641,7 @@ function Admin({user,patients,consultations}){
           <div className="form-group"><label className="form-label">Village / quartier{nc.role==='relais'?' *':''}</label><input className="form-input" value={nc.village} onChange={e=>setNc(Object.assign({},nc,{village:e.target.value}))}/></div>
         </div>}
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Type de structure (facultatif)</label><select className="form-select" value={nc.structure_type} onChange={e=>setNc(Object.assign({},nc,{structure_type:e.target.value}))}><option value="">—</option>{STRUCTURES_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Structure de rattachement (détermine l’espace de la personne dans la pyramide)</label><select className="form-select" value={nc.structure_type} onChange={e=>setNc(Object.assign({},nc,{structure_type:e.target.value}))}><option value="">—</option>{STRUCTURES_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
           <div className="form-group"><label className="form-label">Nom de la structure (centre de santé de rattachement)</label><input className="form-input" value={nc.structure_nom} onChange={e=>setNc(Object.assign({},nc,{structure_nom:e.target.value}))}/></div>
         </div>
         <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3||((nc.role==='relais'||nc.role==='asc')&&(!nc.zone||!nc.arrondissement.trim()||(nc.role==='relais'&&!nc.village.trim())))}>{ncBusy?'Création...':'Créer le compte'}</button>
@@ -1700,8 +1657,8 @@ function Admin({user,patients,consultations}){
       <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'—'}</td><td>{u.departement||'—'}</td><td style={{fontSize:11}}>{[u.structure_nom,u.village].filter(Boolean).join(' · ')||'—'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
     </table></div>}</div>}
     {tab==='zones'&&<div className="card"><div className="card-title">🗺️ 34 Zones Sanitaires — 12 Départements</div><div className="table-wrap"><table>
-      <thead><tr><th>Code</th><th>Zone Sanitaire</th><th>Département</th><th>Population</th></tr></thead>
-      <tbody>{TOUTES_ZONES.map(z=><tr key={z.code}><td><code style={{fontSize:11}}>{z.code}</code></td><td>{z.nom}</td><td>{z.departement}</td><td>{z.pop?.toLocaleString('fr-FR')} hab.</td></tr>)}</tbody>
+      <thead><tr><th>Code</th><th>Zone Sanitaire</th><th>Département</th><th>Formations publiques (annuaire 2019)</th></tr></thead>
+      <tbody>{TOUTES_ZONES.map(z=><tr key={z.code}><td><code style={{fontSize:11}}>{z.code}</code></td><td>{z.nom}</td><td>{z.departement}</td><td>{(FORMATIONS_PUBLIQUES[z.nom]||[]).length}</td></tr>)}</tbody>
     </table></div></div>}
     {tab==='kpi'&&<div className="card"><div className="card-title">📊 KPIs Nationaux SNISB</div>
       <div className="grid-2">
@@ -2202,6 +2159,180 @@ const CAT_SIG={
 const STRUCTURES_TYPES=['Centre de santé d’arrondissement','Centre de santé de commune','Hôpital de commune','Hôpital de zone','Maternité / dispensaire isolé','Service de santé communautaire','Bureau de coordination de zone','Direction départementale de la santé','Centre hospitalier départemental (CHD)','Niveau central (Ministère)'];
 const SIG_OUTBOX='snisb_sig_outbox';
 
+// ═══════════════════════════════════════
+// ÉCHELONS DE LA PYRAMIDE — chaque utilisateur arrive dans l’espace de son niveau
+// Sources : Décret 2022-148 ; Politique nationale de santé communautaire ; cours ENATSE (OSS : organes de gouvernance ; SNIGS : circuit des rapports)
+// ═══════════════════════════════════════
+const LAST_USER_KEY='snisb_last_user';
+const ROLES_HORS_LIGNE=['asc','relais','patient'];
+const echelonDe=u=>{
+  const r=u.role;
+  if(r==='asc'||r==='relais')return'communautaire';
+  if(r==='admin')return'central';
+  const st=u.structure_type||'';
+  if(/Bureau de coordination/.test(st))return'zone';
+  if(/Direction départementale|CHD/.test(st))return'departement';
+  if(/Niveau central/.test(st))return'central';
+  if(st)return'fs';
+  const n=u.niveau||(ROLES[r]||{}).niveau;
+  return n==='central'?'central':n==='intermediaire'?'departement':n==='communautaire'?'communautaire':'fs';
+};
+const ETAGES=[
+  ['central','Niveau central','Ministère de la Santé, hôpitaux nationaux'],
+  ['departement','Département','Direction départementale (DDS), CHD'],
+  ['zone','Zone sanitaire','Équipe d’encadrement (EEZS), hôpital de zone'],
+  ['fs','Formation sanitaire','Centre de santé, hôpital de commune, maternité'],
+  ['communautaire','Communauté','ASCQ et relais communautaires']
+];
+const ECHELONS={
+  central:{nav:'Niveau central',titre:'Niveau central — Ministère de la Santé',
+    gouv:['Organe de décision : CNEEP','Organe exécutif : Ministre de la santé','Formations sanitaires : responsables des hôpitaux nationaux'],
+    faire:[['Suivre la qualité des rapports communautaires','rapports'],['Suivre les indicateurs de référence','references'],['Suivre la situation nationale par département','carte'],['Suivre les alertes épidémiques','epidemio'],['Exporter les données pour le SNIGS / DHIS2','export'],['Voir les signalements communautaires confirmés','communautaire']],
+    recoit:'Reçoit la synthèse de chaque direction départementale (avant le 20 du mois suivant).'},
+  departement:{nav:'Direction départementale',titre:'Niveau intermédiaire — Direction départementale de la santé (DDS)',
+    gouv:['Organe de décision : CDEEP','Organe exécutif : directeur départemental de la santé (DDS)','Formations sanitaires : responsable du CHD'],
+    faire:[['Suivre la qualité des rapports communautaires','rapports'],['Suivre les indicateurs de référence','references'],['Comparer les zones sanitaires de votre département','carte'],['Suivre les alertes épidémiques','epidemio'],['Voir les signalements communautaires','communautaire'],['Exporter la synthèse départementale','export']],
+    recoit:'Reçoit les rapports des zones sanitaires (avant le 15 du mois) et transmet au niveau central (avant le 20).'},
+  zone:{nav:'Bureau de zone',titre:'Zone sanitaire — équipe d’encadrement (EEZS)',
+    gouv:['Équipe d’encadrement de la zone : médecin coordonnateur (MCZS), directeur de l’hôpital de zone, médecins-chefs de commune, chargé de l’administration et des ressources, chargé de la recherche-action et de la mobilisation sociale, chargé de l’hygiène et de l’assainissement, responsable des soins infirmiers et/ou obstétricaux, chargé de la statistique et de la surveillance épidémiologique','Organe de décision : comité de santé de la zone (COSA)'],
+    faire:[['Suivre complétude et promptitude des rapports des relais','rapports'],['Suivre les références de la zone','references'],['Valider les signalements communautaires de la zone','communautaire'],['Suivre les alertes épidémiques de la zone','epidemio'],['Exporter les données mensuelles','export'],['Voir la zone sur la carte','carte']],
+    recoit:'Reçoit les rapports des formations sanitaires (avant le 5 du mois suivant) et transmet à la direction départementale (avant le 15).'},
+  fs:{nav:'Ma formation sanitaire',titre:'Niveau périphérique — formation sanitaire (premier contact)',
+    gouv:['Organe de décision : comité de gestion du centre de santé (COGESCS, 9 membres) ou comité villageois de santé (CVS)','Organe exécutif : chef de poste','Sous la responsabilité du médecin-chef de la commune'],
+    faire:[['Recevoir les patients référés et envoyer la contre-référence','references'],['Valider les rapports mensuels des relais','rapports'],['Enregistrer des consultations','consultations'],['Vérifier les signalements des relais et ASCQ','communautaire'],['Répondre aux téléconsultations','teleconsultation'],['Voir les rappels des patients','rappels']],
+    recoit:'Reçoit les signalements des relais et ASCQ de son aire de santé et transmet son rapport mensuel à la zone sanitaire (avant le 5).'},
+  communautaire:{nav:'Mon espace communautaire',titre:'Niveau communautaire — village ou quartier',
+    gouv:['Comité villageois de santé (CVS) ou COGESCS du centre de santé de l’aire','Tutelle technique : chef de poste du centre de santé','Un ASCQ encadre en moyenne trois relais'],
+    faire:[['Envoyer mon rapport mensuel','rapports'],['Référer un malade au centre de santé','references'],['Faire un signalement','communautaire'],['Me former','formation']],
+    recoit:'Vos signalements sont vérifiés par un agent de santé du centre de santé avant d’entrer dans la surveillance.'}
+};
+const MOIS_FR=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+let _flushing=false;
+async function flushSigOutbox(){
+  const box=lsGet(SIG_OUTBOX,[]);
+  if(!box.length||!supaClient||!navigator.onLine||_flushing)return{left:box.length,sent:0};
+  _flushing=true;
+  try{
+    let sess=null;try{const{data}=await supaClient.auth.getSession();sess=data&&data.session;}catch(e){}
+    if(!sess)return{left:box.length,sent:0,nosession:true};
+    const ok=new Set();let lastErr='';
+    for(const r of box){
+      const sid=sess.user&&sess.user.id;
+      if(sid&&r.auteur_id&&r.auteur_id!==sid)continue;
+      try{const{error}=await supaClient.from('signalements_communautaires').insert(r);
+        if(!error||error.code==='23505')ok.add(r.id);else lastErr=error.message||error.code||'';}
+      catch(e){}
+    }
+    const reste=lsGet(SIG_OUTBOX,[]).filter(x=>!ok.has(x.id));
+    lsSet(SIG_OUTBOX,reste);
+    return{left:reste.length,sent:ok.size,lastErr};
+  }finally{_flushing=false;}
+}
+
+function EspaceNiveau({user,consultations,go}){
+  const ech=echelonDe(user);const E=ECHELONS[ech];
+  const[sig,setSig]=useState([]);const[tele,setTele]=useState(null);const[err,setErr]=useState('');
+  const[attente,setAttente]=useState(()=>lsGet(SIG_OUTBOX,[]).length);
+  useEffect(()=>{
+    let vivant=true;
+    const charger=async()=>{
+      setAttente(lsGet(SIG_OUTBOX,[]).length);
+      if(!supaClient||!user.supabase_id||!navigator.onLine){setErr('Hors connexion : les chiffres ci-dessous seront mis à jour au retour du réseau.');return;}
+      try{
+        const r=await supaClient.from('signalements_communautaires').select('id,statut,zone_sanitaire,departement,commune,village,maladie_notif,nb_cas').limit(1000);
+        if(!vivant)return;
+        if(r.error){setErr('Signalements indisponibles : '+(r.error.message||r.error.code));}else{setSig(r.data||[]);setErr('');}
+        if(['medecin','infirmier'].includes(user.role)){const t=await supaClient.from('teleconsultations').select('id').eq('statut','attente');if(vivant&&!t.error)setTele((t.data||[]).length);}
+      }catch(e){if(vivant)setErr('Réseau indisponible.');}
+    };
+    charger();const t=setInterval(charger,30000);
+    return()=>{vivant=false;clearInterval(t);};
+  },[]);
+  const onglets=(ROLES[user.role]||{}).onglets||[];
+  const nbSoumis=sig.filter(x=>x.statut==='soumis').length;
+  const nbConf=sig.filter(x=>x.statut==='confirme').length;
+  const nbRej=sig.filter(x=>x.statut==='rejete').length;
+  const nbImm=consultations.filter(c=>{const m=matchMaladie(c.diagnostic);return m&&m.notif==='immédiate';}).length;
+  const deptKey=Object.keys(ZONES_SANITAIRES).find(k=>normAccents(k)===normAccents(user.dept||''));
+  // Tableau du périmètre : une ligne par unité de l’échelon inférieur
+  let titreTab='',lignes=[];
+  const cnt=(codes)=>consultations.filter(c=>codes.includes(c.zone_sanitaire)).length;
+  const imm=(codes)=>consultations.filter(c=>codes.includes(c.zone_sanitaire)&&((matchMaladie(c.diagnostic)||{}).notif==='immédiate')).length;
+  if(ech==='central'){titreTab='Par département';lignes=Object.keys(ZONES_SANITAIRES).map(d=>{const codes=ZONES_SANITAIRES[d].map(z=>z.code);const ss=sig.filter(x=>normAccents(x.departement||'')===normAccents(d));return{n:d.charAt(0)+d.slice(1).toLowerCase(),c:cnt(codes),i:imm(codes),a:ss.filter(x=>x.statut==='soumis').length,f:ss.filter(x=>x.statut==='confirme').length};});}
+  else if(ech==='departement'){titreTab='Par zone sanitaire'+(deptKey?' — '+deptKey.charAt(0)+deptKey.slice(1).toLowerCase():'');lignes=(deptKey?ZONES_SANITAIRES[deptKey]:[]).map(z=>{const ss=sig.filter(x=>x.zone_sanitaire===z.code);return{n:z.nom,c:cnt([z.code]),i:imm([z.code]),a:ss.filter(x=>x.statut==='soumis').length,f:ss.filter(x=>x.statut==='confirme').length};});}
+  else if(ech==='zone'||ech==='fs'){titreTab=ech==='zone'?'Par commune de la zone':'Par village de l’aire de santé';const cle=ech==='zone'?'commune':'village';const m={};sig.forEach(x=>{const k=x[cle]||'—';const o=m[k]||(m[k]={n:k,c:0,i:0,a:0,f:0});if(x.statut==='soumis')o.a++;if(x.statut==='confirme')o.f++;});lignes=Object.values(m);}
+  const auj=new Date();const jour=auj.getDate();
+  const moisRapport=MOIS_FR[(auj.getMonth()+11)%12];
+  const ech_dates=[['fs','Formations sanitaires → zone sanitaire',5],['zone','Zone sanitaire → direction départementale',15],['departement','Direction départementale → niveau central',20]];
+  const etat=j=>jour>j?{t:'dépassée ce mois-ci',c:'badge-hebdo'}:{t:'dans '+(j-jour)+' jour(s)',c:'badge-success'};
+  return(<div>
+    <p className="page-title">🏛️ {E.nav}</p>
+    <p className="page-sub">{E.titre}</p>
+    <div className="card">
+      <div className="card-title">Votre place dans la pyramide sanitaire</div>
+      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        {ETAGES.map(([k,t,d],i)=><div key={k} className={'echelon-step'+(k===ech?' on':'')} style={{marginLeft:i*14,textAlign:'left'}}>
+          {t}{k===ech&&<span className="badge badge-success" style={{marginLeft:8}}>Vous êtes ici</span>}
+          <div style={{fontWeight:400,color:'var(--text-muted)'}}>{d}</div>
+        </div>)}
+      </div>
+      <div className="form-hint">Le décret 2022-148 range la zone sanitaire et ses formations sanitaires dans le niveau périphérique. Votre rôle : <strong>{(ROLES[user.role]||{}).label}</strong>{user.structure_nom?' · '+user.structure_nom:''}{user.zone?' · zone '+((TOUTES_ZONES.find(z=>z.code===user.zone)||{}).nom||user.zone):''}{user.dept?' · '+user.dept:''}.</div>
+    </div>
+
+    {err&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
+    <div className="stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:16}}>
+      {ech==='communautaire'?<>
+        <div className="stat-card"><div className="stat-number">{attente}</div><div className="stat-label">En attente d’envoi (sur cet appareil)</div></div>
+        <div className="stat-card"><div className="stat-number">{nbSoumis}</div><div className="stat-label">Envoyés, à vérifier</div></div>
+        <div className="stat-card"><div className="stat-number">{nbConf}</div><div className="stat-label">Confirmés par un agent de santé</div></div>
+        <div className="stat-card"><div className="stat-number">{nbRej}</div><div className="stat-label">Rejetés</div></div>
+      </>:<>
+        <div className="stat-card"><div className="stat-number">{nbSoumis}</div><div className="stat-label">Signalements à vérifier</div></div>
+        <div className="stat-card"><div className="stat-number">{nbConf}</div><div className="stat-label">Signalements confirmés</div></div>
+        <div className="stat-card"><div className="stat-number">{nbImm}</div><div className="stat-label">Consultations à notification immédiate</div></div>
+        {tele!==null&&<div className="stat-card"><div className="stat-number">{tele}</div><div className="stat-label">Téléconsultations en attente</div></div>}
+      </>}
+    </div>
+
+    <div className="card"><div className="card-title">Ce que vous faites dans SNISB</div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+        {E.faire.filter(f=>onglets.includes(f[1])).map(f=><button key={f[0]} className="btn btn-outline" onClick={()=>go(f[1])}>{f[0]}</button>)}
+      </div>
+      <div className="form-hint" style={{marginTop:10}}>{E.recoit}</div>
+    </div>
+
+    {ech==='communautaire'&&<div className="alert alert-info"><div className="alert-content"><div className="alert-title">Sans réseau</div><div className="alert-text">Vous pouvez saisir vos signalements sans connexion : ils restent sur le téléphone et partent tout seuls dès que le réseau revient. Ne vous déconnectez pas avant de partir en zone sans réseau. La première connexion de la journée demande du réseau.</div></div></div>}
+
+    {lignes.length>0&&<div className="card"><div className="card-title">{titreTab}</div>
+      <div className="table-wrap"><table><thead><tr><th>Unité</th>{(ech==='central'||ech==='departement')&&<th>Consultations</th>}{(ech==='central'||ech==='departement')&&<th>Notification immédiate</th>}<th>À vérifier</th><th>Confirmés</th></tr></thead>
+        <tbody>{lignes.map(l=><tr key={l.n}><td><strong>{l.n}</strong></td>{(ech==='central'||ech==='departement')&&<td>{l.c}</td>}{(ech==='central'||ech==='departement')&&<td>{l.i}</td>}<td>{l.a}</td><td>{l.f}</td></tr>)}</tbody></table></div>
+      <div className="form-hint">Chiffres calculés à partir des données de SNISB visibles par votre compte. Ils ne remplacent pas les rapports mensuels du SNIGS.</div>
+    </div>}
+
+    {ech!=='communautaire'&&<div className="card"><div className="card-title">Circuit des rapports mensuels — rapports de {moisRapport}</div>
+      <table><tbody>{ech_dates.map(([k,t,j])=>{const e=etat(j);return <tr key={k} style={k===ech?{background:'#F1F8F4',fontWeight:700}:undefined}><td>{t}</td><td>avant le {j}</td><td><span className={'badge '+e.c}>{e.t}</span></td></tr>;})}</tbody></table>
+      <div className="form-hint">Maladies à notification immédiate : le circuit est direct, la notification part à l’échelon suivant sans attendre le rapport mensuel. Source : notes de cours SNIGS, ENATSE 2025-2026.</div>
+    </div>}
+
+    <div className="card"><div className="card-title">Organes de gouvernance de ce niveau</div>
+      {E.gouv.map((g,i)=><div key={i} style={{fontSize:13,padding:'4px 0'}}>• {g}</div>)}
+      <div className="form-hint">Source : syllabus « Organisation des systèmes de santé », ENATSE 2025-2026 (organes de gouvernance du système de santé du Bénin).</div>
+    </div>
+
+    {user.role==='admin'&&<div className="card" style={{borderLeft:'4px solid var(--primary)'}}><div className="card-title">Rôle de l’administrateur système</div>
+      <div style={{fontSize:13,lineHeight:1.7}}>L’administrateur est rattaché au niveau central (cellule chargée du système d’information). Il fait vivre l’outil ; il ne soigne pas et ne consulte pas les dossiers de patients dans l’interface.
+        <ul style={{margin:'6px 0 0 18px'}}>
+          <li>Crée les comptes en les rattachant à un niveau, une zone et une structure, désactive ceux qui partent, réinitialise les accès.</li>
+          <li>Consulte le journal d’audit et suit l’activité de chaque niveau.</li>
+          <li>Suit les indicateurs nationaux et exporte vers le SNIGS.</li>
+        </ul></div>
+      <button className="btn btn-primary btn-sm" style={{marginTop:10}} onClick={()=>go('admin')}>Ouvrir l’administration</button>
+    </div>}
+  </div>);
+}
+
+
 function PyramideSanitaire({user}){
   const mon=user.niveau||(ROLES[user.role]&&ROLES[user.role].niveau)||'';
   return(<div>
@@ -2246,14 +2377,13 @@ function SanteCommunautaire({user}){
       setLoadErr('');setItems(data||[]);
     }catch(e){setLoadErr('Réseau indisponible — les signalements déjà saisis restent affichés.');}
   };
+  const[etatEnvoi,setEtatEnvoi]=useState('');
   const envoyerAttente=async()=>{
-    const box=lsGet(SIG_OUTBOX,[]);if(!box.length||!enligne||!navigator.onLine)return;
-    const restant=[];
-    for(const r of box){
-      try{const{error}=await supaClient.from('signalements_communautaires').insert(r);if(error&&error.code!=='23505')restant.push(r);}
-      catch(e){restant.push(r);}
-    }
-    lsSet(SIG_OUTBOX,restant);setAttente(restant);if(restant.length<box.length)charger();
+    if(!lsGet(SIG_OUTBOX,[]).length){setAttente([]);return;}
+    const r=await flushSigOutbox();
+    setAttente(lsGet(SIG_OUTBOX,[]));
+    if(r.sent>0)charger();
+    setEtatEnvoi(r.nosession?'Session expirée : reconnectez-vous (avec réseau) pour envoyer les signalements gardés sur cet appareil.':r.lastErr?('Envoi refusé : '+r.lastErr):'');
   };
   useEffect(()=>{
     charger();envoyerAttente();
@@ -2290,16 +2420,16 @@ function SanteCommunautaire({user}){
         if(!error||error.code==='23505')envoye=true;
         else{
           const em=(error.message||'')+' '+(error.code||'');
-          if(/42P01|PGRST205|schema cache/i.test(em))setErrs(['Le module communautaire n’est pas prêt : exécutez 12_pyramide_communautaire.sql dans Supabase.']);
-          else if(/42501|row-level/i.test(em))setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);
-          else setErrs(['Erreur de la base : '+(error.message||error.code)]);
-          setBusy(false);return;
+          if(/JWT|PGRST30|401/i.test(em)){/* session expirée : on garde le signalement sur l’appareil */}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Le module communautaire n’est pas prêt : exécutez 12_pyramide_communautaire.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);setBusy(false);return;}
+          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
         }
       }catch(x){/* panne réseau : mise en attente locale */}
     }
     if(!envoye){const box=lsGet(SIG_OUTBOX,[]);box.push(row);lsSet(SIG_OUTBOX,box);setAttente(box);}
     setForm(Object.assign({},vide,{village:form.village}));setErrs([]);setBusy(false);
-    setMsg(envoye?{t:'success',m:'Signalement envoyé. Un agent de santé de votre centre va le vérifier.'}:{t:'warning',m:'Pas de réseau : signalement gardé sur cet appareil. Il partira automatiquement dès le retour de la connexion.'});
+    setMsg(envoye?{t:'success',m:'Signalement envoyé. Un agent de santé de votre centre va le vérifier.'}:{t:'warning',m:'Signalement enregistré sur cet appareil (pas de réseau). Il partira automatiquement dès le retour de la connexion.'});
     if(envoye)charger();
   };
 
@@ -2343,7 +2473,7 @@ function SanteCommunautaire({user}){
     <p className="page-sub">{estAuteur?'Signalez ce que vous constatez dans votre village. Un agent de santé du centre de santé vérifie avant que l’information entre dans la surveillance.':'Signalements des relais communautaires et des agents de santé communautaires qualifiés de votre zone.'}</p>
     {loadErr&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{loadErr}</div></div></div>}
     <Msg/>
-    {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} signalement(s) en attente d’envoi sur cet appareil.</div></div></div>}
+    {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} signalement(s) en attente d’envoi sur cet appareil.{etatEnvoi?' '+etatEnvoi:''} <button className="btn btn-sm btn-outline" style={{marginLeft:8}} onClick={envoyerAttente}>Envoyer maintenant</button></div></div></div>}
     <div className="inner-tabs">
       {(estAuteur?[['saisie','Nouveau signalement'],['liste','Mes signalements ('+items.length+')']]:[]).concat(estAuteur?[]:[['avalider','À vérifier ('+aValider.length+')'],['synthese','Synthèse par village'],['liste','Historique ('+items.length+')']]).map(([t,l])=><button key={t} className={'inner-tab '+(tab===t?'active':'')} onClick={()=>setTab(t)}>{l}</button>)}
     </div>
@@ -2395,7 +2525,708 @@ function SanteCommunautaire({user}){
     </div>}
 
     {tab==='liste'&&<div className="card">
-      {items.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement</div></div>:items.map(s=>carte(s,null))}
+      {items.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement</div></div>:attente.map(s=>carte(s,<div style={{marginTop:4}}><span className="badge badge-hebdo">En attente d’envoi — sur cet appareil</span></div>)).concat(items.map(s=>carte(s,null)))}
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// V22 — Référence / contre-référence, rapports communautaires (PIHI), qualité des données, conformité APDP
+// Sources (voir DOCUMENTATION_V22.md) :
+//  • Directives nationales de référence et de contre-référence, Ministère de la Santé, 2018 (annexes 1 à 7)
+//  • Guide SNIGS (projet du 13/07/2021) : rapports communautaires « prévention (VAD+SEG) » et « cas pris en charge »
+//  • Directives nationales de suivi-évaluation du PIHI communautaire, janvier 2015 (circuit, délais, qualité des données)
+//  • Code du numérique du Bénin (loi n° 2017-20), Livre V : art. 394, 405, 426, 427, 430
+//  • Annuaire des statistiques sanitaires 2019, annexe 2 (formations publiques) ; annuaires 2016 et 2022 (noms des 34 zones)
+// ═══════════════════════════════════════════════════════════════════════
+const FORMATIONS_PUBLIQUES={"Banikoara":["CS Banikoara","HZ Banikoara","CS Founougo","CS Gama","CS Gbanni","CS Igrigou","CS Kanderou","CS Sampeto","CS Alibori","CS Bouhanrou","CS Gnambanou","CS Gomparou","CS Boni","CS Gbassa","CS Goumori","CS Kokey","CS Sonwari","CS Yambérou","CS Bonte","CS Kokiborou","CS Yampogou","CS Boniki","CS Ounet","CS Sonnou","CS Poto","CS Somperekou","CS Gbeniki","CS Guimbagou","CS Kakorokou","CS Toura"],"Kandi-Gogounou-Ségbana":["CS Badou","CS Bagou","CS Gogounou","CS Ouere","CS Borodarou","CS Gounarou","CS Lougou (Gog)","CS Ouara","CS Sori","CS Zougou Pantrossi","CS Alfakoara","CS Angaradebou","CS Fouet","CS Thya","CS Bensekou","CS Donwari","CS Gansosso","CS Kandi II","HZ Kandi","CS Kassakou","CS Saah","CS Sam","CS Tankongou","CS Sonsoro","CS Bobena","CS Libante","CS Saonzi","CS Liboussou","CS Lougou","CS Piami","CS Segbana","CS Morou","CS Serebani","CS Sokotindji"],"Malanville-Karimama":["CS Birni Lafia","CS Bogo-Bogo","CS Karimama","CS Kompa","CS Monsey","CS Pétchinga","CS Garou","CS Garou Tedji","CS Banite","CS Goun-Goun","CS Guene","CS Madecali","CS Bodjecali","CS Malanville","HZ Malanville-Karimama","CS Molla","CS Sakawan-Tedji","CS Toumboutou"],"Kouandé-Péhunco-Kérou":["CS Birni","CS Goufanrou","CS Chabi Couma","CS Sakasson","CS Fo-Tance","CS Guilmaro","CS Kpakou Tankouga","CS Kouande","CS Makrou","HZ Kouande","CS Niarosson","CS Niékénébansou","CS Orou Kayo","CS Bagou-Bagou","CS Brignamaro","CS Bérékousou","CS Ouinra","CS Batenin","CS Firou","CS Gori","CS Kaobagou","CS Bakoussarou","CS Boukoubourou","CS Fetekou","CS Kerou","CS Ouore","CS Pikire","CS Gnemasson","CS Pehunco","CS Bana","CS Ouassa-Maro","CS Ouassa-Tobre"],"Natitingou-Boukoumbé-Toucountouna":["CS Boukombe","Cases Dipoli","CS Korontiere","CS Koussoucoingou","CS Manta","CS Natta","CS Tabota","CS Kotopounga","CS Pouya","CS Yarikou","CS Kouaba","CS Tagaye","CS Kouandata","CS Natitingou","HZ Natitingou","Forces Armees","CHD Atacora","Ecole Normale Superieur","Lycee Des Jeunes Filles","Prison Civile","CS Perporiyakou","CS Perma","CS Tchoumi-Tchoumi","CS Kouarfa","CS Kouba","CS Tampegre","CS Toucountouna"],"Tanguiéta-Cobly-Matéri":["CS Bagapodi","CS Cobly","CS Datori","CS Kountori","CS Oroukparé","CS Tapoga","CS Dassari","CS Gouande","CS Materi","CS Pingou","CS Kotari","CS Nodi","CS Tantega","CS Tchanhoun-Cossi","CS Cotiakou","CS Koronkore","CS Tora","CS N'Dahonta","CS Taîakou","CS Mamoussa","CS Tanguieta","Inf Camp Militaire","CS Tanongou","CS Tchatingou"],"Abomey-Calavi-So-Ava":["CS Abomey-Calavi","HZ Abomey-Calavi","Infirmerie UAC","CS Akassato","CS Glo-Djigbe","CS Cococodji","CS Dekoungbe","CS Godomey","CS Womey","CS Hevie","CS Kpanroun","CS Ouedo","CS Maria Gléta","CS Togba","CS Wawata","CS Zinvie","CS Ahomey Lokpo","CS Kinto Oudjra","CS Ganvie","CS Gbessou","CS Houedo-Aguekon","CS So-Ava","CS Vekky"],"Allada-Toffo-Zè":["CS Agbanou","CS Ahouannonzoun","CS Allada","CS Soyo","CS Attogon","CS Avakpa","CS Ayou","HZ Allada","CS Hinvi","CS Adjimè-Aota","CS Lissegazoun","CS Lon-Agonmey","CS Dodji Aliho","CS Sekou","CS Togoudo","CS Tokpa (Allada)","CS Ague","CS Colli","CS Coussi","CS Agon","CS Dame","CS Djanglanme","CS Houegbo","CS Kpome","CS Sey","CS Sehoue","CS Toffo","CS Adjan","CS Djigbe (Ze)","CS Dodji-Bata","CS Koudokpoe","CS Sedje-Denou","CS Ahozonnoude","CS Tangbo Djevie","CS Ze"],"Ouidah-Kpomassè-Tori-Bossito":["CS Aganmalome","CS Kougbedji","CS Agonkanme","CS Dedome","CS Dekanme","CS Kpago-Houedjro","CS Kpomasse","CS Segbeya","CS Segbohoue","CS Tokpa Dome","CS Avlekete","DI Adounko","CS Djegbadji","DI Djondji","CS Gakpe","CS Houakpe-Daho","CS Kindji","DI Ganlonon-Codji","DI Prison Civil","HZ Ouidah","CS Kpasse","CS Pahou","DI Acadjame","DI Houndjava","MI Kpovie","CS Savi","CS Avame","CS Azohoue-Aliho","CS Azohoue-Cada","Cases Houenouko","CS Tori-Bossito","MI Hekandji","CS Tori-Cada","CS Akadjame","CS Tori Gare"],"Bembèrèkè-Sinendé":["CS Bembereke","CS Garnison Bembereke","CS Kokabo","HZ Bembereke","CS Beroubouay","CS Bouanri","CS Guerankali","CS Gamia","DI Ganro","CS Guessou Sud","CS Ina","DI Goua","CS Fo-Boure","DI Fo Boko","DI Sokka","CS Sekere","CS Yarra","CMC Wari","CS Sikki","CS Guessou-Bani","CS Sinende","MI Kossia","MI Niaro"],"N'Dali-Parakou":["CS Bori","CS Gounin","CS Maregourou","CS Teme","CS Gbegourou","EpiCentre Darnon","CS Ndali","CS Ouenou (Ndali)","CS Sirarou","CS Kpebie (Pkou)","CS Madina","CS Tourou","CHD Borgou","CS Banikanni","CS Parakou","DI Prison Civile (Pkou)","Cnss","CS Ganou","CS Zongo II"],"Nikki-Kalalé-Pèrèrè":["CS Basso","CS Neganzi","CS Bouca","CS Kourel","CS Derassi","CS Djega","CS Dunkassa","CS Gbessakperou","CS Bessassi","CS Kalale","CS Kidaroukperou","CS Lou","CS Yolla","CS Zambara","CS Peonga","CS Biro","CS Sonsonre","CS Tebo","CS Gbari","CS Gnonkourokali","CS Soubo","CS Nikki","CS Sakabansi","CS Tontarou","CS Fombawi","CS Ouenou (Nikki)","CS Tchikandou","CS Serekali","CS Suya","CS Tasso","CS Boro","CS Diguidirou","CS Gninsy","CS Sandilo","CS Gommey","CS Guinagourou","CS Nassy","CS Paneguea","CS Kpebie (Pèrèrè)","CS Perere","CS Sontou"],"Tchaourou":["CS Agbassa","CS Alafiarou","CS Koko","CS Beterou","CS Kaki Koka","CS Wari Maro","CS Yebessi","CS Goro","CS Kabo","CS Kika","CS Kpari","CS Tandou","CS Sanson","CS Tchaourou","CS Kinnou Kpanou","CS Tchatchou"],"Dassa-Glazoué":["CS Betecoucou","MI Attinkpayé","CS Dassa","HZ Dassa","CS Gbaffo","MI Gnokpingnon","CS Kere","MI Igoho","CS Kpingni","MI Fita","CS Lema","MI Erokoya","MI Kpakpa Agbagoule","CS Paouignan","DI Agbogbome","MI Adjanoudoho","MI Hounkpogon","CS Soclogbo","MI Agbondjèdo","MI Miniffi","CS Tre","CS Aklampa","CS Sowiandji","CS Assante","MI Gbanlin","CS Glazoue","CS Gome","MI Haya","MI Tchatchegou","CS Kpakpaza","MI Sowe","CS Magoumi","CS Ouedeme","MI Yagbo","CS Oké okounou","CS Sokponta","CS Thio","MI Akomya","MI Béthel","MI Hoco","MI Riffo","CS Madengbé","CS Zaffé","MI Adourekonan"],"Savalou-Bantè":["CS Agoua","CS Akpassi","CS Atokolibé","CS Bante","CS Bobe","MI Djagbalo","CS Gouka","CS Koko","CS Lougba","CS Pira","MI Okouta-Ossé","CS Djalloukou","CS Doume","MI COFFE AGBALLA","CS Gobada","CS Kpataba","CS Lahotan","DI MEDETEKPO","CS Logozohe","CS Monkpa","CS Ottola","CS Ouessè (Savalou)","CS Savalou","CS Zounzonkamey","Hopital Savalou","CS Doissa","CS Lowo","CS Tchetti"],"Savè-Ouèssè":["CS Challa-Ogoi","CS Gbédé","CS Kokoro","CS Djègbé","CS Gbanlin","CS Vossa","MI Idadjo","CS Kemon","MI Akpero","CS Kilibo","MI Yaoui","CS Laminou","MI Odougba","CS Ouesse Centre","CS Ogoutèdo","CS Toui","CS Toui PK","MI Toui gare","HZ Save","CS Besse","CS Kadjogbé","MI Okpa","CS Boni","CS Kaboua","MI Alafia","MI Okounfo","CS Offe","MI Ayédjoko","MI Dani","CS Akon","CS Oke-Owo","MI Monka","CS Sakin","MI Ouoghi","CS Plateau","MI Boubou"],"Aplahoué-Djakotomey-Dogbo":["CS Aplahoue","HZ Aplahoue","CS Atomey","CS Azove","CS Dekpo","CS Lagbavey","CS Godohou","CS Houetan","MI Epi Centre Kissamey","CS Lonkly","CS Adjintimey","CS Betoumey","CS Djakotome","CS Houegamey","CS Kokohoue","CS Kpoba","CS Sokouhoue","CS Ayomi","MI Kpodaha","CS Dogbo Tota","MI Mandankanmey","CS Deve","CS Honton","MI Dadohoue","CS Lokogohoue","CS Madjre","CS Totchangni"],"Klouékanmè-Lalo-Toviklin":["CS Adjahonme","CS Ahogbeya","CS Ayahohoue","CS Djotto","DI Akime","CS Hondjin","CS Klouekanme","HZ Klouekanme","CS Lanta","MI Gbowime","CS Tchikpe","CS Adoukandji","CS Tchi-Ahodjinnako","CS Tchi-Ahomadegbe","CS Banigbe (Lalo)","CS Gnizounme","CS Hlassame","DI Sohounouhoue","CS Lalo","CS Lokogba","MI Kuivonhoue","CS Tchito","CS Tohou","CS Zalli","CS Adjido","CS Banonsi-Avedjin","CS Doko","CS Houedogli","CS Missinko","CS Tannou-Gola","CS Toviklin"],"Bassila":["CS Aledjo","CS Kaouté","CS Partago","CS Aoro","CS Bassila","CS Biguina","CS Diépani","CS Dogue","CS Frignon","CS Igbomacro","CS Kikele","CS Kprekete","HZ Bassila","CS Manigri","CS Manigri Ikanni","CS Bodi","CS Nagayile","CS Nioro","CS Penelan","CS Penessoulou","CS Salmanga","MI Dengou"],"Djougou-Ouaké-Copargo":["CS Anandana","MI Setrah","CS Copargo","CS Kpassabla","CS Yaoura","CS Gnanfouroum","CS Pabegou","CS Karhum","CS Singre","CS Djougou1","MI Founga","CS Barienou","CS Foyo","CS Gaounga","CS Toko-Toko","CS Anoum","CS Barei","CS Bellefoungou","CS Bougou","CS Djakpingou","CS Djougou2","CHD Donga","CS Djougou","CS Bari","CS Gangamou","CS Kolokonde","CS Yorossonga","CS Daringa","CS Onklou","MI Bakou","CS Dabogou","CS Partago","CS Pelebina","CS Alfa-Kpara","CS Badjoude","CS Assodè","CS Komde","CS Ouake","CS Semere 1","CS Awotobi","CS Gbaou","DI Tchalinga","MI Madjatom"],"Cotonou 1-Cotonou 4":["CHU-MEL Cotonou","CS Cotonou 1","CS Placodji","Inf. LT Coulibaly","CS Ahouansori","CS Aïdjèdo","Inf CEG Dantokpa"],"Cotonou 2-Cotonou 3":["CS Agbato","CS Ayélawadjè","CS Missessin","CS Avotrou","CHUZ SURU-LERE","CS Gankpodo","Inf CEG Suru-Léré"],"Cotonou 5":["CS Police Républicaine","CS Saint Michel","CS Sikecodji","Ceg Ste Rita (Infirmerie Scolaire)","CS Zogbo","HZ Menontin"],"Cotonou 6":["Camp Guezo(Garnison)","Ceg Notre Dame","CS Gbegamey","INF ENEAM","Cnhu","CS Akogbato","CS Cadjehoun","CS Djomehountin","CS Agla","CS Houenoussou"],"Comè-Grand-Popo-Houèyogbé-Bopa":["CS Agbodji","CS Badazouin","MI MEDESSEDJI","CS Bopa","CS Gbakpodji","CS Lobogo","CS Possotome","CS Yegodoe","CS Agatogbo","CS Kpetou","CS Akodeha","CS Come","CS Gadome","HZ Come","CS Oumako","CS Ouedeme-Peda","CS Adjaha","CS Agoue","CS Ayiguinnou","CS Hilla-Condji","CS Avlo","MI GNIHOUNTINMEY","CS Djanglanmey","CS Gbehoue","CS Grand-Popo","CS Sazue","MI Gnito","CS Dahe","CS Djibio","CS Adromey","CS Ahouloume","CS Doutou","CS Honhoue","CS Houeyogbe","CS Drè","CS Sè","CS Dave","CS Manonkpon"],"Lokossa-Athiémè":["CS Adohoun","MI Aguidahoue","CS Atchannou","CS Konouhoue","DI Akonana","CS Athieme","DI Awame","MI Agbobada","MI Koudohounhoue","MI Zounhoue","CS Dedekpoe","CS Kpinnou","CS Agame","MI 4A Agame","CS Houin","MI Dessa","CS Koudo","MI Tinou","CHD Mono","CS Lokossa","DI Ceg1 Lokossa","DI Prison Civile (Lokossa)","HZ Lokossa","CS Djondji-Zoume","CS Ouedeme-Adja","DI Dansihoue"],"Adjohoun-Bonou-Dangbo":["CS Adjohoun","CS Goutin","HZ Adjohoun","CS Akpadanou","CS Houedo","CS Awonou","CS Agué Gbagodo","CS Azowlisse","CS Gbada","CS Gbekandji 1","CS Gbekandji 2","CS Houèda","CS Deme","CS Gangban","CS Gogbo","CS Kode","DI Gbannan","CS Togbota","CS Affame","CS Agbomahan","CS Atchonsa","CS Dogba-Hê","CS Bonou","CS Assrossa","CS Dame-Wogon","CS Allankpon","CS Hounvigue","CS Dangbo","CS Dekin","CS Gbeko","CS Agonguè","CS Houedomey","CS Akpame","CS Djigbe (Hozin)","CS Hozin","CS Hetin-Sota","CS Kessounou","CS Zoungue","CS Zounta"],"Akpro-Missérété-Avrankou-Adjarra":["CS Adjarra 1","CS Adjarra 2","CS Aglogbe","CS Honvie","CS Malanhoui","CS Mededjonou","CS Tchakou","CS Akpro-Misserete","DI Prison Civile (Akpro Misserete)","CS Agondozoun","CS Gome-Sota","CS Katagon","CS Ouiya","CS Danto","CS Vakon","CS Kpanoukpade","CS Zoungbome","CS Atchoukpa","CS Avrankou","CS Djomon","CS Gbozounme","CS Gbagla Ganfan","CS Kouti","CS Ouanho","CS Sado"],"Porto-Novo-Sèmè-Kpodji-Aguégués":["CS Avagbodji","CS Bembe","CS Houédomey (Aguegues)","CS Zoungame","CS Akron","CS Agbokou","CS Attakè","CS Djegan-Daho","CHD Oueme","CS Foun-Foun","CS Oganla","CS Zebou","Lourdes Porto-Novo","Inf. ENS","Infirmerie de l'INJEPS","CS Djegan-Kpevi","CS Houinmè","CS Hounsouko","CS Dowa","CS Louho","CS Ouando","CS Tokpota","CS Agblangandan","CS Sekandji","CS Aholouyeme","CS Djregbe","CS Djeffa","CS Ekpe","CS Tchonvi","CS Seme-Kpodji","CS Krake","CS Tohoue"],"Pobè-Kétou-Adja-Ouèrè":["CS Adja Ouere","CS Gbahouete","CS Ikpinle","CS Houedame","CS Abadago","CS Masse","CS Oko-Akare","CS Ologo","CS Logou","CS Tatonnoukon","CS Adakplame","CS Ewè","CS Effeoute","CS Idigny","CS Illara","CS Illikimou","CS Ayekou","CS Kpankou","CS Ketou I","CS Ketou II","CS Odometa","CS Okpometa","CS Omou","CS Ahoyeye","CS Igana","CS Issaba","CS Onigbolo","CS Akouho","HZ Pobe","CS Towe"],"Sakété-Ifangni":["CS Akadja","CS Banigbe (Ifangni)","CS Doke","CS Daagbe","CS Djegou Djedje","CS Gbokoutou","CS Ifangni","CS Iguillanhoun","CS Ita-Soumba","CS Ko-koumolou","CS Lagbe","CS Tchaada","CS Ikpedjile","CS Igba","CS Itadjebou","CS Sakete 1","HZ Sakete","CS Sakete 2","CS Ayidjedo","CS Takon","CS Yoko"],"Bohicon-Za-Kpota-Zogbodomey":["CS Avogbana","CS Bohicon I","CS Bohicon II","CS Gnidjazoun","CS Lissezoun","CS Ouassaho","CS Passagon","CS Saclo","CS Sodohomè","CS Allahe","MI Zaxla","CS Assanlin","MI Kpolokoue","MI Zounzonme","CS Houngome","CS Kpakpame","CS Kpozoun","CS Zakpota","MI Adjinagon","CS Za-Tanta","CS Tindji","CS Akiza","CS Avlame","CS Cana","MI Zoungbo Bogon","CS Dome","CS Koussoukpa","MI Deme","CS Kpokissa","CS Massi","CS Zogbodome","CS Zoukou"],"Covè-Zagnanado-Ouinhi":["DI Hounso","CS Covè","HZ Cove","CS Lainta Cogbé","CS Naogon","CS Dasso","CS Ouinhi","CS Sagon","MI Aïzè","CS Tohoues","CS Agonlin-Houegbo","CS Baname","MI Gossoé","CS Don-Tan","CS Dovi-Dove","MI Dovi Zounnou","CS Kpedekpo","CS Zagnannado"],"Djidja-Abomey-Agbangnizoun":["CS Agbokpa","CS Detohou","CHD Zou","CS Djegbe (Abomey)","CS Hounli","MI Sehoun","CS Vidole","MI Adandokpodji","CS Zounzonme","CS Adanhondjigon","CS Adingnigon","CS Agbangnizoun","CS Kinta","CS Lissazounme","MI Sahe","MI Sinwe-Kpota","CS Sinwe-Hounto","CS Tanve","CS Kpoto","CS Agondji","CS Agouna","CS Dan","CS Djidja","MI Dohouime","CS Gobaix","CS Monsourou","CS Mougnon","HZ Djidja","CS Oumgbega","CS Outo","CS Setto"]};
+const REF_OUTBOX='snisb_ref_outbox';
+const RAP_OUTBOX='snisb_rap_outbox';
+const zoneNom=c=>{const z=TOUTES_ZONES.find(x=>x.code===c);return z?z.nom:(c||'—');};
+const ZONE_PAR_NOM=nom=>TOUTES_ZONES.find(z=>z.nom===nom)||null;
+const pct=(a,b)=>b>0?Math.round(a*1000/b)/10:null;
+const fmtPct=(a,b)=>{const p=pct(a,b);return p===null?'—':p.toLocaleString('fr-FR')+' %';};
+const fmtDH=d=>{if(!d)return'—';const x=new Date(d);return isNaN(x)?'—':x.toLocaleDateString('fr-FR')+' '+x.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
+const ROLES_PERSONNEL=['medecin','infirmier'];
+const ROLES_PILOTAGE=['admin','superviseur','statisticien'];
+
+// ── Envoi différé générique (hors ligne) ───────────────────────────────
+const _locks={};
+async function flushTable(key,table,ownerField){
+  const box=lsGet(key,[]);
+  if(!box.length||!supaClient||!navigator.onLine||_locks[key])return{left:box.length,sent:0};
+  _locks[key]=true;
+  try{
+    let sess=null;try{const{data}=await supaClient.auth.getSession();sess=data&&data.session;}catch(e){}
+    if(!sess)return{left:box.length,sent:0,nosession:true};
+    const sid=sess.user&&sess.user.id;const ok=new Set();let lastErr='';let dups=0;
+    for(const r of box){
+      if(sid&&r[ownerField]&&r[ownerField]!==sid)continue;
+      try{const{error}=await supaClient.from(table).insert(r);
+        if(!error)ok.add(r.id);
+        else if(error.code==='23505'){ok.add(r.id);if(!/pkey/.test(error.message||''))dups++;}
+        else lastErr=error.message||error.code||'';}
+      catch(e){}
+    }
+    const reste=lsGet(key,[]).filter(x=>!ok.has(x.id));
+    lsSet(key,reste);
+    return{left:reste.length,sent:ok.size-dups,dups,lastErr};
+  }finally{_locks[key]=false;}
+}
+async function flushAllOutboxes(){
+  await flushSigOutbox();
+  await flushTable(REF_OUTBOX,'references_cr','created_by');
+  await flushTable(RAP_OUTBOX,'rapports_communautaires','auteur_id');
+}
+const nbAttente=()=>lsGet(SIG_OUTBOX,[]).length+lsGet(OUTBOX_KEY,[]).length+lsGet(REF_OUTBOX,[]).length+lsGet(RAP_OUTBOX,[]).length;
+
+// ═══════════════════════════════════════
+// 1. RÉFÉRENCE ET CONTRE-RÉFÉRENCE — fiches nationales (Directives 2018)
+// ═══════════════════════════════════════
+const MOYENS_TRANSPORT=['Ambulance','Véhicule administratif','Taxi','Barque motorisée','Moto','Moyen personnel','Autre'];
+const EVOLUTIONS=['Guéri(e)','Évadé(e)','Décédé(e)','Sortie contre avis médical','Référé(e) vers un autre centre'];
+const REF_TYPES={
+  general:{nom:'Fiche standard (formations sanitaires)',couleur:'#455A64',annexe:'Annexe 2',personnel:true,
+    motifs:['Absence de médicaments','Absence de moyens de diagnostic','Absence de personnel qualifié','Pas de réponse au traitement'],soins:[]},
+  enfant:{nom:'Enfant de 0 à 59 mois',couleur:'#C62828',annexe:'Annexe 3 — fiche rouge',
+    motifs:['Enfant de moins de 2 mois malade','Est incapable de boire ou de prendre le sein','A le corps chaud ou pleure sans arrêt','Vomit tout ce qu’il mange','Est très fatigué et ne s’amuse plus','A le corps chaud et les yeux jaunes','A du sang dans les selles ou un saignement anormal','A le pli cutané qui s’efface lentement et les yeux enfoncés','A convulsé à la maison ou convulse actuellement','A le corps chaud et une raideur du cou','A les mâchoires serrées ou les yeux qui tournent au blanc','Mesure du PB dans le rouge ou œdème des 2 pieds','A une pâleur palmaire sévère','A des éruptions généralisées ou un très mauvais état général','Est inconscient ou sans énergie (léthargique)','A le corps chaud et les urines « coca-cola »','A une respiration difficile','A la respiration qui siffle ou a avalé un objet'],
+    soins:['Aucun','CTA','SRO/Zinc','Enveloppement humide','Paracétamol','Amoxicilline 500 mg','Garder au chaud sur le trajet','Sein ou SRO/Zinc sur le trajet']},
+  femme:{nom:'Femme et/ou nouveau-né',couleur:'#D81B8A',annexe:'Annexe 4 — fiche rose',
+    motifs:['Consultation prénatale 1 (1er trimestre)','Pertes de sang','Violents maux de ventre','Œdèmes des pieds','Convulsions','Vomissements intenses','Troubles de la vue / vision floue','Consultation postnatale 1 (10 premiers jours après l’accouchement)','Femme : a le corps chaud','Femme : pertes de sang et de pus','Femme : perd des urines','Femme : violents maux de tête','Femme : arrière-jambe qui fait mal','Nouveau-né : a les yeux ou la peau jaunes','Nouveau-né : a le corps chaud','Nouveau-né : refuse de téter','Nouveau-né : pleurs incessants','Nouveau-né : convulsions'],
+    soins:['Aucun','CTA','Paracétamol','Amoxicilline 500 mg']},
+  pf:{nom:'Planification familiale',couleur:'#7CB342',annexe:'Annexe 5 — fiche vert clair',
+    motifs:['Demande de la femme','Demande d’un ménage pour la PF'],soins:[]},
+  indigent:{nom:'Personne indigente',couleur:'#9E9E9E',annexe:'Annexe 6 — fiche blanche',
+    motifs:[],soins:[]},
+  tousseur:{nom:'Tousseur chronique',couleur:'#F9A825',annexe:'Annexe 7 — fiche jaune',
+    motifs:['Toux chronique sans crachats','Toux chronique avec crachats','Mauvais état général','Amaigrissement / dénutrition','Fièvre'],soins:[]}
+};
+const STATUT_REF={emise:['Émise','badge-hebdo'],recue:['Reçue','badge-primary'],contre_referee:['Contre-référée','badge-success'],non_arrivee:['Non arrivée','badge-immediate']};
+
+function structuresDeZone(code){
+  const z=TOUTES_ZONES.find(x=>x.code===code);
+  return z?(FORMATIONS_PUBLIQUES[z.nom]||[]):[];
+}
+
+function ReferenceCR({user}){
+  const personnel=ROLES_PERSONNEL.includes(user.role);
+  const pilotage=ROLES_PILOTAGE.includes(user.role);
+  const estComm=user.role==='relais'||user.role==='asc';
+  const enligne=!!(supaClient&&user.supabase_id);
+  const typesPermis=Object.keys(REF_TYPES).filter(k=>personnel||pilotage&&false||!REF_TYPES[k].personnel);
+  const peutEmettre=personnel||estComm;
+  const maintenant=()=>new Date().toISOString();
+  const vide={type_fiche:estComm?'enfant':'general',patient_nom:'',sexe:'',age:'',age_unite:'mois',village:user.village||'',accompagnant:'',contact:'',
+    indigent:false,num_indigence:'',urgent:false,motifs:[],motif_autre:'',symptomes:'',traitements:'',constantes:'',soins:[],statut_femme:'',
+    zone_destination:user.zone||'',structure_destination:'',structure_autre:'',moyen_transport:'',accompagne_qualifie:false,appel_prealable:false,
+    consentement:''};
+  const[form,setForm]=useState(vide);
+  const[items,setItems]=useState([]);
+  const[attente,setAttente]=useState(()=>lsGet(REF_OUTBOX,[]));
+  const[tab,setTab]=useState(peutEmettre?'emettre':'indicateurs');
+  const[errs,setErrs]=useState([]);const[msg,setMsg]=useState(null);const[busy,setBusy]=useState(false);const[loadErr,setLoadErr]=useState('');
+  const[contreId,setContreId]=useState(null);
+  const[cf,setCf]=useState({traite_pour:'',reference_justifiee:'',recommandations:'',evolution:'',hospitalise:'',numero_dossier:'',diag_entree:'',diag_sortie:'',concordance:'',methode_pf:'',test_positif:''});
+  const[periode,setPeriode]=useState(new Date().toISOString().slice(0,7));
+  const T=REF_TYPES[form.type_fiche];
+
+  const charger=async()=>{
+    if(!enligne)return;
+    try{
+      const{data,error}=await supaClient.from('references_cr').select('*').order('created_at',{ascending:false}).limit(500);
+      if(error){setLoadErr(/references_cr|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module de référence n’est pas installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':'Chargement impossible : '+(error.message||error.code));return;}
+      setLoadErr('');setItems(data||[]);
+    }catch(e){setLoadErr('Réseau indisponible — les fiches déjà chargées restent affichées.');}
+  };
+  const envoyerAttente=async()=>{
+    if(!lsGet(REF_OUTBOX,[]).length){setAttente([]);return;}
+    const r=await flushTable(REF_OUTBOX,'references_cr','created_by');
+    setAttente(lsGet(REF_OUTBOX,[]));if(r.sent>0)charger();
+  };
+  useEffect(()=>{charger();envoyerAttente();const t=setInterval(charger,20000);const on=()=>{envoyerAttente();};window.addEventListener('online',on);return()=>{clearInterval(t);window.removeEventListener('online',on);};},[]);
+
+  const upd=(k,v)=>setForm(Object.assign({},form,{[k]:v}));
+  const bascule=(k,v)=>{const a=form[k].slice();const i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);upd(k,a);};
+  const changerType=t=>setForm(Object.assign({},form,{type_fiche:t,motifs:[],soins:[],sexe:t==='femme'||t==='pf'?'F':form.sexe,age_unite:t==='enfant'?'mois':'ans',statut_femme:''}));
+
+  const ageMois=()=>{const a=Number(form.age);if(!Number.isFinite(a))return NaN;return form.age_unite==='mois'?a:a*12;};
+  const valider=()=>{
+    const e=[];
+    if(form.patient_nom.trim().length<2)e.push('Indiquez le nom du patient.');
+    if(!form.sexe)e.push('Indiquez le sexe.');
+    if(form.age===''||!(Number(form.age)>=0)||Number(form.age)>(form.age_unite==='mois'?1440:120))e.push('Âge invalide.');
+    if(form.type_fiche==='enfant'&&!(ageMois()<=59))e.push('La fiche rouge concerne les enfants de 0 à 59 mois.');
+    if(form.type_fiche==='femme'&&!form.statut_femme)e.push('Précisez : grossesse, accouchée récente ou nouveau-né avec sa mère.');
+    if(form.type_fiche==='indigent'&&!form.num_indigence.trim())e.push('Indiquez le numéro du certificat ou de la carte d’indigence.');
+    if(form.type_fiche!=='pf'&&form.type_fiche!=='general'&&form.motifs.length===0&&!form.motif_autre.trim())e.push('Cochez au moins un motif de référence ou précisez-le.');
+    if(form.type_fiche==='pf'&&form.motifs.length===0&&!form.motif_autre.trim())e.push('Indiquez le motif d’orientation.');
+    if(form.type_fiche==='general'&&form.motifs.length===0&&!form.motif_autre.trim())e.push('Cochez le motif de référence.');
+    if(form.type_fiche==='general'&&form.symptomes.trim().length<3)e.push('Indiquez les symptômes dominants ou le diagnostic.');
+    if(!form.zone_destination)e.push('Choisissez la zone sanitaire de destination.');
+    const dest=form.structure_destination==='__autre'?form.structure_autre.trim():form.structure_destination;
+    if(!dest)e.push('Indiquez la structure de destination.');
+    if(!form.consentement)e.push('Le consentement du patient (ou de son représentant) doit être enregistré.');
+    if(form.consentement==='urgence_vitale'&&!form.urgent)e.push('« Urgence vitale » : cochez aussi « Cas urgent ».');
+    return Array.from(new Set(e));
+  };
+  const emettre=async()=>{
+    const e=valider();setErrs(e);if(e.length||busy)return;
+    if(!user.supabase_id){setErrs(['Session absente : déconnectez-vous puis reconnectez-vous.']);return;}
+    setBusy(true);setMsg(null);
+    const dest=form.structure_destination==='__autre'?form.structure_autre.trim():form.structure_destination;
+    const jour=new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const id=uuid();
+    const row={id:id,numero:'REF-'+(user.zone||'NA')+'-'+jour+'-'+id.slice(0,4).toUpperCase(),type_fiche:form.type_fiche,created_by:user.supabase_id,
+      emetteur_nom:user.nom,emetteur_role:user.role,zone_sanitaire:user.zone||null,departement:user.dept||null,commune:user.commune||null,
+      structure_origine:user.structure_nom||null,village:form.village.trim()||null,
+      patient_nom:form.patient_nom.trim(),sexe:form.sexe,age_mois:Math.round(ageMois()),
+      accompagnant:form.accompagnant.trim()||null,contact:form.contact.trim()||null,
+      indigent:form.type_fiche==='indigent'||form.indigent,numero_indigence:form.num_indigence.trim()||null,
+      urgent:!!form.urgent,motifs:form.motifs,motif_autre:form.motif_autre.trim()||null,
+      symptomes:form.symptomes.trim()||null,traitements:form.traitements.trim()||null,constantes:form.constantes.trim()||null,
+      soins:form.soins,statut_femme:form.statut_femme||null,
+      zone_destination:form.zone_destination,structure_destination:dest,
+      moyen_transport:form.moyen_transport||null,accompagne_qualifie:!!form.accompagne_qualifie,appel_prealable:!!form.appel_prealable,
+      consentement:form.consentement,statut:'emise',date_reference:maintenant()};
+    let envoye=false;
+    if(enligne&&navigator.onLine){
+      try{
+        const{error}=await supaClient.from('references_cr').insert(row);
+        if(!error||error.code==='23505')envoye=true;
+        else{
+          const em=(error.message||'')+' '+(error.code||'');
+          if(/JWT|PGRST30|401/i.test(em)){/* session expirée : mise en attente */}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Module non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être rattaché à une zone sanitaire.']);setBusy(false);return;}
+          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
+        }
+      }catch(x){/* réseau : mise en attente */}
+    }
+    if(!envoye){const box=lsGet(REF_OUTBOX,[]);box.push(row);lsSet(REF_OUTBOX,box);setAttente(box);}
+    setForm(Object.assign({},vide,{type_fiche:form.type_fiche,zone_destination:form.zone_destination,village:form.village}));setErrs([]);setBusy(false);
+    setMsg(envoye?{t:'success',m:'Fiche '+row.numero+' émise. Remettez-la au patient (ou à son accompagnant) : la structure d’accueil la verra dans « À recevoir ».'}:{t:'warning',m:'Fiche '+row.numero+' enregistrée sur cet appareil (pas de réseau). Elle partira automatiquement au retour du réseau.'});
+    if(envoye)charger();
+  };
+
+  const surZone=r=>user.role==='admin'||ROLES_PILOTAGE.includes(user.role)||r.zone_destination===user.zone||r.zone_sanitaire===user.zone;
+  const aRecevoir=items.filter(r=>personnel&&['emise','non_arrivee'].includes(r.statut)&&(r.zone_destination===user.zone));
+  const aClore=items.filter(r=>personnel&&r.statut==='recue'&&(r.zone_destination===user.zone));
+  const mesFiches=items.filter(r=>r.created_by===user.supabase_id);
+
+  const maj=async(r,patch)=>{
+    if(!enligne||busy)return;setBusy(true);setMsg(null);
+    const{data,error}=await supaClient.from('references_cr').update(patch).eq('id',r.id).select('id');
+    setBusy(false);
+    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||error.code)});return false;}
+    if(!data||data.length===0){setMsg({t:'warning',m:'Cette fiche a déjà été traitée ou ne relève pas de votre structure.'});await charger();return false;}
+    await charger();return true;
+  };
+  const confirmerArrivee=r=>maj(r,{statut:'recue',recu_par:user.nom,recu_id:user.supabase_id,recu_at:maintenant()}).then(ok=>{if(ok)setMsg({t:'success',m:'Arrivée enregistrée pour '+r.numero+'.'});});
+  const nonArrive=r=>maj(r,{statut:'non_arrivee'}).then(ok=>{if(ok)setMsg({t:'warning',m:r.numero+' marquée « non arrivée ».'});});
+  const ouvrirContre=r=>{setContreId(r.id);setCf({traite_pour:'',reference_justifiee:'',recommandations:'',evolution:'',hospitalise:'',numero_dossier:'',diag_entree:'',diag_sortie:'',concordance:'',methode_pf:'',test_positif:''});};
+  const envoyerContre=async r=>{
+    const e=[];
+    if(cf.traite_pour.trim().length<2)e.push('Indiquez le motif de prise en charge (« traité pour »).');
+    if(!cf.reference_justifiee)e.push('Indiquez si la référence était justifiée.');
+    if(cf.recommandations.trim().length<2)e.push('Indiquez des recommandations ou conseils.');
+    if(r.type_fiche==='general'&&!cf.evolution)e.push('Indiquez l’évolution du patient.');
+    if(r.type_fiche==='general'&&!cf.hospitalise)e.push('Indiquez si le patient a été hospitalisé.');
+    if(r.type_fiche==='tousseur'&&!cf.test_positif)e.push('Indiquez le résultat du test.');
+    if(e.length){setMsg({t:'danger',m:e.join(' ')});return;}
+    const contre={traite_pour:cf.traite_pour.trim(),recommandations:cf.recommandations.trim(),hospitalise:cf.hospitalise||null,numero_dossier:cf.numero_dossier.trim()||null,
+      diag_entree:cf.diag_entree.trim()||null,diag_sortie:cf.diag_sortie.trim()||null,concordance:cf.concordance||null,methode_pf:cf.methode_pf.trim()||null,test_positif:cf.test_positif||null};
+    const ok=await maj(r,{statut:'contre_referee',reference_justifiee:cf.reference_justifiee==='oui',evolution:cf.evolution||null,contre:contre,contre_par:user.nom,contre_id:user.supabase_id,contre_at:maintenant()});
+    if(ok){setContreId(null);setMsg({t:'success',m:'Contre-référence envoyée pour '+r.numero+' : l’agent qui a référé en sera informé.'});}
+  };
+
+  const badge=s=>{const b=STATUT_REF[s]||[s,'badge-grey'];return <span className={'badge '+b[1]}>{b[0]}</span>;};
+  const carte=(r,actions)=>{const T2=REF_TYPES[r.type_fiche]||REF_TYPES.general;return <div key={r.id} className="consultation-item" style={{borderLeft:'4px solid '+T2.couleur}}>
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{r.numero} — {fmtDH(r.date_reference)}</div><div>{r.urgent&&<span className="badge badge-immediate" style={{marginRight:4}}>URGENT</span>}{badge(r.statut)}</div></div>
+    <div style={{fontWeight:600,fontSize:13,marginTop:2}}>{r.patient_nom} · {r.sexe==='F'?'F':'M'} · {r.age_mois<24?r.age_mois+' mois':Math.floor(r.age_mois/12)+' ans'} <span style={{fontWeight:400,color:'var(--text-muted)'}}>({T2.nom})</span></div>
+    <div style={{fontSize:12}}>De {r.structure_origine||zoneNom(r.zone_sanitaire)} → {r.structure_destination} ({zoneNom(r.zone_destination)})</div>
+    {(r.motifs&&r.motifs.length>0||r.motif_autre)&&<div style={{fontSize:12,margin:'2px 0'}}>Motifs : {(r.motifs||[]).concat(r.motif_autre?[r.motif_autre]:[]).join(' ; ')}</div>}
+    {r.symptomes&&<div style={{fontSize:12}}>Symptômes / diagnostic : {r.symptomes}</div>}
+    {r.statut==='contre_referee'&&r.contre&&<div style={{fontSize:12,marginTop:4,padding:'6px 8px',background:'var(--gray-100)',borderRadius:6}}><strong>Contre-référence</strong> ({r.contre_par}, {fmtDH(r.contre_at)}) : traité pour {r.contre.traite_pour} — référence {r.reference_justifiee?'justifiée':'non justifiée'}{r.evolution?' — évolution : '+r.evolution:''}. Conseils : {r.contre.recommandations}</div>}
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Émise par {r.emetteur_nom} ({r.emetteur_role==='asc'?'ASCQ':r.emetteur_role==='relais'?'relais':'agent de santé'}){r.recu_par?' • Reçue par '+r.recu_par:''}</div>
+    {actions}
+  </div>;};
+
+  // Indicateurs de l’annexe 1 des Directives 2018 calculables à partir des fiches
+  const periodeItems=items.filter(r=>surZone(r)&&(!periode||(r.date_reference||'').slice(0,7)===periode));
+  const N=periodeItems.length;
+  const recues=periodeItems.filter(r=>r.statut==='recue'||r.statut==='contre_referee').length;
+  const retro=periodeItems.filter(r=>r.statut==='contre_referee').length;
+  const deces=periodeItems.filter(r=>r.evolution==='Décédé(e)').length;
+  const amb=periodeItems.filter(r=>r.moyen_transport==='Ambulance').length;
+  const acc=periodeItems.filter(r=>r.accompagne_qualifie).length;
+  const appel=periodeItems.filter(r=>r.appel_prealable).length;
+  const justif=periodeItems.filter(r=>r.statut==='contre_referee'&&r.reference_justifiee).length;
+  const IND=[[2,'Taux de référence reçue','Malades référés et reçus / total référés',recues,N],
+    [3,'Taux de rétro-information','Cas référés ayant bénéficié d’une contre-référence / total référés',retro,N],
+    [9,'Taux de décès parmi les cas référés','Décès connus (par la contre-référence) / total référés — sous-estimé tant que les contre-références manquent',deces,N],
+    [12,'Taux d’utilisation des ambulances','Cas référés en ambulance / total référés',amb,N],
+    [13,'Taux de référés accompagnés d’un agent qualifié','Référés accompagnés / total référés',acc,N],
+    [14,'Taux de référence précédé d’un appel','Cas référés précédés d’un appel / total référés',appel,N]];
+  const exporterCSV=()=>{
+    const cols=['numero','date_reference','type_fiche','zone_sanitaire','structure_origine','zone_destination','structure_destination','urgent','moyen_transport','accompagne_qualifie','appel_prealable','statut','recu_at','reference_justifiee','evolution'];
+    const esc=v=>{const s=v==null?'':String(v);return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const csv='﻿'+[cols.join(';')].concat(periodeItems.map(r=>cols.map(c=>esc(r[c])).join(';'))).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='references_'+(periode||'toutes')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  };
+  const Msg=()=>msg?<div className={'alert alert-'+(msg.t==='danger'?'danger':msg.t==='warning'?'warning':'success')}><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>:null;
+  const zoneDestStructs=structuresDeZone(form.zone_destination);
+  const onglets=[].concat(peutEmettre?[['emettre','Nouvelle fiche']]:[]).concat(personnel?[['recevoir','À recevoir ('+aRecevoir.length+')'],['clore','Contre-référence ('+aClore.length+')']]:[]).concat([['suivi',(pilotage?'Toutes les fiches':'Mes fiches')],['indicateurs','Indicateurs']]);
+
+  return(<div>
+    <p className="page-title">🔁 Référence et contre-référence</p>
+    <p className="page-sub">Fiches nationales de référence et de contre-référence (Directives nationales 2018). Le patient reçoit la fiche ; la structure d’accueil confirme l’arrivée puis renvoie la contre-référence à l’agent qui a référé.</p>
+    {loadErr&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{loadErr}</div></div></div>}
+    <Msg/>
+    {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} fiche(s) en attente d’envoi sur cet appareil. <button className="btn btn-sm btn-outline" onClick={envoyerAttente}>Réessayer</button></div></div></div>}
+    <div className="inner-tabs">{onglets.map(([k,l])=><button key={k} className={'inner-tab'+(tab===k?' active':'')} onClick={()=>setTab(k)}>{l}</button>)}</div>
+
+    {peutEmettre&&tab==='emettre'&&<div className="card">
+      <div className="card-title">Nouvelle fiche de référence</div>
+      {errs.length>0&&<div className="alert alert-danger"><div className="alert-content">{errs.map((x,i)=><div key={i} className="alert-text">{x}</div>)}</div></div>}
+      <div className="form-group"><label className="form-label">Type de fiche *</label>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{typesPermis.map(k=><button key={k} type="button" className="btn btn-sm btn-outline" style={{borderColor:REF_TYPES[k].couleur,borderWidth:2,fontWeight:form.type_fiche===k?700:400,background:form.type_fiche===k?REF_TYPES[k].couleur+'22':'transparent'}} onClick={()=>changerType(k)}>{REF_TYPES[k].nom}</button>)}</div>
+        <div className="form-hint">{T.annexe}. Les intitulés des motifs sont ceux de la fiche officielle.</div></div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Nom et prénoms du patient *</label><input className="form-input" value={form.patient_nom} onChange={e=>upd('patient_nom',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Sexe *</label><select className="form-select" value={form.sexe} disabled={form.type_fiche==='femme'||form.type_fiche==='pf'} onChange={e=>upd('sexe',e.target.value)}><option value="">—</option><option value="F">Féminin</option><option value="M">Masculin</option></select></div>
+        <div className="form-group"><label className="form-label">Âge *</label><div style={{display:'flex',gap:4}}><input className="form-input" type="number" min="0" value={form.age} onChange={e=>upd('age',e.target.value)}/><select className="form-select" style={{maxWidth:90}} value={form.age_unite} onChange={e=>upd('age_unite',e.target.value)}><option value="mois">mois</option><option value="ans">ans</option></select></div></div>
+      </div>
+      {form.type_fiche==='femme'&&<div className="form-group"><label className="form-label">Statut *</label><select className="form-select" value={form.statut_femme} onChange={e=>upd('statut_femme',e.target.value)}><option value="">— Choisir —</option><option value="grossesse">Grossesse</option><option value="accouchee_recente">Accouchée récente</option><option value="nouveau_ne_avec_mere">Nouveau-né avec sa mère</option></select></div>}
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Village / quartier</label><input className="form-input" value={form.village} onChange={e=>upd('village',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Accompagnant / parent / tuteur</label><input className="form-input" value={form.accompagnant} onChange={e=>upd('accompagnant',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Téléphone à contacter</label><input className="form-input" value={form.contact} onChange={e=>upd('contact',e.target.value)}/></div>
+      </div>
+      {form.type_fiche==='indigent'&&<div className="form-group"><label className="form-label">N° du certificat ou de la carte d’indigence *</label><input className="form-input" value={form.num_indigence} onChange={e=>upd('num_indigence',e.target.value)}/></div>}
+      {form.type_fiche==='enfant'&&<div className="form-group"><label><input type="checkbox" checked={form.indigent} onChange={e=>upd('indigent',e.target.checked)}/> Enfant indigent</label></div>}
+      <div className="form-group"><label className="form-label">Motifs de référence *</label>
+        {T.motifs.map(m=><div key={m}><label style={{fontSize:13}}><input type="checkbox" checked={form.motifs.includes(m)} onChange={()=>bascule('motifs',m)}/> {m}</label></div>)}
+        <input className="form-input" style={{marginTop:6}} placeholder={form.type_fiche==='indigent'?'Motif, signe… (précisez) *':'Autre motif (préciser)'} value={form.motif_autre} onChange={e=>upd('motif_autre',e.target.value)}/>
+      </div>
+      {form.type_fiche==='general'&&<>
+        <div className="form-group"><label className="form-label">Symptômes dominants / diagnostic *</label><textarea className="form-textarea" value={form.symptomes} onChange={e=>upd('symptomes',e.target.value)}/></div>
+        <div className="form-row"><div className="form-group"><label className="form-label">Traitements donnés</label><input className="form-input" value={form.traitements} onChange={e=>upd('traitements',e.target.value)}/></div>
+        <div className="form-group"><label className="form-label">Constantes vitales (pouls, température, TA)</label><input className="form-input" value={form.constantes} onChange={e=>upd('constantes',e.target.value)}/></div></div></>}
+      {T.soins.length>0&&<div className="form-group"><label className="form-label">Médicaments déjà donnés / conseils pour le trajet</label>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>{T.soins.map(s=><label key={s} style={{fontSize:13}}><input type="checkbox" checked={form.soins.includes(s)} onChange={()=>bascule('soins',s)}/> {s}</label>)}</div></div>}
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Zone sanitaire de destination *</label><select className="form-select" value={form.zone_destination} onChange={e=>setForm(Object.assign({},form,{zone_destination:e.target.value,structure_destination:''}))}><option value="">— Choisir —</option>{TOUTES_ZONES.map(z=><option key={z.code} value={z.code}>{z.nom} ({z.departement.charAt(0)+z.departement.slice(1).toLowerCase()})</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Structure de destination *</label><select className="form-select" value={form.structure_destination} onChange={e=>upd('structure_destination',e.target.value)}><option value="">— Choisir —</option>{zoneDestStructs.map(s=><option key={s} value={s}>{s}</option>)}<option value="__autre">Autre structure (à saisir)</option></select>
+          {form.structure_destination==='__autre'&&<input className="form-input" style={{marginTop:4}} placeholder="Nom de la structure" value={form.structure_autre} onChange={e=>upd('structure_autre',e.target.value)}/>}
+          <div className="form-hint">Liste des formations publiques de l’annuaire statistique 2019 ; les structures privées ou plus récentes se saisissent à la main.</div></div>
+      </div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Moyen de transport</label><select className="form-select" value={form.moyen_transport} onChange={e=>upd('moyen_transport',e.target.value)}><option value="">—</option>{MOYENS_TRANSPORT.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+        <div className="form-group"><label><input type="checkbox" checked={form.urgent} onChange={e=>upd('urgent',e.target.checked)}/> Cas urgent</label><br/><label><input type="checkbox" checked={form.accompagne_qualifie} onChange={e=>upd('accompagne_qualifie',e.target.checked)}/> Accompagné par un agent qualifié</label><br/><label><input type="checkbox" checked={form.appel_prealable} onChange={e=>upd('appel_prealable',e.target.checked)}/> Centre d’accueil alerté par appel</label></div>
+      </div>
+      <div className="alert alert-info"><div className="alert-content"><div className="alert-title">Consentement (Code du numérique, art. 394)</div>
+        <div className="alert-text">Les données de santé ne peuvent être traitées qu’avec le consentement explicite de la personne (ou de son représentant), sauf sauvegarde de ses intérêts vitaux lorsqu’elle ne peut pas consentir. Informez le patient que la fiche sera lue par la structure d’accueil.</div>
+        <select className="form-select" style={{marginTop:6}} value={form.consentement} onChange={e=>upd('consentement',e.target.value)}><option value="">— Consentement * —</option><option value="explicite">Le patient (ou son représentant) a donné son consentement explicite</option><option value="urgence_vitale">Urgence vitale : le patient ne peut pas consentir</option></select></div></div>
+      <button className="btn btn-primary" disabled={busy} onClick={emettre}>{busy?'Envoi...':'📤 Émettre la fiche'}</button>
+    </div>}
+
+    {personnel&&tab==='recevoir'&&<div className="card">
+      {aRecevoir.length===0?<div className="empty-state"><div className="empty-text">Aucune fiche en attente d’arrivée</div></div>
+        :aRecevoir.map(r=>carte(r,<div style={{display:'flex',gap:6,marginTop:8}}><button className="btn btn-sm btn-primary" disabled={busy} onClick={()=>confirmerArrivee(r)}>✔ Patient arrivé</button>{r.statut==='emise'&&<button className="btn btn-sm btn-outline" disabled={busy} onClick={()=>nonArrive(r)}>Non arrivé</button>}</div>))}
+    </div>}
+
+    {personnel&&tab==='clore'&&<div className="card">
+      {aClore.length===0?<div className="empty-state"><div className="empty-text">Aucune contre-référence à envoyer</div></div>
+        :aClore.map(r=>carte(r,contreId===r.id?<div style={{marginTop:8,display:'grid',gap:6}}>
+          <input className="form-input" placeholder="Traité pour * (diagnostic de sortie ou problème retenu)" value={cf.traite_pour} onChange={e=>setCf(Object.assign({},cf,{traite_pour:e.target.value}))}/>
+          <select className="form-select" value={cf.reference_justifiee} onChange={e=>setCf(Object.assign({},cf,{reference_justifiee:e.target.value}))}><option value="">Référence justifiée ? *</option><option value="oui">Oui</option><option value="non">Non</option></select>
+          {(r.type_fiche==='general'||true)&&<select className="form-select" value={cf.evolution} onChange={e=>setCf(Object.assign({},cf,{evolution:e.target.value}))}><option value="">Évolution{r.type_fiche==='general'?' *':''}</option>{EVOLUTIONS.map(x=><option key={x} value={x}>{x}</option>)}</select>}
+          {r.type_fiche==='general'&&<><select className="form-select" value={cf.hospitalise} onChange={e=>setCf(Object.assign({},cf,{hospitalise:e.target.value}))}><option value="">Hospitalisé ? *</option><option value="oui">Oui</option><option value="non">Non</option></select>
+            <input className="form-input" placeholder="N° du dossier" value={cf.numero_dossier} onChange={e=>setCf(Object.assign({},cf,{numero_dossier:e.target.value}))}/>
+            <input className="form-input" placeholder="Diagnostic d’entrée" value={cf.diag_entree} onChange={e=>setCf(Object.assign({},cf,{diag_entree:e.target.value}))}/>
+            <input className="form-input" placeholder="Diagnostic de sortie" value={cf.diag_sortie} onChange={e=>setCf(Object.assign({},cf,{diag_sortie:e.target.value}))}/>
+            <select className="form-select" value={cf.concordance} onChange={e=>setCf(Object.assign({},cf,{concordance:e.target.value}))}><option value="">Concordance entre diagnostic de référence et de sortie</option><option value="oui">Oui</option><option value="non">Non</option></select></>}
+          {r.type_fiche==='pf'&&<input className="form-input" placeholder="Femme mise sous (méthode)" value={cf.methode_pf} onChange={e=>setCf(Object.assign({},cf,{methode_pf:e.target.value}))}/>}
+          {r.type_fiche==='tousseur'&&<select className="form-select" value={cf.test_positif} onChange={e=>setCf(Object.assign({},cf,{test_positif:e.target.value}))}><option value="">Testé(e) positif(ve) ? *</option><option value="oui">Oui</option><option value="non">Non</option></select>}
+          <textarea className="form-textarea" placeholder="Recommandations / conseils *" value={cf.recommandations} onChange={e=>setCf(Object.assign({},cf,{recommandations:e.target.value}))}/>
+          <div style={{display:'flex',gap:6}}><button className="btn btn-sm btn-primary" disabled={busy} onClick={()=>envoyerContre(r)}>📨 Envoyer la contre-référence</button><button className="btn btn-sm btn-outline" onClick={()=>setContreId(null)}>Annuler</button></div>
+        </div>:<div style={{marginTop:8}}><button className="btn btn-sm btn-primary" onClick={()=>ouvrirContre(r)}>Remplir la contre-référence</button></div>))}
+    </div>}
+
+    {tab==='suivi'&&<div className="card">
+      {(pilotage?items:mesFiches).length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucune fiche</div></div>
+        :<>{attente.map(r=>carte(Object.assign({},r,{statut:'emise'}),<div style={{marginTop:4}}><span className="badge badge-hebdo">⏳ En attente d’envoi (cet appareil)</span></div>))}
+        {(pilotage?items:mesFiches).map(r=>carte(r,null))}</>}
+    </div>}
+
+    {tab==='indicateurs'&&<div className="card">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+        <div className="card-title">Indicateurs de suivi (annexe 1 des Directives 2018)</div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}><input className="form-input" type="month" value={periode} onChange={e=>setPeriode(e.target.value)}/><button className="btn btn-outline btn-sm" disabled={N===0} onClick={exporterCSV}>⬇️ CSV</button></div>
+      </div>
+      <div className="table-wrap"><table><thead><tr><th>N°</th><th>Indicateur</th><th>Calcul</th><th>Valeur</th></tr></thead>
+        <tbody>{IND.map(([n,l,c,a,b])=><tr key={n}><td>{n}</td><td><strong>{l}</strong></td><td style={{fontSize:12}}>{c}</td><td><strong>{fmtPct(a,b)}</strong> <span style={{fontSize:11,color:'var(--text-muted)'}}>({a}/{b})</span></td></tr>)}</tbody></table></div>
+      <div className="form-hint">Fiches de la période : {N}. Référence jugée justifiée par la structure d’accueil : {fmtPct(justif,retro)} des contre-références. Les indicateurs 1, 4, 5, 6, 7, 8, 10 et 11 de l’annexe 1 demandent d’autres sources (registres de consultation, de maternité, cahier de bord de l’ambulance) et ne sont pas calculés ici. Les chiffres portent sur les fiches que vous avez le droit de voir (votre zone, ou le niveau supérieur selon votre rôle).</div>
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// 2. RAPPORTS MENSUELS COMMUNAUTAIRES (guide SNIGS 2021) + QUALITÉ DES DONNÉES (PIHI 2015)
+// ═══════════════════════════════════════
+const RAP_COM3=[
+ 'Enfants malades reçus','Enfants référés pour SGD ou SG','Enfants référés pour SGD ou SG et reçus au centre de santé','Enfants reçus pour plaintes de corps chaud',
+ 'Enfants de 0 à 5 mois reçus pour corps chaud et référés au centre de santé','Enfants de 0 à 5 mois reçus pour corps chaud, référés et reçus au centre de santé',
+ 'Enfants reçus pour plaintes de corps chaud testés au TDR','Enfants reçus pour plaintes de corps chaud testés positifs au TDR',
+ 'Enfants de 6 à 35 mois avec corps chaud et TDR positif traités avec CTA','Enfants de 36 à 59 mois avec corps chaud et TDR positif traités avec CTA',
+ 'Enfants de 6 à 35 mois reçus pour corps chaud, non testés, mais traités avec CTA','Enfants de 36 à 59 mois reçus pour corps chaud, non testés, mais traités avec CTA',
+ 'Enfants référés au CS pour TDR négatif','Enfants référés et reçus au CS pour TDR négatif','Enfants reçus pour plaintes de diarrhée',
+ 'Enfants référés pour diarrhée simple qui dure depuis 14 jours ou plus','Enfants référés et reçus au CS pour diarrhée simple qui dure depuis 14 jours ou plus',
+ 'Enfants de 2 à 5 mois traités pour diarrhée simple avec SRO/Zinc ½ comprimé par jour','Enfants de 6 à 59 mois traités pour diarrhée simple avec SRO/Zinc 1 comprimé par jour',
+ 'Enfants reçus pour plaintes de toux ou rhume','Enfants de 2 à 11 mois traités pour pneumonie avec Amoxicilline 500 mg ½ comprimé 2 fois par jour',
+ 'Enfants de 12 à 59 mois traités pour pneumonie avec Amoxicilline 500 mg 1 comprimé 2 fois par jour','Enfants traités pour « pas de pneumonie » : toux ou rhume',
+ 'Enfants référés pour plaintes de toux qui dure 30 jours ou plus','Enfants référés et reçus au CS pour plaintes de toux qui dure 30 jours ou plus',
+ 'Enfants dépistés pour tour de bras dans le rouge ou œdèmes des 2 pieds','Enfants référés pour tour de bras dans le rouge ou œdèmes des 2 pieds',
+ 'Enfants référés et reçus au CS pour tour de bras dans le rouge ou œdèmes des 2 pieds','Enfants dépistés pour PB dans le jaune (malnutrition aiguë modérée)','Enfants traités et reçus pour suivi des soins'];
+// [a, b] : la ligne a ne peut pas dépasser la ligne b (ex. « référés et reçus » ≤ « référés »)
+const COH_COM3=[[3,2],[5,4],[6,5],[8,7],[14,13],[17,16],[25,24],[27,26],[28,27]];
+const RAP_COM1=[
+ ['ENFANT',[[1,'Enfants de 0 à 5 mois vus'],[2,'Enfants de 6 mois à 5 ans vus'],[3,'Enfants de 0 à 5 ans ayant dormi la veille sous MIILD non déchirée'],[4,'Enfants de 0 à 6 mois qui reçoivent le lait maternel sans ajout d’autres aliments ou boissons'],[5,'Enfants évalués / vus pour l’état nutritionnel (vert, jaune, rouge)'],[6,'Enfants avec statut vaccinal à jour']]],
+ ['MÈRE / GARDIEN(NE) D’ENFANT',[[7,'Mères ou gardien(ne)s d’enfant de moins de 5 ans vus'],[8,'Mères / gardien(ne)s qui connaissent au moins 2 signes généraux de danger chez l’enfant']]],
+ ['AUTRES MEMBRES DU MÉNAGE',[[9,'Nouveau-nés vus'],[10,'Nouveau-nés déclarés à l’état civil'],[11,'Personnes connaissant les 4 facteurs de risque des MNT'],[12,'Nouveaux cas de MNT détectés et référés au centre de santé'],[13,'Tousseurs chroniques identifiés et référés'],[14,'Cas de maladies transmissibles détectés et référés (schistosomoses, onchocercose, filariose lymphatique, géohelminthiases, trachome, etc.)'],[15,'Cas de MPE détectés et déclarés'],[16,'Personnes malades graves (fin de vie) détectées et orientées vers le centre de soins palliatifs'],[17,'Personnes connaissant les mesures de protection contre les accidents']]],
+ ['MÉNAGE',[[18,'Total de ménages couverts par les visites à domicile (VAD)'],[19,'Ménages ayant les outils de protection (casque, phares fonctionnels, frein, pièces de rechange, etc.)'],[20,'Ménages possédant des MIILD en bon état'],[21,'Ménages disposant de latrines'],[22,'Ménages qui utilisent des latrines'],[23,'Ménages ayant un dispositif de lavage des mains'],[24,'Ménages utilisant une eau de boisson potable'],[25,'Personnes référées pour suspicion d’hépatite et reçues au centre de santé'],[26,'Personnes référées pour suspicion d’IST/VIH/sida et reçues au centre de santé']]]
+];
+const COH_COM1=[[10,9],[19,18],[20,18],[21,18],[22,18],[23,18],[24,18],[8,7]];
+const THEMES_SEG=['Paludisme','IRA','Diarrhée','Signes de danger','FHV','PF','Accidents','Zoonoses','Cycle menstruel','Abus sexuels','Vaccination','Tuberculose','CPoN','Épidémie','Utilisation des latrines','Alimentation de complément','Lavage des mains','Consommation d’eau potable','Maladies transmissibles','CPN','MNT','Soins palliatifs','IST/VIH/sida','Hépatite','Mutilations génitales','Personnes du 3ᵉ âge','Viols','AME','Sexualité adolescent','Autres'];
+const TYPES_RAP={COM1:'Prévention (VAD + séances éducatives)',COM3:'Cas pris en charge'};
+const RAP_NUM={COM1:'Rapport mensuel des activités de prévention (VAD+SEG)',COM3:'Rapport mensuel des cas pris en charge'};
+const dateLimite=(annee,mois)=>{const d=new Date(Date.UTC(annee,mois,5));return d.toISOString().slice(0,10);}; // le 5 du mois suivant (mois 1-12 → index mois = mois suivant)
+const libMois=(a,m)=>MOIS_FR[m-1]+' '+a;
+const nomRelais=r=>r.auteur_nom||'—';
+
+function RapportsCommunautaires({user}){
+  const estAuteur=user.role==='relais'||user.role==='asc';
+  const peutValider=ROLES_PERSONNEL.includes(user.role)||user.role==='superviseur'||user.role==='admin';
+  const pilotage=ROLES_PILOTAGE.includes(user.role);
+  const enligne=!!(supaClient&&user.supabase_id);
+  const auj=new Date();
+  const prec=new Date(auj.getFullYear(),auj.getMonth()-1,1);
+  const[annee,setAnnee]=useState(prec.getFullYear());const[mois,setMois]=useState(prec.getMonth()+1);
+  const[type,setType]=useState('COM3');
+  const[vals,setVals]=useState({});
+  const[village,setVillage]=useState(user.village||'');
+  const[items,setItems]=useState([]);const[attente,setAttente]=useState(()=>lsGet(RAP_OUTBOX,[]));
+  const[effectif,setEffectif]=useState(null);
+  const[tab,setTab]=useState(estAuteur?'saisie':'avalider');
+  const[errs,setErrs]=useState([]);const[msg,setMsg]=useState(null);const[busy,setBusy]=useState(false);const[loadErr,setLoadErr]=useState('');
+  const[retId,setRetId]=useState(null);const[motif,setMotif]=useState('');
+  const[corrigeId,setCorrigeId]=useState(null);
+  const[qa,setQa]=useState(prec.getFullYear());const[qm,setQm]=useState(prec.getMonth()+1);
+
+  const charger=async()=>{
+    if(!enligne)return;
+    try{
+      const{data,error}=await supaClient.from('rapports_communautaires').select('*').order('created_at',{ascending:false}).limit(1000);
+      if(error){setLoadErr(/rapports_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module de rapports n’est pas installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':'Chargement impossible : '+(error.message||error.code));return;}
+      setLoadErr('');setItems(data||[]);
+    }catch(e){setLoadErr('Réseau indisponible — les rapports déjà chargés restent affichés.');}
+    if(!estAuteur){try{const{data}=await supaClient.rpc('effectif_relais');if(Array.isArray(data))setEffectif(data);}catch(e){}}
+  };
+  const envoyerAttente=async()=>{
+    if(!lsGet(RAP_OUTBOX,[]).length){setAttente([]);return;}
+    const r=await flushTable(RAP_OUTBOX,'rapports_communautaires','auteur_id');setAttente(lsGet(RAP_OUTBOX,[]));if(r.sent>0)charger();
+    if(r.dups>0)setMsg({t:'warning',m:r.dups+' rapport(s) gardé(s) sur cet appareil existaient déjà sur le serveur (même mois, même type, même village) : ils n’ont pas été renvoyés.'});
+  };
+  useEffect(()=>{charger();envoyerAttente();const t=setInterval(charger,30000);const on=()=>{envoyerAttente();};window.addEventListener('online',on);return()=>{clearInterval(t);window.removeEventListener('online',on);};},[]);
+
+  const setV=(k,v)=>setVals(Object.assign({},vals,{[k]:v}));
+  const num=(k,sub)=>{const o=vals[k];const x=sub?(o&&o[sub]):o;const n=Number(x);return x===''||x==null||!Number.isFinite(n)?0:n;};
+  const totalCom3=i=>num('i'+i,'m')+num('i'+i,'f');
+  const valider=()=>{
+    const e=[];
+    if(!village.trim())e.push('Indiquez le village ou quartier.');
+    if(annee>auj.getFullYear()||(annee===auj.getFullYear()&&mois>auj.getMonth()+1))e.push('Le mois du rapport ne peut pas être dans le futur.');
+    let tous=true;
+    if(type==='COM3'){
+      for(let i=1;i<=RAP_COM3.length;i++){const o=vals['i'+i]||{};['m','f'].forEach(s=>{const x=o[s];if(x===''||x==null)tous=false;else if(!Number.isInteger(Number(x))||Number(x)<0)e.push('Ligne '+i+' : entiers positifs ou nuls uniquement.');});}
+      COH_COM3.forEach(([a,b])=>{if(totalCom3(a)>totalCom3(b))e.push('Ligne '+a+' ne peut pas dépasser la ligne '+b+' (« reçus » ≤ « référés »).');});
+    }else{
+      for(let i=1;i<=26;i++){const x=vals['i'+i];if(x===''||x==null)tous=false;else if(!Number.isInteger(Number(x))||Number(x)<0)e.push('Ligne '+i+' : entier positif ou nul.');}
+      COH_COM1.forEach(([a,b])=>{if(num('i'+a)>num('i'+b))e.push('Ligne '+a+' ne peut pas dépasser la ligne '+b+'.');});
+      if(num('i3')>num('i1')+num('i2'))e.push('Ligne 3 ne peut pas dépasser les lignes 1 + 2.');
+      if(num('i6')>num('i1')+num('i2'))e.push('Ligne 6 ne peut pas dépasser les lignes 1 + 2.');
+    }
+    if(!tous)e.push('Renseignez toutes les lignes (mettez 0 si aucun cas) : un champ vide n’est pas un zéro.');
+    return Array.from(new Set(e));
+  };
+  const ouvrirCorrection=r=>{setCorrigeId(r.id);setType(r.type_rapport);setAnnee(r.annee);setMois(r.mois);setVillage(r.village);setVals(r.valeurs||{});setTab('saisie');setMsg(null);};
+  const envoyer=async()=>{
+    const e=valider();setErrs(e);if(e.length||busy)return;
+    if(!user.supabase_id){setErrs(['Session absente : déconnectez-vous puis reconnectez-vous.']);return;}
+    setBusy(true);setMsg(null);
+    const row={id:uuid(),auteur_id:user.supabase_id,auteur_nom:user.nom,auteur_role:user.role,zone_sanitaire:user.zone||null,departement:user.dept||null,commune:user.commune||null,
+      arrondissement:user.arrondissement||null,aire_sanitaire:user.structure_nom||null,village:village.trim(),annee:annee,mois:mois,type_rapport:type,valeurs:vals,statut:'soumis',saisi_le:new Date().toISOString().slice(0,10)};
+    let envoye=false;
+    if(corrigeId){
+      if(!enligne||!navigator.onLine){setErrs(['Le renvoi d’un rapport retourné demande du réseau.']);setBusy(false);return;}
+      const{data,error}=await supaClient.from('rapports_communautaires').update({valeurs:vals,village:village.trim(),statut:'soumis',saisi_le:row.saisi_le}).eq('id',corrigeId).select('id');
+      setBusy(false);
+      if(error||!data||!data.length){setErrs(['Renvoi impossible : '+((error&&(error.message||error.code))||'rapport introuvable ou déjà validé')]);return;}
+      setCorrigeId(null);setVals({});setMsg({t:'success',m:'Rapport corrigé et renvoyé au chef de poste.'});charger();return;
+    }
+    if(enligne&&navigator.onLine){
+      try{
+        const{error}=await supaClient.from('rapports_communautaires').insert(row);
+        if(!error||(error.code==='23505'&&/pkey/.test(error.message||'')))envoye=true;
+        else{
+          const em=(error.message||'')+' '+(error.code||'');
+          if(/JWT|PGRST30|401/i.test(em)){/* mise en attente */}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Module non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);setBusy(false);return;}
+          else if(/uq_rapport|duplicate/i.test(em)){setErrs(['Un rapport de ce type existe déjà pour ce mois et ce village. S’il vous a été retourné, ouvrez-le depuis « Mes rapports ».']);setBusy(false);return;}
+          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
+        }
+      }catch(x){/* réseau */}
+    }
+    if(!envoye){const box=lsGet(RAP_OUTBOX,[]);box.push(row);lsSet(RAP_OUTBOX,box);setAttente(box);}
+    setVals({});setErrs([]);setBusy(false);
+    setMsg(envoye?{t:'success',m:'Rapport de '+libMois(annee,mois)+' envoyé. Le chef de poste le vérifie lors du suivi groupé (avant le 5 du mois suivant).'}:{t:'warning',m:'Rapport enregistré sur cet appareil (pas de réseau). Il partira automatiquement au retour du réseau.'});
+    if(envoye)charger();
+  };
+  const decider=async(r,statut,mot)=>{
+    if(!enligne||busy)return;
+    if(statut==='retourne'&&(mot||'').trim().length<3){setMsg({t:'danger',m:'Indiquez ce qui doit être corrigé.'});return;}
+    setBusy(true);setMsg(null);
+    const{data,error}=await supaClient.from('rapports_communautaires').update({statut:statut,valide_par:user.nom,valide_id:user.supabase_id,motif_retour:statut==='retourne'?mot.trim():null}).eq('id',r.id).eq('statut','soumis').select('id');
+    setBusy(false);
+    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||error.code)});return;}
+    if(!data||!data.length){setMsg({t:'warning',m:'Ce rapport a déjà été traité ou n’est pas dans votre zone.'});await charger();return;}
+    setRetId(null);setMotif('');
+    setMsg({t:'success',m:statut==='valide'?'Rapport validé. Le statisticien de zone peut le saisir dans DHIS2 (avant le 15).':'Rapport retourné à '+nomRelais(r)+'.'});
+    await charger();
+  };
+
+  const aValider=items.filter(r=>r.statut==='soumis'&&r.auteur_id!==user.supabase_id);
+  const mesRap=items.filter(r=>r.auteur_id===user.supabase_id);
+  const badge=s=><span className={'badge '+(s==='valide'?'badge-success':s==='retourne'?'badge-immediate':'badge-hebdo')}>{s==='valide'?'Validé':s==='retourne'?'Retourné':'À vérifier'}</span>;
+  const resume=r=>{
+    const v=r.valeurs||{};
+    if(r.type_rapport==='COM3')return 'Enfants malades reçus : '+((Number((v.i1||{}).m)||0)+(Number((v.i1||{}).f)||0))+' • référés (SGD/SG) : '+((Number((v.i2||{}).m)||0)+(Number((v.i2||{}).f)||0))+' • reçus au CS : '+((Number((v.i3||{}).m)||0)+(Number((v.i3||{}).f)||0));
+    return 'Ménages visités : '+(Number(v.i18)||0)+' • enfants 0-5 ans vus : '+((Number(v.i1)||0)+(Number(v.i2)||0))+' • tousseurs chroniques référés : '+(Number(v.i13)||0);
+  };
+  const detail=r=>{
+    const v=r.valeurs||{};
+    if(r.type_rapport==='COM3')return <table style={{fontSize:11}}><tbody>{RAP_COM3.map((l,i)=>{const o=v['i'+(i+1)]||{};return <tr key={i}><td>{i+1}</td><td>{l}</td><td>M {o.m||0}</td><td>F {o.f||0}</td></tr>;})}</tbody></table>;
+    return <table style={{fontSize:11}}><tbody>{RAP_COM1.flatMap(g=>g[1]).map(([n,l])=><tr key={n}><td>{n}</td><td>{l}</td><td>{v['i'+n]==null?0:(typeof v['i'+n]==='object'?JSON.stringify(v['i'+n]):String(v['i'+n]))}</td></tr>)}</tbody></table>;
+  };
+  const carte=(r,actions)=><div key={r.id} className="consultation-item">
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{libMois(r.annee,r.mois)} — {r.village}</div><div>{r.a_temps===true&&<span className="badge badge-success" style={{marginRight:4}}>À temps</span>}{r.a_temps===false&&<span className="badge badge-hebdo" style={{marginRight:4}}>En retard</span>}{badge(r.statut)}</div></div>
+    <div style={{fontWeight:600,fontSize:13}}>{TYPES_RAP[r.type_rapport]} <span style={{fontWeight:400,color:'var(--text-muted)'}}>({r.type_rapport})</span></div>
+    <div style={{fontSize:12}}>{resume(r)}</div>
+    <details><summary style={{fontSize:12,cursor:'pointer'}}>Voir toutes les lignes</summary>{detail(r)}</details>
+    {r.motif_retour&&<div className="alert alert-warning" style={{marginTop:4}}><div className="alert-content"><div className="alert-text">Retourné : {r.motif_retour}</div></div></div>}
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {nomRelais(r)}{r.valide_par?' • Traité par '+r.valide_par:''}</div>
+    {actions}
+  </div>;
+
+  // Qualité des données : complétude, promptitude (PIHI 2015, §8 : promptitude, complétude, exactitude)
+  const delMois=items.filter(r=>r.annee===qa&&r.mois===qm);
+  const zonesVues=Array.from(new Set(delMois.map(r=>r.zone_sanitaire).concat((effectif||[]).map(x=>x.zone)).filter(Boolean)));
+  const lignesQ=zonesVues.map(z=>{
+    const rr=delMois.filter(r=>r.zone_sanitaire===z);
+    const att=(effectif||[]).find(x=>x.zone===z);const nrel=att?Number(att.nb):null;
+    const c1=rr.filter(r=>r.type_rapport==='COM1').length,c3=rr.filter(r=>r.type_rapport==='COM3').length;
+    const aT=rr.filter(r=>r.a_temps===true).length,val=rr.filter(r=>r.statut==='valide').length,ret=rr.filter(r=>r.statut==='retourne').length;
+    return{z,nrel,c1,c3,n:rr.length,aT,val,ret};
+  }).sort((a,b)=>zoneNom(a.z).localeCompare(zoneNom(b.z)));
+  const perf={};
+  items.filter(r=>r.annee===qa&&r.mois===qm).forEach(r=>{const k=r.auteur_id;const o=perf[k]||(perf[k]={nom:r.auteur_nom,zone:r.zone_sanitaire,n:0,aT:0,val:0,ret:0,ref:0,recu:0});o.n++;if(r.a_temps)o.aT++;if(r.statut==='valide')o.val++;if(r.statut==='retourne')o.ret++;
+    if(r.type_rapport==='COM3'){const v=r.valeurs||{};const t=i=>(Number((v['i'+i]||{}).m)||0)+(Number((v['i'+i]||{}).f)||0);o.ref+=t(2);o.recu+=t(3);}});
+  const exporterCSV=()=>{
+    const val=items.filter(r=>r.statut==='valide'&&r.annee===qa&&r.mois===qm);
+    const cols=['annee','mois','zone_sanitaire','commune','arrondissement','aire_sanitaire','village','type_rapport','ligne','libelle','masculin','feminin','total','auteur_nom','valide_par'];
+    const esc=v=>{const s=v==null?'':String(v);return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const lines=[];
+    val.forEach(r=>{const v=r.valeurs||{};const base=[r.annee,r.mois,zoneNom(r.zone_sanitaire),r.commune,r.arrondissement,r.aire_sanitaire,r.village,r.type_rapport];
+      if(r.type_rapport==='COM3')RAP_COM3.forEach((l,i)=>{const o=v['i'+(i+1)]||{};const m=Number(o.m)||0,f=Number(o.f)||0;lines.push(base.concat([i+1,l,m,f,m+f,r.auteur_nom,r.valide_par]));});
+      else RAP_COM1.flatMap(g=>g[1]).forEach(([n,l])=>{const x=Number(v['i'+n])||0;lines.push(base.concat([n,l,'','',x,r.auteur_nom,r.valide_par]));});});
+    const csv='﻿'+[cols.join(';')].concat(lines.map(l=>l.map(esc).join(';'))).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='rapports_communautaires_valides_'+qa+'-'+String(qm).padStart(2,'0')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  };
+  const Msg=()=>msg?<div className={'alert alert-'+(msg.t==='danger'?'danger':msg.t==='warning'?'warning':'success')}><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>:null;
+  const anneeOpts=[auj.getFullYear(),auj.getFullYear()-1];
+  const lim=dateLimite(annee,mois);
+
+  const onglets=estAuteur?[['saisie',corrigeId?'Corriger un rapport':'Nouveau rapport'],['liste','Mes rapports ('+mesRap.length+')']]
+    :[['avalider','À vérifier ('+aValider.length+')'],['qualite','Qualité des données']];
+
+  return(<div>
+    <p className="page-title">📋 Rapports communautaires mensuels</p>
+    <p className="page-sub">{estAuteur?'Rapports mensuels du relais (modèles du guide SNIGS). Remis au chef de poste lors du suivi groupé, avant le 5 du mois suivant.':'Vérification des rapports des relais, puis suivi de leur complétude et de leur promptitude. Circuit : relais → chef de poste (avant le 5) → zone sanitaire (saisie DHIS2 avant le 15) → direction départementale (avant le 20).'}</p>
+    {loadErr&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{loadErr}</div></div></div>}
+    <Msg/>
+    {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} rapport(s) en attente d’envoi sur cet appareil. <button className="btn btn-sm btn-outline" onClick={envoyerAttente}>Réessayer</button></div></div></div>}
+    <div className="inner-tabs">{onglets.map(([k,l])=><button key={k} className={'inner-tab'+(tab===k?' active':'')} onClick={()=>setTab(k)}>{l}</button>)}</div>
+
+    {estAuteur&&tab==='saisie'&&<div className="card">
+      <div className="card-title">{RAP_NUM[type]}</div>
+      {errs.length>0&&<div className="alert alert-danger"><div className="alert-content">{errs.map((x,i)=><div key={i} className="alert-text">{x}</div>)}</div></div>}
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Rapport *</label><select className="form-select" disabled={!!corrigeId} value={type} onChange={e=>{setType(e.target.value);setVals({});}}><option value="COM3">Cas pris en charge</option><option value="COM1">Prévention (VAD + séances éducatives)</option></select></div>
+        <div className="form-group"><label className="form-label">Mois *</label><select className="form-select" disabled={!!corrigeId} value={mois} onChange={e=>setMois(Number(e.target.value))}>{MOIS_FR.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Année *</label><select className="form-select" disabled={!!corrigeId} value={annee} onChange={e=>setAnnee(Number(e.target.value))}>{anneeOpts.map(a=><option key={a} value={a}>{a}</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Village / quartier *</label><input className="form-input" value={village} onChange={e=>setVillage(e.target.value)}/></div>
+      </div>
+      <div className="form-hint" style={{marginBottom:8}}>Date limite de remise : <strong>{fmtDate(lim)}</strong>. Zone : {zoneNom(user.zone)}{user.commune?' · Commune : '+user.commune:''}. Renseignez chaque ligne ; mettez 0 s’il n’y a aucun cas.</div>
+      {type==='COM3'&&<div className="table-wrap"><table><thead><tr><th>N°</th><th>Thème du rapport</th><th>M</th><th>F</th><th>Total</th></tr></thead>
+        <tbody>{RAP_COM3.map((l,i)=>{const k='i'+(i+1);const o=vals[k]||{};return <tr key={k}><td>{i+1}</td><td style={{fontSize:12}}>{l}</td>
+          <td><input className="form-input" style={{width:70}} type="number" min="0" aria-label={'Ligne '+(i+1)+' garçons'} value={o.m==null?'':o.m} onChange={e=>setV(k,Object.assign({},o,{m:e.target.value}))}/></td>
+          <td><input className="form-input" style={{width:70}} type="number" min="0" aria-label={'Ligne '+(i+1)+' filles'} value={o.f==null?'':o.f} onChange={e=>setV(k,Object.assign({},o,{f:e.target.value}))}/></td>
+          <td><strong>{totalCom3(i+1)}</strong></td></tr>;})}</tbody></table></div>}
+      {type==='COM1'&&<>{RAP_COM1.map(([g,lignes])=><div key={g}><div style={{fontWeight:700,fontSize:12,margin:'10px 0 4px'}}>{g}</div>
+        {lignes.map(([n,l])=><div key={n} style={{display:'flex',gap:8,alignItems:'center',marginBottom:4}}><div style={{width:24,fontSize:12}}>{n}</div><div style={{flex:1,fontSize:12}}>{l}</div>
+          <input className="form-input" style={{width:80}} type="number" min="0" aria-label={'Ligne '+n} value={vals['i'+n]==null?'':vals['i'+n]} onChange={e=>setV('i'+n,e.target.value)}/></div>)}</div>)}
+        <details style={{marginTop:10}}><summary style={{fontSize:13,cursor:'pointer'}}>Personnes sensibilisées par thème (séances éducatives de groupe)</summary>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:6,marginTop:6}}>{THEMES_SEG.map(t=><label key={t} style={{fontSize:12}}>{t}<input className="form-input" type="number" min="0" value={vals['t_'+t]==null?'':vals['t_'+t]} onChange={e=>setV('t_'+t,e.target.value)}/></label>)}</div>
+          <label style={{fontSize:12,display:'block',marginTop:6}}>Total de personnes sensibilisées<input className="form-input" type="number" min="0" value={vals.total_sensibilises==null?'':vals.total_sensibilises} onChange={e=>setV('total_sensibilises',e.target.value)}/></label></details></>}
+      <div style={{marginTop:12}}><button className="btn btn-primary" disabled={busy} onClick={envoyer}>{busy?'Envoi...':(corrigeId?'📤 Renvoyer le rapport corrigé':'📤 Envoyer le rapport')}</button></div>
+      <div className="form-hint">Signé à votre nom ({user.nom}), horodaté. Aucun nom de personne : seulement des nombres.</div>
+    </div>}
+
+    {estAuteur&&tab==='liste'&&<div className="card">
+      {mesRap.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun rapport</div></div>
+        :<>{attente.map(r=>carte(Object.assign({},r,{statut:'soumis'}),<div style={{marginTop:4}}><span className="badge badge-hebdo">⏳ En attente d’envoi (cet appareil)</span></div>))}
+        {mesRap.map(r=>carte(r,r.statut==='retourne'?<div style={{marginTop:6}}><button className="btn btn-sm btn-primary" onClick={()=>ouvrirCorrection(r)}>Corriger et renvoyer</button></div>:null))}</>}
+    </div>}
+
+    {!estAuteur&&tab==='avalider'&&<div className="card">
+      {aValider.length===0?<div className="empty-state"><div className="empty-text">Aucun rapport à vérifier</div></div>
+        :aValider.map(r=>carte(r,peutValider?<div style={{marginTop:8}}>
+          {retId===r.id?<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            <input className="form-input" style={{flex:1,minWidth:180}} placeholder="Ce qui doit être corrigé *" value={motif} onChange={e=>setMotif(e.target.value)}/>
+            <button className="btn btn-sm btn-danger" disabled={busy} onClick={()=>decider(r,'retourne',motif)}>Retourner</button>
+            <button className="btn btn-sm btn-outline" onClick={()=>{setRetId(null);setMotif('');}}>Annuler</button>
+          </div>:<div style={{display:'flex',gap:6}}>
+            <button className="btn btn-sm btn-primary" disabled={busy} onClick={()=>decider(r,'valide','')}>✔ Valider</button>
+            <button className="btn btn-sm btn-outline" onClick={()=>{setRetId(r.id);setMotif('');}}>Retourner…</button>
+          </div>}</div>:null))}
+      <div className="form-hint" style={{marginTop:8}}>Valider = vous avez comparé le rapport aux registres du relais lors du suivi groupé (PIHI 2015 : le chef de poste valide la qualité et la complétude des données de chaque relais).</div>
+    </div>}
+
+    {!estAuteur&&tab==='qualite'&&<div className="card">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+        <div className="card-title">Qualité des données — {libMois(qa,qm)}</div>
+        <div style={{display:'flex',gap:6}}><select className="form-select" value={qm} onChange={e=>setQm(Number(e.target.value))}>{MOIS_FR.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
+          <select className="form-select" value={qa} onChange={e=>setQa(Number(e.target.value))}>{anneeOpts.map(a=><option key={a} value={a}>{a}</option>)}</select>
+          <button className="btn btn-outline btn-sm" onClick={exporterCSV}>⬇️ Rapports validés (CSV)</button></div>
+      </div>
+      {lignesQ.length===0?<div className="empty-state"><div className="empty-text">Aucun rapport pour ce mois</div></div>
+        :<div className="table-wrap"><table><thead><tr><th>Zone sanitaire</th><th>Relais inscrits</th><th>COM1 reçus</th><th>COM3 reçus</th><th>Complétude COM1</th><th>Complétude COM3</th><th>Promptitude</th><th>Validés</th><th>Retournés</th></tr></thead>
+          <tbody>{lignesQ.map(l=><tr key={l.z}><td><strong>{zoneNom(l.z)}</strong></td><td>{l.nrel==null?'—':l.nrel}</td><td>{l.c1}</td><td>{l.c3}</td><td>{l.nrel==null?'—':fmtPct(l.c1,l.nrel)}</td><td>{l.nrel==null?'—':fmtPct(l.c3,l.nrel)}</td><td>{fmtPct(l.aT,l.n)}</td><td>{fmtPct(l.val,l.n)}</td><td>{l.ret}</td></tr>)}</tbody></table></div>}
+      <div className="form-hint"><strong>Complétude</strong> = rapports reçus / rapports attendus (un par relais inscrit, par type de rapport). <strong>Promptitude</strong> = rapports remis avant le 5 du mois suivant / rapports reçus. <strong>Exactitude</strong> : voir « Retournés » et la cohérence contrôlée à la saisie (ex. « référés et reçus » ≤ « référés »). Définitions : Directives PIHI communautaire 2015.</div>
+      {Object.keys(perf).length>0&&<><div className="card-title" style={{marginTop:14}}>Performance des relais — {libMois(qa,qm)}</div>
+        <div className="table-wrap"><table><thead><tr><th>Relais / ASCQ</th><th>Zone</th><th>Rapports</th><th>À temps</th><th>Validés</th><th>Retournés</th><th>Enfants référés (SGD/SG) arrivés au CS</th></tr></thead>
+          <tbody>{Object.values(perf).map((p,i)=><tr key={i}><td>{p.nom}</td><td style={{fontSize:12}}>{zoneNom(p.zone)}</td><td>{p.n}</td><td>{p.aT}</td><td>{p.val}</td><td>{p.ret}</td><td>{p.ref>0?fmtPct(p.recu,p.ref)+' ('+p.recu+'/'+p.ref+')':'—'}</td></tr>)}</tbody></table></div>
+        <div className="form-hint">Indicateur d’appui à la supervision (Directives PIHI 2015 : le chef de poste calcule des indicateurs de performance des relais). Ne l’utilisez pas seul pour une décision de motivation : la règle de paiement relève de la commune.</div></>}
+    </div>}
+  </div>);
+}
+
+// ═══════════════════════════════════════
+// 3. CONFORMITÉ — Code du numérique (loi 2017-20), Livre V
+// ═══════════════════════════════════════
+const TRAITEMENTS=[
+ {nom:'Dossier patient et consultations',finalite:'Soins, continuité des soins, statistiques de santé publique',donnees:'Identité, antécédents, diagnostic, traitement (données de santé)',personnes:'Patients',destinataires:'Personnel de santé de la zone ; statistiques agrégées vers la zone, le département et le niveau central',acces:'Cloisonné par zone sanitaire et par rôle (RLS)'},
+ {nom:'Carnet de santé numérique',finalite:'Suivi de la croissance, des vaccinations et de la grossesse',donnees:'Mesures, vaccins, consultations prénatales (données de santé)',personnes:'Enfants, femmes enceintes',destinataires:'Personnel de santé ; le patient lui-même (lecture)',acces:'Patient : son carnet seulement ; personnel : sa zone'},
+ {nom:'Téléconsultation',finalite:'Avis médical à distance',donnees:'Motif, réponse du médecin, gravité',personnes:'Patients',destinataires:'Médecin de la zone',acces:'Demandeur et médecin de la zone'},
+ {nom:'Signalements communautaires',finalite:'Alerte précoce et surveillance à base communautaire',donnees:'Nombres de cas par village (pas de noms de personnes)',personnes:'Communautés (données agrégées)',destinataires:'Chef de poste, zone, département, niveau central',acces:'Auteur ; personnel de la zone ; pilotage'},
+ {nom:'Rapports communautaires mensuels',finalite:'Remontée SNIGS du niveau communautaire (guide SNIGS)',donnees:'Nombres agrégés par village et par sexe',personnes:'Communautés (données agrégées)',destinataires:'Chef de poste, zone (DHIS2), département, central',acces:'Auteur ; personnel de la zone ; pilotage'},
+ {nom:'Référence et contre-référence',finalite:'Orientation du patient et retour d’information entre structures (Directives 2018)',donnees:'Identité, motif, signes, traitements donnés, évolution (données de santé)',personnes:'Patients référés',destinataires:'Structure émettrice et structure d’accueil',acces:'Émetteur ; personnel de la zone d’origine et de la zone de destination ; pilotage'}
+];
+const MESURES=[
+ ['Cloisonnement par zone et par rôle côté base (RLS Supabase)','fait'],['Comptes nominatifs ; mot de passe à changer à la première connexion','fait'],
+ ['Journal des modifications (audit) sur les tables sensibles','fait'],['Chiffrement des échanges (HTTPS/TLS)','fait'],
+ ['Consentement explicite enregistré sur chaque fiche de référence (art. 394)','fait'],
+ ['Désignation d’un délégué à la protection des données (art. 430 : organisme public)','à faire'],['Déclaration préalable à l’APDP ou inscription au registre (art. 405)','à faire'],
+ ['Avis de l’APDP sur la base légale (art. 394) et la durée de conservation','à faire'],['Authentification à deux facteurs pour les comptes de pilotage','à faire'],
+ ['Chiffrement des champs d’identité côté application','à faire'],['Politique de conservation et d’effacement des données','à faire'],['Contrat avec l’hébergeur (sous-traitant) et lieu d’hébergement à confirmer (art. 391 : transfert)','à faire']
+];
+
+function Conformite({user}){
+  const admin=user.role==='admin';
+  const[tab,setTab]=useState('registre');
+  const[inc,setInc]=useState([]);const[err,setErr]=useState('');const[msg,setMsg]=useState(null);const[busy,setBusy]=useState(false);
+  const enligne=!!(supaClient&&user.supabase_id);
+  const vide={date_detection:new Date().toISOString().slice(0,10),nature:'',categories:'',nb_personnes:'',mesures:'',notif_apdp_le:'',notif_personnes_le:''};
+  const[f,setF]=useState(vide);
+  const charger=async()=>{
+    if(!enligne||!admin)return;
+    try{const{data,error}=await supaClient.from('incidents_securite').select('*').order('date_detection',{ascending:false}).limit(200);
+      if(error){setErr(/incidents_securite|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Registre non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':(error.message||error.code));return;}
+      setErr('');setInc(data||[]);}catch(e){setErr('Réseau indisponible.');}
+  };
+  useEffect(()=>{charger();},[]);
+  const enregistrer=async()=>{
+    const e=[];
+    if(f.nature.trim().length<10)e.push('Décrivez la nature de la rupture de sécurité (10 caractères minimum).');
+    if(!f.categories.trim())e.push('Indiquez les catégories de données concernées.');
+    if(f.nb_personnes===''||!(Number(f.nb_personnes)>=0))e.push('Indiquez le nombre approximatif de personnes concernées.');
+    if(f.mesures.trim().length<5)e.push('Indiquez les mesures prises ou proposées.');
+    if(f.date_detection>new Date().toISOString().slice(0,10))e.push('La date de détection ne peut pas être dans le futur.');
+    if(e.length){setMsg({t:'danger',m:e.join(' ')});return;}
+    setBusy(true);setMsg(null);
+    const row={id:uuid(),date_detection:f.date_detection,nature:f.nature.trim(),categories:f.categories.trim(),nb_personnes:Number(f.nb_personnes),mesures:f.mesures.trim(),notif_apdp_le:f.notif_apdp_le||null,notif_personnes_le:f.notif_personnes_le||null,cree_par:user.supabase_id,cree_par_nom:user.nom};
+    const{error}=await supaClient.from('incidents_securite').insert(row);
+    setBusy(false);
+    if(error){setMsg({t:'danger',m:'Enregistrement impossible : '+(error.message||error.code)});return;}
+    setF(vide);setMsg({t:'success',m:'Incident enregistré. N’oubliez pas la notification sans délai à l’APDP et aux personnes concernées (art. 427).'});charger();
+  };
+  const exporterRegistre=()=>{
+    const cols=['Traitement','Finalité','Données','Personnes concernées','Destinataires','Accès'];
+    const esc=v=>{const s=String(v);return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const csv='﻿'+[cols.join(';')].concat(TRAITEMENTS.map(t=>[t.nom,t.finalite,t.donnees,t.personnes,t.destinataires,t.acces].map(esc).join(';'))).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='registre_des_traitements.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  };
+  const tabs=[['registre','Registre des traitements'],['mesures','Mesures de sécurité'],['textes','Ce que dit la loi']].concat(admin?[['incidents','Incidents de sécurité ('+inc.length+')']]:[]);
+  return(<div>
+    <p className="page-title">🛡️ Protection des données personnelles</p>
+    <p className="page-sub">Les données de santé sont des données sensibles. Cet écran documente les traitements de l’application et les obligations du Code du numérique (loi n° 2017-20, Livre V). Il prépare la déclaration à l’APDP ; il ne la remplace pas.</p>
+    <div className="inner-tabs">{tabs.map(([k,l])=><button key={k} className={'inner-tab'+(tab===k?' active':'')} onClick={()=>setTab(k)}>{l}</button>)}</div>
+
+    {tab==='registre'&&<div className="card">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div className="card-title">Registre des traitements (art. 405 et 435)</div><button className="btn btn-outline btn-sm" onClick={exporterRegistre}>⬇️ CSV</button></div>
+      <div className="table-wrap"><table><thead><tr><th>Traitement</th><th>Finalité</th><th>Données</th><th>Destinataires</th><th>Accès</th></tr></thead>
+        <tbody>{TRAITEMENTS.map(t=><tr key={t.nom}><td><strong>{t.nom}</strong></td><td style={{fontSize:12}}>{t.finalite}</td><td style={{fontSize:12}}>{t.donnees}</td><td style={{fontSize:12}}>{t.destinataires}</td><td style={{fontSize:12}}>{t.acces}</td></tr>)}</tbody></table></div>
+      <div className="alert alert-warning" style={{marginTop:10}}><div className="alert-content"><div className="alert-title">À compléter avec le ministère et l’APDP</div><div className="alert-text">Responsable du traitement, délégué à la protection des données, durée de conservation, base légale retenue parmi les exceptions de l’art. 394 (soins, santé publique, mission d’intérêt public, consentement) et lieu d’hébergement. Ces éléments ne sont pas inventés ici : ils relèvent de décisions du Ministère de la Santé et de l’avis de l’APDP.</div></div></div>
+    </div>}
+
+    {tab==='mesures'&&<div className="card"><div className="card-title">Mesures de sécurité (art. 426)</div>
+      <div className="table-wrap"><table><thead><tr><th>Mesure</th><th>État</th></tr></thead><tbody>{MESURES.map(([m,s])=><tr key={m}><td style={{fontSize:13}}>{m}</td><td><span className={'badge '+(s==='fait'?'badge-success':'badge-hebdo')}>{s==='fait'?'En place':'À faire'}</span></td></tr>)}</tbody></table></div>
+      <div className="form-hint">L’état « en place » décrit ce que l’application met en œuvre. Il ne dit rien de la sécurité de l’hébergement ni de l’organisation du ministère.</div></div>}
+
+    {tab==='textes'&&<div className="card"><div className="card-title">Articles à connaître (Code du numérique, version APDP)</div>
+      <ul style={{fontSize:13,lineHeight:1.7,paddingLeft:18}}>
+        <li><strong>Art. 394</strong> — le traitement des données de santé est interdit par principe. Exceptions utiles ici : consentement explicite de la personne (retirable à tout moment) ; sauvegarde des intérêts vitaux lorsque la personne ne peut pas consentir ; mission d’intérêt public ou autorité publique ; médecine préventive et soins ; statistique publique.</li>
+        <li><strong>Art. 405</strong> — les traitements de données personnelles font l’objet d’une déclaration préalable à l’APDP, ou d’une inscription dans un registre tenu par la personne désignée par le responsable du traitement.</li>
+        <li><strong>Art. 426</strong> — mesures techniques et organisationnelles appropriées : pseudonymisation et chiffrement, confidentialité, intégrité, disponibilité, résilience, rétablissement après incident, tests réguliers.</li>
+        <li><strong>Art. 427</strong> — toute rupture de sécurité est notifiée sans délai à l’APDP et à la personne concernée ; le sous-traitant avertit sans délai le responsable du traitement.</li>
+        <li><strong>Art. 430</strong> — un délégué à la protection des données est désigné lorsque le traitement est effectué par une autorité publique ou un organisme public.</li>
+      </ul>
+      <div className="form-hint">Sources : texte intégral du Code du numérique (version APDP) et présentation de l’APDP aux acteurs de la santé (Cotonou, 4 octobre 2022). Ce n’est pas un avis juridique.</div></div>}
+
+    {admin&&tab==='incidents'&&<div className="card"><div className="card-title">Registre des incidents de sécurité (art. 427)</div>
+      {err&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
+      {msg&&<div className={'alert alert-'+(msg.t==='danger'?'danger':'success')}><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>}
+      <div className="form-row"><div className="form-group"><label className="form-label">Date de détection *</label><input className="form-input" type="date" value={f.date_detection} onChange={e=>setF(Object.assign({},f,{date_detection:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Personnes concernées (approx.) *</label><input className="form-input" type="number" min="0" value={f.nb_personnes} onChange={e=>setF(Object.assign({},f,{nb_personnes:e.target.value}))}/></div></div>
+      <div className="form-group"><label className="form-label">Nature de la rupture *</label><textarea className="form-textarea" value={f.nature} onChange={e=>setF(Object.assign({},f,{nature:e.target.value}))}/></div>
+      <div className="form-group"><label className="form-label">Catégories de données concernées *</label><input className="form-input" value={f.categories} onChange={e=>setF(Object.assign({},f,{categories:e.target.value}))}/></div>
+      <div className="form-group"><label className="form-label">Mesures prises ou proposées *</label><textarea className="form-textarea" value={f.mesures} onChange={e=>setF(Object.assign({},f,{mesures:e.target.value}))}/></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Notifié à l’APDP le</label><input className="form-input" type="date" value={f.notif_apdp_le} onChange={e=>setF(Object.assign({},f,{notif_apdp_le:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Personnes informées le</label><input className="form-input" type="date" value={f.notif_personnes_le} onChange={e=>setF(Object.assign({},f,{notif_personnes_le:e.target.value}))}/></div></div>
+      <button className="btn btn-primary" disabled={busy} onClick={enregistrer}>Enregistrer l’incident</button>
+      <div style={{marginTop:12}}>{inc.length===0?<div className="empty-state"><div className="empty-text">Aucun incident enregistré</div></div>
+        :inc.map(x=><div key={x.id} className="consultation-item"><div className="consultation-date">{fmtDate(x.date_detection)} — {x.nb_personnes} personne(s)</div><div style={{fontSize:13}}>{x.nature}</div><div style={{fontSize:12}}>Données : {x.categories} • Mesures : {x.mesures}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>APDP : {x.notif_apdp_le?fmtDate(x.notif_apdp_le):'non notifié'} • Personnes : {x.notif_personnes_le?fmtDate(x.notif_personnes_le):'non informées'} • Saisi par {x.cree_par_nom}</div></div>)}</div>
     </div>}
   </div>);
 }
@@ -2483,8 +3314,45 @@ function App(){
     if(outcome==='accepted')setPwaPrompt(null);
   };
 
-  const login=c=>{setUser(c);setTab(c.role==='patient'?'carnet':(c.role==='relais'||c.role==='asc')?'communautaire':c.role==='superviseur'?'dashboard':'dashboard');};
-  const logout=()=>{setUser(null);setTab('dashboard');if(supaClient)supaClient.auth.signOut();};
+  const tabAccueil=c=>c.role==='patient'?'carnet':'espace';
+  const login=c=>{
+    setUser(c);setTab(tabAccueil(c));
+    if(ROLES_HORS_LIGNE.includes(c.role)&&!c.must_change)lsSet(LAST_USER_KEY,c);
+  };
+  const reprendre=c=>{setUser(Object.assign({},c,{hors_ligne:true}));setTab(tabAccueil(c));};
+  const logout=()=>{
+    const nb=lsGet(SIG_OUTBOX,[]).length+lsGet(OUTBOX_KEY,[]).length;
+    if(nb>0&&!window.confirm(nb+' élément(s) saisi(s) ne sont pas encore envoyés (pas de réseau). Si vous vous déconnectez, ils ne partiront qu’à la prochaine connexion avec ce compte. Se déconnecter quand même ?'))return;
+    try{localStorage.removeItem(LAST_USER_KEY);}catch(e){}
+    setUser(null);setTab('espace');if(supaClient)supaClient.auth.signOut();
+  };
+
+  // Retour automatique dans l’application (rôles de terrain) : session déjà ouverte, ou hors réseau
+  useEffect(()=>{
+    if(!ready||user)return;
+    const c=lsGet(LAST_USER_KEY,null);
+    if(!c||!ROLES_HORS_LIGNE.includes(c.role))return;
+    let annule=false;
+    (async()=>{
+      let sid=null;
+      try{if(supaClient){const{data}=await supaClient.auth.getSession();sid=data&&data.session&&data.session.user&&data.session.user.id;}}catch(e){}
+      if(annule)return;
+      if(sid&&sid===c.supabase_id){setUser(c);setTab(tabAccueil(c));}
+      else if(!navigator.onLine){reprendre(c);}
+    })();
+    return()=>{annule=true;};
+  },[ready]);
+
+  // Envoi automatique des signalements en attente + compteur d’éléments non envoyés
+  useEffect(()=>{
+    if(!user)return;
+    const maj=()=>setSyncPending(nbAttente());
+    maj();
+    const t=setInterval(async()=>{ if(navigator.onLine)await flushAllOutboxes(); maj(); },15000);
+    const on=async()=>{await flushAllOutboxes();maj();};
+    window.addEventListener('online',on);
+    return()=>{clearInterval(t);window.removeEventListener('online',on);};
+  },[user]);
 
   const alerts=consultations.filter(c=>matchMaladie(c.diagnostic)?.notif==='immédiate').length;
 
@@ -2497,12 +3365,13 @@ function App(){
     </div>
   );
 
-  if(!user)return <Login onLogin={login}/>;
+  if(!user)return <Login onLogin={login} onResume={reprendre}/>;
   if(user.must_change)return <ChangePassword user={user} onDone={()=>setUser(u=>Object.assign({},u,{must_change:false}))} onLogout={logout}/>;
 
   const renderTab=()=>{
     const props={user,patients,setPatients,consultations,setConsultations,rappels,setRappels,db};
     switch(tab){
+      case 'espace':return<EspaceNiveau user={user} consultations={consultations} go={setTab}/>;
       case 'dashboard':return<Dashboard user={user} patients={patients} consultations={consultations}/>;
       case 'patients':return<Patients {...props}/>;
       case 'consultations':return<Consultations {...props}/>;
@@ -2516,6 +3385,9 @@ function App(){
       case 'formation':return<Formation user={user}/>;
       case 'admin':return<Admin user={user} patients={patients} consultations={consultations}/>;
       case 'communautaire':return<SanteCommunautaire user={user}/>;
+      case 'references':return<ReferenceCR user={user}/>;
+      case 'rapports':return<RapportsCommunautaires user={user}/>;
+      case 'conformite':return<Conformite user={user}/>;
       case 'pyramide':return<PyramideSanitaire user={user}/>;
       case 'carnet_sante':return<CarnetStaff user={user} patients={patients} consultations={consultations}/>;
       case 'carnet':case 'sante':return<Carnet user={user} consultations={consultations} patients={patients}/>;
@@ -2540,7 +3412,7 @@ function App(){
       </div>
       {!online&&(
         <div className="offline-banner">
-          📵 Mode hors-ligne — Données sauvegardées localement (IndexedDB) — Synchronisation Supabase automatique au retour de connexion
+          📵 Hors connexion — ce que vous saisissez reste sur l’appareil et part automatiquement au retour du réseau
         </div>
       )}
     </div>
@@ -2647,14 +3519,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 );
 </script>
 <script>
-// Nettoyage : désinstalle tout Service Worker installé par une version
-// précédente (source du blocage sur l'ancien contenu en cache). L'app
-// fonctionne pleinement sans lui — le stockage hors-ligne passe par
-// IndexedDB, indépendant du Service Worker.
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){ r.unregister(); });
-  }).catch(function(){});
+// Service Worker : met l'application en cache pour qu'elle s'ouvre sans réseau.
+// Pages : toujours le réseau d'abord (pas de blocage sur une ancienne version) ; cache seulement en secours.
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){ try{reg.update();}catch(e){} }).catch(function(){});
+  });
 }
 </script>
 </body>

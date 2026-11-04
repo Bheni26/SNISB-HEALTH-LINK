@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0F8B4C">
-  <title>SNISB Health Link — Bénin</title>
+  <title>SNISB Health Link, République du Bénin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..500,0..1,0" rel="stylesheet">
@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ============================================================
-       SNISB — DESIGN SYSTEM INSTITUTIONNEL
+       SNISB. DESIGN SYSTEM INSTITUTIONNEL
        Inspiré GOV.UK / GovTech Singapore / e-Estonia / DHIS2 / OMS
        ============================================================ */
     :root{
@@ -56,10 +56,6 @@
     .login-logo h1{font-size:22px;font-weight:600;color:var(--gray-900);letter-spacing:-0.01em;}
     .login-logo p{font-size:13px;color:var(--text-muted);margin-top:4px;}
     .login-version{display:inline-block;background:var(--primary-light);color:var(--primary-dark);font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;margin-top:8px;letter-spacing:0.02em;}
-    .demo-accounts{background:var(--gray-50);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:20px;text-align:left;}
-    .demo-accounts p{font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
-    .demo-btn{display:inline-flex;align-items:center;gap:4px;background:white;border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-size:12px;margin:2px;cursor:pointer;transition:border-color 0.15s;color:var(--text);}
-    .demo-btn:hover{border-color:var(--primary);color:var(--primary-dark);}
     /* FORMS */
     .form-group{margin-bottom:16px;text-align:left;}
     .form-label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:6px;}
@@ -171,6 +167,14 @@
     .inner-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
     .inner-tab{padding:7px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;background:white;color:var(--text-muted);transition:all 0.15s;}
     .inner-tab.active{background:var(--gray-900);color:white;border-color:var(--gray-900);}
+
+    .header-republique{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85;margin-top:2px;}
+    .lang-switch{display:inline-flex;gap:4px;}
+    .lang-btn{border:1px solid var(--border);border-radius:6px;background:white;color:var(--text);font-size:11px;font-weight:600;padding:4px 8px;cursor:pointer;}
+    .lang-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
+    .lang-compact .lang-btn{background:rgba(255,255,255,.12);color:inherit;border-color:rgba(255,255,255,.35);}
+    .lang-compact .lang-btn.active{background:white;color:var(--primary-dark);}
+    .alert-icon:empty,.empty-icon:empty,.logo-icon:empty{display:none;}
     .role-chip{padding:2px 9px;border-radius:4px;font-size:11px;font-weight:600;}
     .role-admin{background:#FFF4E0;color:#8A5D00;}.role-medecin{background:#E8F1FB;color:#1565C0;}
     .role-infirmier{background:#EAF6EC;color:#2E7D32;}.role-statisticien{background:#F1EBFA;color:#6A3FA0;}.role-patient{background:#FFEEE3;color:#B5540C;}
@@ -238,7 +242,7 @@ let supaClient=null;
 try{
   const sb=window.supabase||window.supabaseJs;
   if(sb&&sb.createClient){supaClient=sb.createClient(SB_URL,SB_KEY);console.log('Supabase OK');}
-}catch(e){console.log('Supabase mode local:',e.message);}
+}catch(e){console.log('Mode local:',e.message);}
 
 // ═══════════════════════════════════════
 // CONSTANTES
@@ -292,20 +296,12 @@ const MALADIES_SIMR=[
   {code:'Z00',nom:'Consultation de routine',keys:['examen général','bilan','routine'],notif:'mensuelle'}
 ];
 
-const COMPTES_DEMO=[
-  {username:'admin',role:'admin',nom:'Administrateur'},
-  {username:'medecin',role:'medecin',nom:'Médecin'},
-  {username:'infirmier',role:'infirmier',nom:'Infirmier / Sage-femme'},
-  {username:'statisticien',role:'statisticien',nom:'Statisticien'},
-  {username:'patient',role:'patient',nom:'Patient'}
-];
-
 const ROLES={
   admin:{label:'Administrateur système (niveau central)',niveau:'central',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','formation','conformite','admin']},
   superviseur:{label:'Superviseur (département)',niveau:'intermediaire',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','ia','formation']},
   medecin:{label:'Médecin',niveau:'peripherique',onglets:['espace','dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rapports','references','rappels','export','epidemio','carte','pyramide','ia','formation']},
   infirmier:{label:'Infirmier / Sage-femme',niveau:'peripherique',onglets:['espace','dashboard','patients','consultations','teleconsultation','dossiers','carnet_sante','communautaire','rapports','references','rappels','pyramide','ia','formation']},
-  statisticien:{label:'Statisticien SNIS',niveau:'central',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','conformite','ia','formation']},
+  statisticien:{label:'Statisticien',niveau:'central',onglets:['espace','dashboard','communautaire','rapports','references','export','epidemio','carte','pyramide','conformite','ia','formation']},
   asc:{label:'Agent de santé communautaire qualifié',niveau:'communautaire',onglets:['espace','communautaire','rapports','references','pyramide','formation']},
   relais:{label:'Relais communautaire',niveau:'communautaire',onglets:['espace','communautaire','rapports','references','pyramide','formation']},
   patient:{label:'Patient',onglets:['carnet','teleconsultation','rappels','ia']}
@@ -322,8 +318,8 @@ const MODULES_FORMATION=[
 // UTILITAIRES
 // ═══════════════════════════════════════
 const uuid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
-const fmtDate=d=>{if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});};
-const fmtDT=d=>{if(!d)return'—';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+const fmtDate=d=>{if(!d)return'n/d';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});};
+const fmtDT=d=>{if(!d)return'n/d';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
 const genISUB=(npi,zone)=>{const y=new Date().getFullYear();const n=(npi||'').replace(/\D/g,'');if(n.length>=6)return 'BEN-'+zone+'-'+y+'-'+n.slice(-6).padStart(6,'0');return 'BEN-'+zone+'-'+y+'-T'+Date.now().toString().slice(-6);};
 const normAccents=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const matchMaladie=diagnosticText=>{
@@ -402,18 +398,18 @@ async function callCreateAccount(payload){
     if(!token)return{error:'Session absente : reconnectez-vous.'};
     const resp=await fetch(EDGE_FUNCTIONS_URL+'/create-account',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
     let j={};try{j=await resp.json();}catch(e){}
-    if(!resp.ok)return{error:j.error||('Erreur '+resp.status+' — fonction create-account non déployée ?'),status:resp.status};
+    if(!resp.ok)return{error:j.error||('Erreur '+resp.status+', fonction create-account non déployée ?'),status:resp.status};
     return{data:j};
-  }catch(e){return{error:'Réseau indisponible : '+e.message};}
+  }catch(e){return{error:userErr(e)};}
 }
 
 function CredentialsCard({acces,onClose}){
   const[copie,setCopie]=useState(false);
-  const texte='SNISB Health Link — '+(typeof location!=='undefined'?location.origin:'')+'\nIdentifiant : '+acces.username+'\nMot de passe temporaire : '+acces.password+(acces.email?'\nE-mail de connexion possible : '+acces.email:'');
+  const texte='SNISB Health Link : '+(typeof location!=='undefined'?location.origin:'')+'\nIdentifiant : '+acces.username+'\nMot de passe temporaire : '+acces.password+(acces.email?'\nE-mail de connexion possible : '+acces.email:'');
   const copier=()=>{try{navigator.clipboard.writeText(texte).then(()=>setCopie(true));}catch(e){}};
   const imprimer=()=>{const w=window.open('','_blank','width=480,height=520');if(!w)return;w.document.write('<pre style="font:16px/1.7 sans-serif;white-space:pre-wrap;padding:24px"><b>'+(acces.nom||'Accès SNISB')+'</b>\n\n'+texte.replace(/</g,'&lt;')+'\n\nÀ changer à la première connexion. Ne partagez pas ce mot de passe.</pre>');w.document.close();w.print();};
   return(<div className="card" style={{borderLeft:'4px solid var(--success)'}}>
-    <div className="card-title">🔑 {acces.reset?'Mot de passe réinitialisé':'Accès créé'}{acces.nom?' — '+acces.nom:''}</div>
+    <div className="card-title">🔑 {acces.reset?'Mot de passe réinitialisé':'Accès créé'}{acces.nom?'. '+acces.nom:''}</div>
     <div className="alert alert-warning"><div className="alert-content"><div className="alert-text">Ce mot de passe n’est affiché <strong>qu’une seule fois</strong>. Remettez-le à la personne : il lui sera demandé de le changer à la première connexion.</div></div></div>
     <div style={{fontSize:15,lineHeight:2}}>
       <div>Identifiant : <code style={{fontSize:16,fontWeight:700}}>{acces.username}</code></div>
@@ -423,7 +419,7 @@ function CredentialsCard({acces,onClose}){
     <div style={{display:'flex',gap:8,marginTop:12}}>
       <button className="btn btn-primary btn-sm" onClick={copier}>{copie?'✅ Copié':'📋 Copier'}</button>
       <button className="btn btn-outline btn-sm" onClick={imprimer}>🖨️ Imprimer</button>
-      <button className="btn btn-outline btn-sm" onClick={onClose}>J’ai remis l’accès — fermer</button>
+      <button className="btn btn-outline btn-sm" onClick={onClose}>J’ai remis l’accès, fermer</button>
     </div>
   </div>);
 }
@@ -437,7 +433,7 @@ function ChangePassword({user,onDone,onLogout}){
     setLd(true);setErr('');
     try{
       const{error}=await supaClient.auth.updateUser({password:a,data:{must_change:false}});
-      if(error){setErr(error.message);setLd(false);return;}
+      if(error){setErr(userErr(error));setLd(false);return;}
       onDone();
     }catch(e){setErr('Erreur réseau.');}
     setLd(false);
@@ -452,7 +448,64 @@ function ChangePassword({user,onDone,onLogout}){
   </div></div>);
 }
 
+
+// ═══════════════════════════════════════
+// LANGUES : français (référence), anglais, yoruba. Les autres langues nationales s'ajoutent dans I18N.
+// Toute chaîne absente d'un dictionnaire s'affiche en français.
+// ═══════════════════════════════════════
+const LANGS=[{code:'fr',nom:'Français'},{code:'en',nom:'English'},{code:'yo',nom:'Yorùbá'}];
+const I18N={
+  en:{
+    'République du Bénin':'Republic of Benin','Système National Intelligent de Santé du Bénin':'Benin National Intelligent Health System','Ministère de la Santé':'Ministry of Health',
+    'Identifiant ou e-mail':'Username or e-mail','Mot de passe':'Password','Se connecter':'Sign in','Connexion en cours':'Signing in',
+    'Reprendre hors connexion':'Resume offline','Identifiant ou mot de passe incorrect.':'Incorrect username or password.',
+    'En ligne':'Online','Hors ligne':'Offline','Synchronisé':'Synchronised','en attente':'pending','Déconnexion':'Sign out',
+    'Tableau de bord':'Dashboard','Patients':'Patients','Consultations':'Consultations','Téléconsultation':'Teleconsultation','Dossiers':'Records','Rappels':'Reminders',
+    'Export DHIS2':'DHIS2 export','Épidémiologie':'Epidemiology','Carte':'Map','IA Clinique':'Clinical AI','Formation':'Training','Administration':'Administration',
+    'Mon Carnet':'My health book','Carnet de santé':'Health book','Santé communautaire':'Community health','Pyramide sanitaire':'Health pyramid',
+    'Référence / contre-référence':'Referral and counter-referral','Rapports communautaires':'Community reports','Protection des données':'Data protection',
+    'Ma Santé':'My health','Assistant santé':'Health assistant','Langue':'Language'
+  },
+  yo:{
+    'République du Bénin':'Orílẹ̀-èdè Olómìnira Benin','Système National Intelligent de Santé du Bénin':'Ètò Orílẹ̀-èdè Ọlọ́gbọ́n fún Ìlera ní Benin','Ministère de la Santé':'Ilé-iṣẹ́ Ìlera',
+    'Identifiant ou e-mail':'Orúkọ olùlò tàbí ímeèlì','Mot de passe':'Ọ̀rọ̀ aṣínà','Se connecter':'Wọlé','Connexion en cours':'Ó ń wọlé',
+    'Reprendre hors connexion':'Tẹ̀síwájú láìsí íńtánẹ́ẹ̀tì','Identifiant ou mot de passe incorrect.':'Orúkọ olùlò tàbí ọ̀rọ̀ aṣínà kò tọ́.',
+    'En ligne':'Lórí íńtánẹ́ẹ̀tì','Hors ligne':'Láìsí íńtánẹ́ẹ̀tì','Synchronisé':'Ti múṣiṣẹ́pọ̀','en attente':'ń dúró','Déconnexion':'Jáde',
+    'Tableau de bord':'Pátákó àkópọ̀','Patients':'Àwọn aláìsàn','Consultations':'Ìgbìmọ̀ràn ìlera','Téléconsultation':'Ìgbìmọ̀ràn ìlera lórí ẹ̀rọ','Dossiers':'Àwọn àkọsílẹ̀','Rappels':'Àwọn ìrántí',
+    'Export DHIS2':'Fi DHIS2 ránṣẹ́','Épidémiologie':'Ìtànkálẹ̀ àrùn','Carte':'Àwòrán ilẹ̀','IA Clinique':'Olùrànlọ́wọ́ AI','Formation':'Ìkẹ́kọ̀ọ́','Administration':'Ìṣàkóso',
+    'Mon Carnet':'Ìwé ìlera mi','Carnet de santé':'Ìwé ìlera','Santé communautaire':'Ìlera àdúgbò','Pyramide sanitaire':'Ìgbékalẹ̀ ètò ìlera',
+    'Référence / contre-référence':'Ìfiránṣẹ́ aláìsàn àti ìdáhùn','Rapports communautaires':'Ìròyìn àdúgbò','Protection des données':'Ààbò àlàyé',
+    'Ma Santé':'Ìlera mi','Assistant santé':'Olùrànlọ́wọ́ ìlera','Langue':'Èdè'
+  }
+};
+let CUR_LANG='fr';
+try{const l=localStorage.getItem('snisb_lang');if(l&&LANGS.some(x=>x.code===l))CUR_LANG=l;}catch(e){}
+const LANG_SUBS=[];
+const tr=s=>{const d=I18N[CUR_LANG];return(d&&d[s])||s;};
+const setLang=c=>{if(!LANGS.some(x=>x.code===c))return;CUR_LANG=c;try{localStorage.setItem('snisb_lang',c);}catch(e){}try{document.documentElement.lang=c;}catch(e){}LANG_SUBS.slice().forEach(f=>f());};
+const useLangTick=()=>{const[,f]=useState(0);useEffect(()=>{const g=()=>f(x=>x+1);LANG_SUBS.push(g);return()=>{const i=LANG_SUBS.indexOf(g);if(i>=0)LANG_SUBS.splice(i,1);};},[]);};
+function LangSwitch({compact}){
+  useLangTick();
+  const ABR={fr:'FR',en:'EN',yo:'YO'};
+  return(<div className={'lang-switch'+(compact?' lang-compact':'')} role="group" aria-label={tr('Langue')}>
+    {LANGS.map(l=><button key={l.code} type="button" className={'lang-btn'+(CUR_LANG===l.code?' active':'')} title={l.nom} aria-pressed={CUR_LANG===l.code} onClick={()=>setLang(l.code)}>{ABR[l.code]||l.code.toUpperCase()}</button>)}
+  </div>);
+}
+
+// Messages d'erreur destinés aux utilisateurs : jamais de détail technique à l'écran (le détail va dans la console)
+const userErr=e=>{
+  try{console.warn('SNISB',e);}catch(x){}
+  const m=((e&&e.message)||(typeof e==='string'?e:'')||'')+' '+((e&&e.code)||'');
+  if(/row-level|42501|permission denied/i.test(m))return'Action non autorisée pour votre profil.';
+  if(/failed to fetch|network|réseau|offline|load failed/i.test(m))return'Connexion indisponible. Réessayez dès que le réseau est revenu.';
+  if(/42P01|PGRST205|schema cache|does not exist/i.test(m))return'Ce service n’est pas encore activé. Contactez l’administrateur du système.';
+  if(/23505|duplicate/i.test(m))return'Cet enregistrement existe déjà.';
+  if(/jwt|token|session/i.test(m))return'Session expirée. Reconnectez-vous.';
+  return'Opération impossible pour le moment. Réessayez ou contactez l’administrateur du système.';
+};
+
 function Login({onLogin,onResume}){
+  useLangTick();
   const reprise=(()=>{const c=lsGet(LAST_USER_KEY,null);return c&&ROLES_HORS_LIGNE.includes(c.role)?c:null;})();
   const[u,setU]=useState('');const[p,setP]=useState('');const[err,setErr]=useState('');const[ld,setLd]=useState(false);
   const go=async()=>{
@@ -464,9 +517,9 @@ function Login({onLogin,onResume}){
       let loginEmail=ident+'@snibs.bj';
       if(ident.indexOf('@')>0){try{const r=await supaClient.rpc('login_email',{ident:ident});loginEmail=(r&&r.data)||ident;}catch(e){loginEmail=ident;}}
       const{data,error}=await supaClient.auth.signInWithPassword({email:loginEmail,password:p});
-      if(error||!data?.user){setErr('Identifiant ou mot de passe incorrect.');setLd(false);return;}
+      if(error||!data?.user){setErr(tr('Identifiant ou mot de passe incorrect.'));setLd(false);return;}
       const{data:profile,error:profErr}=await supaClient.from('profiles').select('role,nom,zone,departement,isub,username,niveau,structure_type,structure_nom,commune,arrondissement,village').eq('id',data.user.id).single();
-      if(profErr||!profile){setErr('Compte authentifié mais profil introuvable — contactez un administrateur.');setLd(false);return;}
+      if(profErr||!profile){setErr('Compte authentifié mais profil introuvable, contactez un administrateur.');setLd(false);return;}
       onLogin({username:(profile.username||u),must_change:!!(data.user.user_metadata&&data.user.user_metadata.must_change),supabase_id:data.user.id,role:profile.role,nom:profile.nom,zone:profile.zone,dept:profile.departement,isub:profile.isub,niveau:profile.niveau,structure_type:profile.structure_type,structure_nom:profile.structure_nom,commune:profile.commune,arrondissement:profile.arrondissement,village:profile.village});
     }catch(e){setErr('Erreur de connexion. Vérifiez votre réseau et réessayez.');}
     setLd(false);
@@ -474,53 +527,50 @@ function Login({onLogin,onResume}){
   return(<div className="login-page"><div className="login-card">
     <div className="login-flag"><div className="flag-v"/><div className="flag-right"><div className="flag-j"/><div className="flag-r"/></div></div>
     <div className="login-logo">
-      <div className="logo-icon">🏥</div>
+      <div className="logo-icon"><span className="material-symbols-rounded" style={{fontSize:34}}>health_and_safety</span></div>
       <h1>SNISB Health Link</h1>
-      <p>Système National Intelligent de Santé du Bénin</p>
-      <span className="login-version">République du Bénin — Ministère de la Santé</span>
-    </div>
-    <div className="demo-accounts"><p>RÔLES DU SYSTÈME :</p>
-      {COMPTES_DEMO.map(c=><span key={c.username} className="demo-btn" onClick={()=>setU(c.username)}>
-        {c.role==='admin'?'👑':c.role==='medecin'?'👨‍⚕️':c.role==='infirmier'?'👩‍⚕️':c.role==='statisticien'?'📊':'👤'} {c.username}
-      </span>)}
-      <div className="form-hint" style={{marginTop:6}}>Cliquer remplit l'identifiant — le mot de passe reste celui défini pour ce compte dans Supabase.</div>
+      <span className="login-version">{tr('République du Bénin')}</span>
+      <p>{tr('Système National Intelligent de Santé du Bénin')}</p>
     </div>
     {err&&<div className="alert alert-danger" style={{marginBottom:12}}><span className="alert-icon">⚠️</span><div className="alert-content"><div className="alert-text">{err}</div></div></div>}
-    <div className="form-group"><label className="form-label">Identifiant ou e-mail</label>
-      <input className="form-input" type="text" placeholder="Identifiant ou adresse e-mail" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
+    <div className="form-group"><label className="form-label">{tr('Identifiant ou e-mail')}</label>
+      <input className="form-input" type="text" placeholder="" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
     </div>
-    <div className="form-group"><label className="form-label">Mot de passe</label>
-      <input className="form-input" type="password" placeholder="Votre mot de passe" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
+    <div className="form-group"><label className="form-label">{tr('Mot de passe')}</label>
+      <input className="form-input" type="password" placeholder="" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&go()}/>
     </div>
-    <button className="btn btn-primary btn-full" onClick={go} disabled={ld||!u||!p}>{ld?'⏳ Connexion...':'🔐 Se connecter'}</button>
-    {reprise&&<button className="btn btn-outline btn-full" style={{marginTop:10}} onClick={()=>onResume(reprise)}>📵 Reprendre hors connexion — {reprise.nom}</button>}
-    <p style={{textAlign:'center',marginTop:16,fontSize:11,color:'var(--text-muted)'}}>
-      République du Bénin • Ministère de la Santé<br/>
-      Porteur : KOUPHIN Bhéni | TSPS<br/>
-      <span style={{color:'var(--primary)',fontWeight:600}}>🔒 Auth Supabase • 📱 PWA • 🤖 IA • 🗺️ Carte</span>
+    <button className="btn btn-primary btn-full" onClick={go} disabled={ld||!u||!p}>{ld?tr('Connexion en cours'):tr('Se connecter')}</button>
+    {reprise&&<button className="btn btn-outline btn-full" style={{marginTop:10}} onClick={()=>onResume(reprise)}>{tr('Reprendre hors connexion')} : {reprise.nom}</button>}
+    <div style={{display:'flex',justifyContent:'center',marginTop:14}}><LangSwitch/></div>
+    <p style={{textAlign:'center',marginTop:12,fontSize:11,color:'var(--text-muted)'}}>
+      {tr('Ministère de la Santé')}<br/>Projet porté par KOUPHIN Bhéni, TSPS
     </p>
   </div></div>);
 }
 
+const libelleRole=u=>{
+  if(u.role==='statisticien'){const st=u.structure_type||'';return /Bureau de coordination/.test(st)?'Statisticien, bureau de zone sanitaire':/Direction départementale|CHD/.test(st)?'Statisticien, direction départementale de la santé':'Statisticien, niveau central';}
+  return ROLES[u.role]?.label||u.role;
+};
 function Header({user,online,onLogout,syncPending}){
   return(<header className="header"><div className="header-inner">
     <div className="header-brand">
       <div className="header-flag"><div className="hf1"/><div className="hf-right"><div className="hf2"/><div className="hf3"/></div></div>
-      <div className="header-title"><h1>🏥 SNISB Health Link</h1><p>Système National Intelligent de Santé du Bénin</p></div>
+      <div className="header-title"><h1>SNISB Health Link<span className="header-republique">{tr('République du Bénin')}</span></h1><p>{tr('Système National Intelligent de Santé du Bénin')}</p></div>
     </div>
     <div className="header-user">
-      <div className={`status-badge ${online?'status-online':'status-offline'}`}><div className="status-dot"/>{online?'En ligne':'Hors-ligne'}</div>
-      {syncPending>0&&<div className="sync-indicator sync-pending">⏳ {syncPending} en attente</div>}
-      {syncPending===0&&online&&<div className="sync-indicator sync-ok">✅ Synchronisé</div>}
+      <div className={`status-badge ${online?'status-online':'status-offline'}`}><div className="status-dot"/>{online?tr('En ligne'):tr('Hors ligne')}</div>
+      {syncPending>0&&<div className="sync-indicator sync-pending">{syncPending} {tr('en attente')}</div>}
+      {syncPending===0&&online&&<div className="sync-indicator sync-ok">{tr('Synchronisé')}</div>}
       <div style={{textAlign:'right',display:'none'}} className="header-user-info">
         <div className="header-user-name">{user.nom}</div>
         <div className="header-user-role">{ROLES[user.role]?.label}</div>
       </div>
       <div style={{textAlign:'right'}}>
         <div className="header-user-name">{user.nom}</div>
-        <div className="header-user-role" style={{fontSize:11,opacity:0.75}}>{ROLES[user.role]?.label}{user.structure_nom?' · '+user.structure_nom:''}{user.village?' · '+user.village:''}</div>
+        <div className="header-user-role" style={{fontSize:11,opacity:0.75}}>{libelleRole(user)}{user.structure_nom?' · '+user.structure_nom:''}{user.village?' · '+user.village:''}</div>
       </div>
-      <button className="btn-icon" onClick={onLogout} title="Déconnexion">🚪</button>
+      <LangSwitch compact/><button className="btn-icon" onClick={onLogout} title={tr('Déconnexion')} aria-label={tr('Déconnexion')}><span className="material-symbols-rounded">logout</span></button>
     </div>
   </div></header>);
 }
@@ -537,7 +587,7 @@ function Nav({user,active,onChange,alerts}){
   return(<aside className="sidebar">
     {(ROLES[user.role]?.onglets||[]).map(t=><button key={t} className={`sidebar-tab ${active===t?'active':''}`} onClick={()=>onChange(t)}>
       <span className="material-symbols-rounded">{tabs[t]?.i}</span>
-      <span>{(user.role==='patient'&&t==='ia')?'Assistant santé':(tabs[t]?.l||t)}</span>
+      <span>{tr((user.role==='patient'&&t==='ia')?'Assistant santé':(tabs[t]?.l||t))}</span>
       {t==='dashboard'&&alerts>0&&<span className="sidebar-badge">{alerts}</span>}
     </button>)}
   </aside>);
@@ -559,8 +609,8 @@ function Dashboard({user,patients,consultations}){
   },[consultations]);
   return(<div>
     <p className="page-title">📊 Tableau de bord</p>
-    <p className="page-sub">Bienvenue, {user.nom} — {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
-    {alerts>0&&<div className="alert alert-danger" style={{marginBottom:16}}><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">{alerts} maladie(s) à notification immédiate détectée(s)</div><div className="alert-text">Action requise sous 24h — Contacter la DDS et le niveau central SNISB</div></div></div>}
+    <p className="page-sub">Bienvenue, {user.nom}. {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+    {alerts>0&&<div className="alert alert-danger" style={{marginBottom:16}}><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">{alerts} maladie(s) à notification immédiate détectée(s)</div><div className="alert-text">Action requise sous 24h. Contacter la DDS et le niveau central SNISB</div></div></div>}
     <div className="grid-4" style={{marginBottom:20}}>
       {[{v:patients.length,l:'Patients enregistrés',i:'👤',c:'green'},{v:consultations.length,l:'Consultations totales',i:'🩺',c:'blue'},{v:alerts,l:'Alertes immédiates',i:'🚨',c:'red'},{v:`${avgQ}/100`,l:'Score qualité moyen',i:'⭐',c:'purple'}].map((s,i)=>
         <div key={i} className={`stat-card ${s.c}`}><div className="stat-icon">{s.i}</div><div className="stat-number" style={{color:s.c==='red'&&s.v>0?'var(--danger)':s.c==='purple'&&avgQ>=70?'var(--success)':undefined}}>{s.v}</div><div className="stat-label">{s.l}</div></div>
@@ -568,7 +618,7 @@ function Dashboard({user,patients,consultations}){
     </div>
     <div className="grid-2" style={{marginBottom:16}}>
       <div className="card"><div className="card-title">📈 Consultations (7 jours)</div><div className="chart-container"><canvas ref={r1}/></div></div>
-      <div className="card"><div className="card-title">🦠 Répartition pathologies — Bénin</div><div className="chart-container"><canvas ref={r2}/></div></div>
+      <div className="card"><div className="card-title">🦠 Répartition des pathologies (Bénin)</div><div className="chart-container"><canvas ref={r2}/></div></div>
     </div>
   </div>);
 }
@@ -598,7 +648,7 @@ function Patients({user,patients,setPatients,db}){
       const r=await callCreateAccount({action:'patient',isub:isub,email:form.email||null,zone:p.zone_sanitaire,departement:p.departement});
       setWait('');
       if(r.data)setAcces(Object.assign({nom:p.nom+' '+(p.prenoms||'')},r.data));
-      else setAccMsg({t:'warning',m:'Patient enregistré, mais accès non créé : '+r.error+' — vous pourrez le créer depuis la liste (colonne Accès).'});
+      else setAccMsg({t:'warning',m:'Patient enregistré, mais accès non créé : '+r.error+', vous pourrez le créer depuis la liste (colonne Accès).'});
     }
     setOk(true);setShowDbl(false);
     setTimeout(()=>{setOk(false);setForm({nom:'',prenoms:'',date_naissance:'',sexe:'',telephone:'',departement:'',zone_sanitaire:'',npi:'',allergies:'',maladies_chroniques:'',email:''});setSc(null);setIsub('');},2000);
@@ -628,7 +678,7 @@ function Patients({user,patients,setPatients,db}){
       <input className="form-input" placeholder="🔍 Nom, ISUB ou NPI..." value={srch} onChange={e=>setSrch(e.target.value)} style={{marginBottom:12}}/>
       <div className="table-wrap"><table>
         <thead><tr><th>ISUB</th><th>Nom complet</th><th>Naissance</th><th>Sexe</th><th>Zone</th><th>Source</th><th>Score</th><th>Accès</th></tr></thead>
-        <tbody>{filtered.length===0?<tr><td colSpan={8}><div className="empty-state"><div className="empty-icon">👤</div><div className="empty-text">Aucun patient — Cliquez sur "Nouveau"</div></div></td></tr>
+        <tbody>{filtered.length===0?<tr><td colSpan={8}><div className="empty-state"><div className="empty-icon">👤</div><div className="empty-text">Aucun patient. Cliquez sur "Nouveau"</div></div></td></tr>
           :filtered.map(p=><tr key={p.isub}>
             <td><code style={{fontSize:11}}>{p.isub}</code></td>
             <td><strong>{p.nom} {p.prenoms}</strong></td>
@@ -653,25 +703,25 @@ function Patients({user,patients,setPatients,db}){
         <div className="form-row">
           <div className="form-group"><label className="form-label">Date naissance *</label><input className="form-input" type="date" value={form.date_naissance} onChange={e=>upd('date_naissance',e.target.value)}/></div>
           <div className="form-group"><label className="form-label">Sexe *</label>
-            <select className="form-select" value={form.sexe} onChange={e=>upd('sexe',e.target.value)}><option value="">— Choisir —</option><option value="M">♂️ Masculin</option><option value="F">♀️ Féminin</option></select>
+            <select className="form-select" value={form.sexe} onChange={e=>upd('sexe',e.target.value)}><option value="">Choisir</option><option value="M">♂️ Masculin</option><option value="F">♀️ Féminin</option></select>
           </div>
         </div>
         <div className="form-group"><label className="form-label">Téléphone</label><input className="form-input" placeholder="+229 ..." value={form.telephone} onChange={e=>upd('telephone',e.target.value)}/></div>
         <div className="form-group"><label className="form-label">E-mail (facultatif)</label><input className="form-input" type="email" placeholder="Pour se connecter avec son e-mail" value={form.email} onChange={e=>upd('email',e.target.value)}/><div className="form-hint">Un identifiant et un mot de passe temporaire sont créés automatiquement à l’enregistrement.</div></div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Allergies connues</label><input className="form-input" placeholder="Ex: pénicilline — laisser vide si aucune" value={form.allergies} onChange={e=>upd('allergies',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Allergies connues</label><input className="form-input" placeholder="Ex: pénicilline, laisser vide si aucune" value={form.allergies} onChange={e=>upd('allergies',e.target.value)}/></div>
           <div className="form-group"><label className="form-label">Maladies chroniques</label><input className="form-input" placeholder="Ex: diabète, hypertension" value={form.maladies_chroniques} onChange={e=>upd('maladies_chroniques',e.target.value)}/></div>
         </div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Département *</label>
-            <select className="form-select" value={form.departement} onChange={e=>upd('departement',e.target.value)}><option value="">— Département —</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d}>{d}</option>)}</select>
+            <select className="form-select" value={form.departement} onChange={e=>upd('departement',e.target.value)}><option value="">Département</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d}>{d}</option>)}</select>
           </div>
           <div className="form-group"><label className="form-label">Zone sanitaire *</label>
-            <select className="form-select" value={form.zone_sanitaire} onChange={e=>upd('zone_sanitaire',e.target.value)} disabled={!form.departement}><option value="">— Zone —</option>{zones.map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select>
+            <select className="form-select" value={form.zone_sanitaire} onChange={e=>upd('zone_sanitaire',e.target.value)} disabled={!form.departement}><option value="">Zone</option>{zones.map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select>
           </div>
         </div>
         <button className="btn btn-primary btn-full" onClick={submit} disabled={!sc||sc.score<50}>💾 Enregistrer</button>
-        {sc&&sc.score<50&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc.score}/100 insuffisant — compléter les champs *</div>}
+        {sc&&sc.score<50&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc.score}/100 insuffisant, compléter les champs *</div>}
       </div>
       <div>
         <div className="card">
@@ -694,7 +744,7 @@ function Patients({user,patients,setPatients,db}){
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="doublon-title" tabIndex={-1} ref={el=>el&&el.focus()}>
       <div className="modal-title" id="doublon-title">⚠️ Doublon potentiel<button className="modal-close" onClick={()=>setShowDbl(false)} aria-label="Fermer">×</button></div>
       <div className="alert alert-warning"><span className="alert-icon">⚠️</span><div className="alert-content"><div className="alert-title">{dbl.length} patient(s) similaire(s) trouvé(s)</div></div></div>
-      {dbl.map(d=><div key={d.isub} style={{padding:10,background:'var(--light)',borderRadius:8,marginBottom:8}}><strong>{d.nom} {d.prenoms}</strong> — {fmtDate(d.date_naissance)}<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{d.isub}</div></div>)}
+      {dbl.map(d=><div key={d.isub} style={{padding:10,background:'var(--light)',borderRadius:8,marginBottom:8}}><strong>{d.nom} {d.prenoms}</strong> : {fmtDate(d.date_naissance)}<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{d.isub}</div></div>)}
       <div style={{display:'flex',gap:8,marginTop:12}}><button className="btn btn-danger" onClick={save}>Créer quand même</button><button className="btn btn-outline" onClick={()=>setShowDbl(false)}>Annuler</button></div>
     </div></div>}
   </div>);
@@ -747,7 +797,7 @@ function Consultations({user,patients,consultations,setConsultations,db}){
     </div>
     {tab==='liste'?(<div className="card"><div className="table-wrap"><table>
       <thead><tr><th>Date</th><th>Patient ISUB</th><th>Diagnostic</th><th>Notif.</th><th>Risque</th><th>Qualité</th></tr></thead>
-      <tbody>{consultations.length===0?<tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation — Saisir la première</div></div></td></tr>
+      <tbody>{consultations.length===0?<tr><td colSpan={6}><div className="empty-state"><div className="empty-icon">🩺</div><div className="empty-text">Aucune consultation. Saisir la première</div></div></td></tr>
         :consultations.map(c=><tr key={c.id}>
           <td style={{fontSize:12}}>{fmtDT(c.date_consultation)}</td>
           <td><code style={{fontSize:11}}>{c.patient_isub}</code></td>
@@ -761,16 +811,16 @@ function Consultations({user,patients,consultations,setConsultations,db}){
       <div className="card">
         <div className="card-title">🩺 Nouvelle Consultation</div>
         {ok&&<div className="alert alert-success"><span className="alert-icon">✅</span><div className="alert-content"><div className="alert-title">Consultation enregistrée !</div></div></div>}
-        {immAlert&&<div className="alert alert-danger"><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">ALERTE — Notification immédiate !</div><div className="alert-text">{immAlert.nom} — Informer la DDS sous 24h</div></div></div>}
+        {immAlert&&<div className="alert alert-danger"><span className="alert-icon pulsing">🚨</span><div className="alert-content"><div className="alert-title">ALERTE. Notification immédiate !</div><div className="alert-text">{immAlert.nom}. Informer la DDS sous 24h</div></div></div>}
         <div className="form-group"><label className="form-label">Patient *</label>
           <div className="search-container"><input className="form-input" placeholder="Rechercher patient (nom, ISUB)..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
-            {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>selPat(p)}><strong>{p.nom} {p.prenoms}</strong> — <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span></div>)}</div>}
+            {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>selPat(p)}><strong>{p.nom} {p.prenoms}</strong> : <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span></div>)}</div>}
           </div>
           {form.patient_isub&&<div className="form-hint">✅ {form.patient_isub}</div>}
         </div>
         <div className="form-group"><label className="form-label">Diagnostic / CIM-10 *</label>
           <div className="search-container"><input className="form-input" placeholder="Tapez un symptôme ou diagnostic..." value={diagQ} onChange={e=>{setDiagQ(e.target.value);setDsug(rechMaladies(e.target.value));}}/>
-            {dsug.length>0&&<div className="search-results">{dsug.map(m=><div key={m.code} className="search-item" onClick={()=>selDiag(m)}><strong style={{color:'var(--primary)'}}>{m.code}</strong> — {m.nom} <span className={`badge badge-${m.notif==='immédiate'?'immediate':m.notif==='hebdo'?'hebdo':'mensuelle'}`} style={{marginLeft:6,fontSize:10}}>{m.notif}</span></div>)}</div>}
+            {dsug.length>0&&<div className="search-results">{dsug.map(m=><div key={m.code} className="search-item" onClick={()=>selDiag(m)}><strong style={{color:'var(--primary)'}}>{m.code}</strong> : {m.nom} <span className={`badge badge-${m.notif==='immédiate'?'immediate':m.notif==='hebdo'?'hebdo':'mensuelle'}`} style={{marginLeft:6,fontSize:10}}>{m.notif}</span></div>)}</div>}
           </div>
         </div>
         <div className="form-row">
@@ -791,7 +841,7 @@ function Consultations({user,patients,consultations,setConsultations,db}){
         </div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Conduite tenue</label>
-            <select className="form-select" value={form.conduite} onChange={e=>upd('conduite',e.target.value)}><option value="">—</option><option value="Traitement">Traitement</option><option value="Référence">Référence</option><option value="Traitement et référence">Traitement et référence</option></select>
+            <select className="form-select" value={form.conduite} onChange={e=>upd('conduite',e.target.value)}><option value="">Sélectionner</option><option value="Traitement">Traitement</option><option value="Référence">Référence</option><option value="Traitement et référence">Traitement et référence</option></select>
           </div>
           <div className="form-group"><label className="form-label">Catégorie de tarification</label><input className="form-input" value={form.categorie_tarification} onChange={e=>upd('categorie_tarification',e.target.value)}/></div>
         </div>
@@ -801,7 +851,7 @@ function Consultations({user,patients,consultations,setConsultations,db}){
         <div className="form-group"><label className="form-label">Évolution</label><textarea className="form-textarea" value={form.evolution} onChange={e=>upd('evolution',e.target.value)}/></div>
         <div className="form-group"><label className="form-label">Notes cliniques</label><textarea className="form-textarea" placeholder="Observations, traitements prescrits..." value={form.notes} onChange={e=>upd('notes',e.target.value)}/></div>
         <button className="btn btn-primary btn-full" onClick={submit} disabled={!form.patient_isub||!sc||sc.score<70}>💾 Enregistrer</button>
-        {sc&&sc.score<70&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc?.score||0}/100 — minimum 70 requis</div>}
+        {sc&&sc.score<70&&<div className="form-error" style={{textAlign:'center',marginTop:8}}>Score {sc?.score||0}/100, minimum 70 requis</div>}
       </div>
       <div>
         {sc&&<div className="card">
@@ -832,6 +882,27 @@ function Consultations({user,patients,consultations,setConsultations,db}){
 // Le patient écrit sa demande ; un MÉDECIN répond. L'IA n'est jamais proposée au patient :
 // elle ne fait que suggérer au médecin, qui valide et signe. Infirmier : lecture seule.
 // ═══════════════════════════════════════
+
+// ═══════════════════════════════════════
+// APPEL VIDÉO : Jitsi Meet auto-hébergé. Renseigner VIDEO_HOST (ex. 'visio.sante.gouv.bj') après installation du serveur.
+// Tant que VIDEO_HOST est vide, aucun bouton d'appel n'est affiché : la téléconsultation reste écrite.
+// Salle = identifiant de la demande (UUID non devinable). Pas de serveur public tiers pour des données de santé.
+// ═══════════════════════════════════════
+const VIDEO_HOST='';
+const videoSalle=c=>'snisb-'+String(c.id).replace(/[^A-Za-z0-9]/g,'').slice(0,40);
+function AppelVideo({consultation,nom,onClose}){
+  if(!VIDEO_HOST)return null;
+  const url='https://'+VIDEO_HOST+'/'+videoSalle(consultation)+'#config.prejoinConfig.enabled=true&config.disableDeepLinking=true&config.startWithAudioMuted=true&userInfo.displayName='+encodeURIComponent(JSON.stringify(nom||''));
+  return(<div className="card" style={{marginTop:12}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+      <div className="card-title" style={{margin:0}}>Appel vidéo</div>
+      <button className="btn btn-outline btn-sm" onClick={onClose}>Quitter l’appel</button>
+    </div>
+    <iframe title="Appel vidéo" src={url} allow="camera; microphone; fullscreen; display-capture; autoplay" style={{width:'100%',height:420,border:0,borderRadius:8,background:'#000'}}/>
+    <div className="form-hint">L’appel complète l’échange écrit. La réponse du médecin reste signée dans le dossier de téléconsultation.</div>
+  </div>);
+}
+
 function Teleconsultation({user,patients}){
   const isPatient=user.role==='patient';
   const isMedecin=user.role==='medecin';
@@ -841,6 +912,7 @@ function Teleconsultation({user,patients}){
   const[loadErr,setLoadErr]=useState('');
   const[tab,setTab]=useState('attente');
   const[sel,setSel]=useState(null);
+  const[appel,setAppel]=useState(null);
   const[form,setForm]=useState({diagnostic:'',conduite:'',gravite:'modérée'});
   const[avisIA,setAvisIA]=useState('');const[loadingIA,setLoadingIA]=useState(false);
   const[demandeMotif,setDemandeMotif]=useState('');
@@ -852,11 +924,11 @@ function Teleconsultation({user,patients}){
       const{data,error}=await supaClient.from('teleconsultations').select('*').order('created_at',{ascending:false}).limit(100);
       if(error){
         const m=error.message||'';
-        setLoadErr(/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'La table des téléconsultations n’est pas installée : exécutez 08_teleconsultation_v18.sql dans Supabase.':'Chargement impossible : '+m);
+        setLoadErr(/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':userErr({message:m}));
         return;
       }
       setLoadErr('');setItems(data||[]);
-    }catch(e){setLoadErr('Réseau indisponible — nouvel essai automatique.');}
+    }catch(e){setLoadErr('Réseau indisponible, nouvel essai automatique.');}
   };
   useEffect(()=>{
     charger();
@@ -877,7 +949,7 @@ function Teleconsultation({user,patients}){
       const{error}=await supaClient.from('teleconsultations').insert(row);
       if(error){
         const m=error.message||'';
-        setMsg({t:'danger',m:/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'Service non installé côté serveur (exécuter 08_teleconsultation_v18.sql).':(/row-level|42501/i.test(error.code+' '+m)?'Demande refusée : votre compte patient n’est pas relié à une fiche (ISUB manquant).':'Envoi impossible : '+m)});
+        setMsg({t:'danger',m:/teleconsultations|42P01|PGRST205/i.test(error.code+' '+m)?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':(/row-level|42501/i.test(error.code+' '+m)?'Demande refusée : votre compte patient n’est pas relié à une fiche (ISUB manquant).':'Envoi impossible : '+m)});
         setBusy(false);return;
       }
       await charger();
@@ -885,7 +957,7 @@ function Teleconsultation({user,patients}){
       const loc=[Object.assign({},row,{created_at:new Date().toISOString()})].concat(items);setItems(loc);lsSet(LS,loc);
     }
     setDemandeMotif('');setBusy(false);
-    setMsg({t:'success',m:'Demande envoyée — un médecin va y répondre. Revenez consulter cette page.'});
+    setMsg({t:'success',m:'Demande envoyée, un médecin va y répondre. Revenez consulter cette page.'});
   };
 
   const demanderAvisIA=async()=>{
@@ -894,15 +966,15 @@ function Teleconsultation({user,patients}){
     try{
       let token='';
       if(supaClient){const{data:sd}=await supaClient.auth.getSession();token=sd?.session?.access_token||'';}
-      if(!token)throw new Error('Session Supabase requise pour obtenir un avis IA.');
+      if(!token)throw new Error('Session requise pour obtenir un avis IA.');
       const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({messages:[{role:'user',content:'Avis rapide pour téléconsultation — motif rapporté par le patient : '+sel.motif}],context:'Suggestion pour un médecin en téléconsultation. Réponds brièvement : hypothèses possibles avec niveau de confiance, et ce qui devrait être vérifié. Aucune prescription.'})
+        body:JSON.stringify({messages:[{role:'user',content:'Avis rapide pour téléconsultation, motif rapporté par le patient : '+sel.motif}],context:'Suggestion pour un médecin en téléconsultation. Réponds brièvement : hypothèses possibles avec niveau de confiance, et ce qui devrait être vérifié. Aucune prescription.'})
       });
-      if(!resp.ok){let e={};try{e=await resp.json();}catch(x){}throw new Error(e.error||('Erreur '+resp.status+' — fonction claude-proxy non déployée ?'));}
+      if(!resp.ok){let e={};try{e=await resp.json();}catch(x){}throw new Error(e.error||('Erreur '+resp.status+', fonction claude-proxy non déployée ?'));}
       const data=await resp.json();
       setAvisIA(data.content?.find(b=>b.type==='text')?.text||'Pas de réponse.');
-    }catch(e){setAvisIA('⚠️ '+e.message);}
+    }catch(e){setAvisIA('L’avis IA n’est pas disponible pour le moment.');}
     setLoadingIA(false);
   };
 
@@ -912,7 +984,7 @@ function Teleconsultation({user,patients}){
     const patch={statut:'repondu',reponse_diagnostic:form.diagnostic.trim(),reponse_conduite:form.conduite.trim(),gravite:form.gravite,avis_ia_consulte:!!avisIA,repondu_par:user.nom,repondu_id:user.supabase_id||null,repondu_at:new Date().toISOString()};
     if(enligne){
       const{data,error}=await supaClient.from('teleconsultations').update(patch).eq('id',sel.id).eq('statut','attente').select();
-      if(error){setMsg({t:'danger',m:'Enregistrement impossible : '+(error.message||'')});setBusy(false);return;}
+      if(error){setMsg({t:'danger',m:userErr(error)});setBusy(false);return;}
       if(!data||data.length===0){setMsg({t:'warning',m:'Cette demande a déjà été traitée par un autre médecin (ou vous n’y avez pas droit).'});setBusy(false);setSel(null);await charger();return;}
       await charger();
     }else{
@@ -928,7 +1000,7 @@ function Teleconsultation({user,patients}){
   if(isPatient){
     return(<div>
       <p className="page-title">Téléconsultation</p>
-      <p className="page-sub">Consultation à distance, par écrit — un médecin vous répond dès que possible.</p>
+      <p className="page-sub">Consultation à distance, par écrit, un médecin vous répond dès que possible.</p>
       <div className="alert alert-info"><span className="alert-icon material-symbols-rounded">info</span><div className="alert-content"><div className="alert-text">Ceci n’est pas une urgence. En cas d’urgence, appelez le SAMU (161).</div></div></div>
       <Err/>
       <div className="card">
@@ -946,18 +1018,20 @@ function Teleconsultation({user,patients}){
             <div className="consultation-date">{fmtDT(c.created_at)}</div>
             <div style={{fontSize:13,margin:'4px 0'}}>{c.motif}</div>
             <span className={'badge '+(c.statut==='repondu'?'badge-success':'badge-hebdo')}>{c.statut==='repondu'?'Répondu':'En attente'}</span>
+            {VIDEO_HOST&&c.statut!=='repondu'&&<button className="btn btn-outline btn-sm" style={{marginLeft:8}} onClick={()=>setAppel(c)}>Rejoindre l’appel vidéo</button>}
             {c.statut==='repondu'&&<div style={{marginTop:8,fontSize:13}}>
               <div><strong>Réponse du médecin ({c.repondu_par}) :</strong> {c.reponse_diagnostic}</div>
               <div style={{marginTop:4}}><strong>Conduite à tenir :</strong> {c.reponse_conduite}</div>
             </div>}
           </div>)}
+        {appel&&<AppelVideo consultation={appel} nom={user.nom} onClose={()=>setAppel(null)}/>}
       </div>
     </div>);
   }
 
   return(<div>
     <p className="page-title">Téléconsultation</p>
-    <p className="page-sub">{isMedecin?'Acte médical à distance — le diagnostic et la conduite à tenir sont toujours de votre responsabilité ; l’IA ne fait que suggérer.':'Demandes des patients. Seul un médecin peut y répondre : vous pouvez les consulter.'}</p>
+    <p className="page-sub">{isMedecin?'Acte médical à distance, le diagnostic et la conduite à tenir sont toujours de votre responsabilité ; l’IA ne fait que suggérer.':'Demandes des patients. Seul un médecin peut y répondre : vous pouvez les consulter.'}</p>
     <Err/><Msg/>
     <div className="inner-tabs">
       {[['attente','Demandes en attente ('+enAttente.length+')'],['traitees','Traitées ('+traitees.length+')']].map(([t,l])=><button key={t} className={'inner-tab '+(tab===t?'active':'')} onClick={()=>{setTab(t);setSel(null);}}>{l}</button>)}
@@ -966,7 +1040,7 @@ function Teleconsultation({user,patients}){
       {enAttente.length===0?<div className="empty-state"><div className="empty-icon material-symbols-rounded">inbox</div><div className="empty-text">Aucune demande en attente</div></div>
         :enAttente.map(c=><div key={c.id} className="consultation-item">
           <div className="consultation-date">{fmtDT(c.created_at)}</div>
-          <div style={{fontWeight:600,fontSize:13}}>{c.patient_nom||c.patient_isub} <span style={{fontWeight:400,color:'var(--text-muted)'}}>— {c.patient_isub}</span></div>
+          <div style={{fontWeight:600,fontSize:13}}>{c.patient_nom||c.patient_isub} <span style={{fontWeight:400,color:'var(--text-muted)'}}>({c.patient_isub})</span></div>
           <div style={{fontSize:13,marginTop:4}}>{c.motif}</div>
           {isMedecin&&<button className="btn btn-sm btn-primary" style={{marginTop:8}} onClick={()=>{setSel(c);setAvisIA('');setMsg(null);}}>Répondre</button>}
         </div>)}
@@ -975,8 +1049,10 @@ function Teleconsultation({user,patients}){
       <div className="card">
         <div className="card-title">Répondre à {sel.patient_nom||sel.patient_isub}</div>
         <div className="form-group"><label className="form-label">Motif rapporté</label><div style={{fontSize:13,padding:10,background:'var(--bg)',borderRadius:8}}>{sel.motif}</div></div>
+        {VIDEO_HOST&&<button className="btn btn-outline btn-sm" style={{marginRight:8}} onClick={()=>setAppel(sel)}>Démarrer l’appel vidéo</button>}
+        {appel&&<AppelVideo consultation={appel} nom={user.nom} onClose={()=>setAppel(null)}/>}
         <button className="btn btn-outline btn-sm" onClick={demanderAvisIA} disabled={loadingIA}>{loadingIA?'Analyse...':'💡 Demander un avis IA (suggestion uniquement)'}</button>
-        {avisIA&&<div className="alert alert-info" style={{marginTop:10}}><span className="alert-icon material-symbols-rounded">smart_toy</span><div className="alert-content"><div className="alert-title">Suggestion IA — à valider par vous</div><div className="alert-text" style={{whiteSpace:'pre-wrap'}}>{avisIA}</div></div></div>}
+        {avisIA&&<div className="alert alert-info" style={{marginTop:10}}><span className="alert-icon material-symbols-rounded">smart_toy</span><div className="alert-content"><div className="alert-title">Suggestion IA, à valider par vous</div><div className="alert-text" style={{whiteSpace:'pre-wrap'}}>{avisIA}</div></div></div>}
         <div className="form-group" style={{marginTop:14}}><label className="form-label">Votre diagnostic *</label>
           <input className="form-input" value={form.diagnostic} onChange={e=>setForm(f=>Object.assign({},f,{diagnostic:e.target.value}))} placeholder="Diagnostic retenu par vous"/>
         </div>
@@ -1000,8 +1076,8 @@ function Teleconsultation({user,patients}){
           <div className="consultation-date">{fmtDT(c.repondu_at||c.created_at)}</div>
           <div style={{fontWeight:600,fontSize:13}}>{c.patient_nom||c.patient_isub}</div>
           <div style={{fontSize:13,marginTop:4}}>Motif : {c.motif}</div>
-          <div style={{fontSize:13,marginTop:4}}><strong>Diagnostic :</strong> {c.reponse_diagnostic} — <strong>Conduite :</strong> {c.reponse_conduite}</div>
-          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Signé : {c.repondu_par}{c.avis_ia_consulte?' • avis IA consulté (suggestion)':''}</div>
+          <div style={{fontSize:13,marginTop:4}}><strong>Diagnostic :</strong> {c.reponse_diagnostic}. <strong>Conduite :</strong> {c.reponse_conduite}</div>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Signé : {c.repondu_par}{c.avis_ia_consulte?' · avis IA consulté (suggestion)':''}</div>
         </div>)}
     </div>}
   </div>);
@@ -1020,7 +1096,7 @@ function Dossiers({patients,consultations}){
       <div className="search-container" style={{marginBottom:sel?16:0}}>
         <input className="form-input" placeholder="🔍 Rechercher patient (nom ou ISUB)..." value={srch} onChange={e=>{setSrch(e.target.value);setSel(null);}}/>
         {sug.length>0&&!sel&&<div className="search-results">{sug.map(p=><div key={p.isub} className="search-item" onClick={()=>{setSel(p);setSrch('');}}>
-          <strong>{p.nom} {p.prenoms}</strong> — <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span>
+          <strong>{p.nom} {p.prenoms}</strong> : <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.isub}</span>
         </div>)}</div>}
       </div>
       {!sel&&<div className="empty-state"><div className="empty-icon">📋</div><div className="empty-text">Recherchez un patient pour accéder à son dossier</div></div>}
@@ -1039,7 +1115,7 @@ function Dossiers({patients,consultations}){
             {sel.maladies_chroniques&&<div style={{marginTop:sel.allergies?4:0}}><strong>Maladies chroniques :</strong> {sel.maladies_chroniques}</div>}
           </div>
         </div>}
-        {[['Nom complet',sel.nom+' '+(sel.prenoms||'')],['Date de naissance',fmtDate(sel.date_naissance)],['Sexe',sel.sexe==='M'?'♂️ Masculin':'♀️ Féminin'],['Téléphone',sel.telephone||'—'],['Département',sel.departement],['Zone sanitaire',sel.zone_nom||sel.zone_sanitaire],['Enregistré par',sel.enregistre_par],['Score qualité',`${sel.quality_score}/100`]].map(([k,v])=>(
+        {[['Nom complet',sel.nom+' '+(sel.prenoms||'')],['Date de naissance',fmtDate(sel.date_naissance)],['Sexe',sel.sexe==='M'?'♂️ Masculin':'♀️ Féminin'],['Téléphone',sel.telephone||'n/d'],['Département',sel.departement],['Zone sanitaire',sel.zone_nom||sel.zone_sanitaire],['Enregistré par',sel.enregistre_par],['Score qualité',`${sel.quality_score}/100`]].map(([k,v])=>(
           <div key={k} className="kpi-row"><div style={{fontSize:13,color:'var(--text-muted)'}}>{k}</div><div style={{fontWeight:600,fontSize:13}}>{v}</div></div>
         ))}
       </div>
@@ -1093,7 +1169,7 @@ function Rappels({user,patients,rappels,setRappels,db}){
           <span style={{fontSize:22}}>{icons[r.type]||'📅'}</span>
           <div style={{flex:1}}>
             <div style={{fontSize:13,fontWeight:600}}>{r.titre}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)'}}>📅 {fmtDT(r.date_rappel)} • Récurrence: {r.recurrence}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>📅 {fmtDT(r.date_rappel)} · Récurrence: {r.recurrence}</div>
             {r.message&&<div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{r.message}</div>}
           </div>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -1107,7 +1183,7 @@ function Rappels({user,patients,rappels,setRappels,db}){
       {ok&&<div className="alert alert-success"><span>✅</span><span style={{fontSize:13,marginLeft:8}}>Rappel créé !</span></div>}
       <div className="form-group"><label className="form-label">Patient *</label>
         <div className="search-container"><input className="form-input" placeholder="Rechercher patient..." value={srchP} onChange={e=>srchPat(e.target.value)}/>
-          {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>{setForm(f=>({...f,patient_isub:p.isub}));setSrchP(p.nom+' '+p.prenoms);setPsug([]);}}><strong>{p.nom} {p.prenoms}</strong> — {p.isub}</div>)}</div>}
+          {psug.length>0&&<div className="search-results">{psug.map(p=><div key={p.isub} className="search-item" onClick={()=>{setForm(f=>({...f,patient_isub:p.isub}));setSrchP(p.nom+' '+p.prenoms);setPsug([]);}}><strong>{p.nom} {p.prenoms}</strong> : {p.isub}</div>)}</div>}
         </div>
       </div>
       <div className="form-row">
@@ -1137,7 +1213,7 @@ function Export({consultations,patients}){
   const expPDF=()=>{
     const data=fil();const{jsPDF}=window.jspdf;const doc=new jsPDF();
     doc.setFontSize(14);doc.setFont('helvetica','bold');doc.text('REPUBLIQUE DU BENIN',105,18,{align:'center'});
-    doc.setFontSize(11);doc.text('Ministère de la Santé — SNISB Health Link',105,26,{align:'center'});
+    doc.setFontSize(11);doc.text('Ministère de la Santé, SNISB Health Link',105,26,{align:'center'});
     doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text('Rapport exporté le '+new Date().toLocaleDateString('fr-FR')+' | '+data.length+' enregistrement(s)',105,33,{align:'center'});
     doc.line(15,37,195,37);doc.setFont('helvetica','bold');doc.text('Patients: '+patients.length,20,44);doc.text('Score qualité moyen: '+(data.length?Math.round(data.reduce((s,c)=>s+(c.quality_score||0),0)/data.length):0)+'/100',110,44);
     doc.line(15,48,195,48);doc.setFontSize(8);doc.text('DATE',20,55);doc.text('DIAGNOSTIC',52,55);doc.text('CIM-10',118,55);doc.text('ZONE',146,55);doc.text('NOTIF.',182,55);
@@ -1210,7 +1286,7 @@ function Epidemio({user,consultations}){
         :alertesReelles.length===0?<div style={{fontSize:13,color:'var(--text-muted)'}}>Aucune alerte ouverte pour le moment.</div>
         :alertesReelles.map(a=><div key={a.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#FDECEA',borderLeft:'3px solid var(--danger)',borderRadius:'0 10px 10px 0',marginBottom:8}}>
           <span style={{fontSize:20}}>🚨</span>
-          <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{a.maladie_nom} — {a.maladie_code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Zone : {a.zone_sanitaire||'—'} · {fmtDT(a.created_at)}</div></div>
+          <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{a.maladie_nom} : {a.maladie_code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Zone : {a.zone_sanitaire||'n/d'} · {fmtDT(a.created_at)}</div></div>
           {confirmId===a.id?(
             <div style={{display:'flex',gap:6}}>
               <button className="btn btn-sm btn-danger" onClick={()=>confirmerAlerte(a.id)}>Je confirme, {user.nom}</button>
@@ -1220,13 +1296,13 @@ function Epidemio({user,consultations}){
             <button className="btn btn-sm btn-outline" onClick={()=>setConfirmId(a.id)}>Confirmer le traitement</button>
           )}
         </div>)}
-      <div className="form-hint" style={{marginTop:8}}>La confirmation attribue la notification à votre nom et clôt l'alerte — aucune clôture automatique.</div>
+      <div className="form-hint" style={{marginTop:8}}>La confirmation attribue la notification à votre nom et clôt l'alerte, aucune clôture automatique.</div>
     </div>}
     {alertes.length>0&&<div className="card" style={{borderLeft:'4px solid var(--warning)',marginBottom:20}}>
       <div className="card-title" style={{color:'var(--warning)'}}>Maladies détectées dans vos consultations (indicatif)</div>
       {alertes.map(m=><div key={m.code} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'#FFF4E5',borderLeft:'3px solid var(--warning)',borderRadius:'0 10px 10px 0',marginBottom:8}}>
         <span style={{fontSize:20}}>⚠️</span>
-        <div><div style={{fontWeight:700,fontSize:13}}>{m.nom} — {m.code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Voir « Alertes ouvertes » ci-dessus pour la confirmation officielle</div></div>
+        <div><div style={{fontWeight:700,fontSize:13}}>{m.nom} : {m.code}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Voir « Alertes ouvertes » ci-dessus pour la confirmation officielle</div></div>
       </div>)}
     </div>}
     <div className="grid-3" style={{marginBottom:20}}>
@@ -1240,7 +1316,7 @@ function Epidemio({user,consultations}){
     </div>
     <div className="grid-2">
       <div className="card">
-        <div className="card-title">📊 Causes consultations — Bénin</div>
+        <div className="card-title">📊 Causes des consultations (Bénin)</div>
         {[{l:'Paludisme (1ère cause)',pct:44.7,c:'var(--danger)'},{l:'IRA (2ème cause)',pct:11.9,c:'var(--warning)'},{l:'Diarrhées (3ème cause)',pct:5.4,c:'var(--info)'},{l:'Autres pathologies',pct:38.0,c:'var(--text-muted)'}].map(s=>(
           <div key={s.l} style={{marginBottom:14}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span style={{fontSize:12,fontWeight:600}}>{s.l}</span><strong style={{fontSize:13}}>{s.pct}%</strong></div>
@@ -1330,7 +1406,7 @@ function Carte({consultations}){
 
   return(<div>
     <p className="page-title">Carte Épidémique du Bénin</p>
-    <p className="page-sub">12 départements, 34 zones sanitaires — Cliquez sur un département pour voir ses zones. Carte intégrée à l’application : elle s’affiche sans Internet.</p>
+    <p className="page-sub">12 départements, 34 zones sanitaires. Cliquez sur un département pour voir ses zones. Carte intégrée à l’application : elle s’affiche sans Internet.</p>
     <div className="grid-2">
       <div>
         <div className="map-shell">
@@ -1371,7 +1447,7 @@ function Carte({consultations}){
           </div>
         </div>
         {selectedDept&&<div className="card">
-          <div className="card-title">{selectedDept.charAt(0)+selectedDept.slice(1).toLowerCase()} — Zones sanitaires</div>
+          <div className="card-title">{selectedDept.charAt(0)+selectedDept.slice(1).toLowerCase()}. Zones sanitaires</div>
           {selDept.map(z=>{
             const cnt=consultations.filter(c=>c.zone_sanitaire===z.code).length;
             return(<div key={z.code} style={{padding:'9px 0',borderBottom:'1px solid var(--gray-100)'}}>
@@ -1384,7 +1460,7 @@ function Carte({consultations}){
         </div>}
         <div className="alert alert-info">
           <span className="alert-icon material-symbols-rounded">info</span>
-          <div className="alert-content"><div className="alert-text">8 départements affichent des frontières précises (source SIG officielle). Les 4 départements côtiers restants (Couffo, Littoral, Mono, Atlantique) sont en contour simplifié — bordure en pointillés sur la carte.</div></div>
+          <div className="alert-content"><div className="alert-text">8 départements affichent des frontières précises (source SIG officielle). Les 4 départements côtiers restants (Couffo, Littoral, Mono, Atlantique) sont en contour simplifié, bordure en pointillés sur la carte.</div></div>
         </div>
       </div>
     </div>
@@ -1396,12 +1472,11 @@ function Carte({consultations}){
 // ═══════════════════════════════════════
 function IAClinique({user,patients,consultations}){
   const estPatient=user.role==='patient';
-  const welcomeMsg=estPatient?('Bonjour '+user.nom+' ! Je suis l\u2019assistant sant\u00e9 SNISB.\n\nJe donne des informations g\u00e9n\u00e9rales de pr\u00e9vention (hygi\u00e8ne, vaccination, paludisme, nutrition, grossesse) et je vous dis quand consulter.\n\nJe ne pose pas de diagnostic, je ne prescris rien et je ne remplace pas une consultation. Pour un probl\u00e8me de sant\u00e9, utilisez l\u2019onglet T\u00e9l\u00e9consultation. En urgence : SAMU 161.'):('Bonjour Dr. '+user.nom+' ! Je suis votre assistant IA clinique SNISB.\n\nJe peux vous aider avec :\n\u{1F50D} Analyse diagnostique — Diagnostics différentiels\n\u{1F9A0} Épidémiologie — Tendances dans votre zone\n\u{1F48A} Protocoles — Guides thérapeutiques béninois\n\u{1F4CA} Données SNISB — Vos statistiques locales\n\nComment puis-je vous aider ?');
+  const welcomeMsg=estPatient?('Bonjour '+user.nom+' ! Je suis l\u2019assistant sant\u00e9 SNISB.\n\nJe donne des informations g\u00e9n\u00e9rales de pr\u00e9vention (hygi\u00e8ne, vaccination, paludisme, nutrition, grossesse) et je vous dis quand consulter.\n\nJe ne pose pas de diagnostic, je ne prescris rien et je ne remplace pas une consultation. Pour un probl\u00e8me de sant\u00e9, utilisez l\u2019onglet T\u00e9l\u00e9consultation. En urgence : SAMU 161.'):('Bonjour Dr. '+user.nom+' ! Je suis votre assistant IA clinique SNISB.\n\nJe peux vous aider avec :\n\u{1F50D} Analyse diagnostique : diagnostics différentiels\n\u{1F9A0} Épidémiologie : tendances dans votre zone\n\u{1F48A} Protocoles : guides thérapeutiques béninois\n\u{1F4CA} Données SNISB : vos statistiques locales\n\nComment puis-je vous aider ?');
   const[messages,setMessages]=useState([{role:'ai',content:welcomeMsg}]);
   const[input,setInput]=useState('');
   const[loading,setLoading]=useState(false);
   const endRef=useRef(null);
-  const QUICK_PROMPTS=estPatient?['Comment prévenir le paludisme ?','Calendrier des vaccins de l\u2019enfant','Bonnes pratiques d\u2019hygiène des mains','Quand dois-je consulter pendant la grossesse ?','Alimentation saine du nourrisson']:['Protocole traitement paludisme simple Bénin','Critères de gravité méningite','Seuil alerte épidémique choléra','Analyse épidémio de ma zone','Définition de cas rougeole SIMR'];
 
   useEffect(()=>{ if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'}); },[messages]);
 
@@ -1411,7 +1486,7 @@ function IAClinique({user,patients,consultations}){
     const totalC=consultations.length;
     const alertes=consultations.filter(c=>c.notif==='immédiate').length;
     const zoneUser=user.zone?TOUTES_ZONES.find(z=>z.code===user.zone)?.nom||user.zone:'nationale';
-    return 'Contexte SNISB Health Link — Bénin:\n'
+    return 'Contexte SNISB Health Link, Bénin :\n'
       +'- Agent: '+user.nom+' ('+( ROLES[user.role]?.label||user.role)+')\n'
       +'- Zone: '+zoneUser+' | Département: '+(user.dept||'non défini')+'\n'
       +'- Données locales: '+totalP+' patients, '+totalC+' consultations, '+alertes+' alertes\n'
@@ -1433,7 +1508,7 @@ function IAClinique({user,patients,consultations}){
         const{data:sessionData}=await supaClient.auth.getSession();
         token=sessionData?.session?.access_token||'';
       }
-      if(!token)throw new Error('Session Supabase absente — reconnectez-vous avec votre vrai mot de passe Supabase (pas le mot de passe démo).');
+      if(!token)throw new Error('Session expirée. Reconnectez-vous.');
       const resp=await fetch(EDGE_FUNCTIONS_URL+'/claude-proxy',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -1447,7 +1522,7 @@ function IAClinique({user,patients,consultations}){
       const aiText=data.content?.find(b=>b.type==='text')?.text||'Désolé, je n\'ai pas pu traiter votre demande.';
       setMessages(m=>[...m,{role:'ai',content:aiText}]);
     }catch(e){
-      setMessages(m=>[...m,{role:'ai',content:'⚠️ Connexion temporairement indisponible.\n\nConsultez le guide SIMR ou contactez le niveau central SNISB.\n\nErreur: '+e.message}]);
+      setMessages(m=>[...m,{role:'ai',content:'⚠️ Connexion temporairement indisponible.\n\nConsultez le guide SIMR ou contactez le niveau central SNISB.'}]);
     }
     setLoading(false);
   };
@@ -1455,21 +1530,20 @@ function IAClinique({user,patients,consultations}){
   const formatMsg=txt=>{
     return txt.split('\n').map((line,i)=>{
       if(line.startsWith('**')&&line.endsWith('**'))return<div key={i} style={{fontWeight:700,marginTop:4}}>{line.slice(2,-2)}</div>;
-      if(line.startsWith('- '))return<div key={i} style={{paddingLeft:12,marginTop:2}}>• {line.slice(2)}</div>;
+      if(line.startsWith('- '))return<div key={i} style={{paddingLeft:12,marginTop:2}}>· {line.slice(2)}</div>;
       if(line.startsWith('#'))return<div key={i} style={{fontWeight:700,fontSize:14,marginTop:6}}>{line.replace(/^#+\s/,'')}</div>;
       return<div key={i} style={{marginTop:line?2:4}}>{line||' '}</div>;
     });
   };
 
   return(<div>
-    <p className="page-title">{estPatient?'🤖 Assistant santé SNISB':'🤖 IA Clinique — Assistant SNISB'}</p>
+    <p className="page-title">{estPatient?'🤖 Assistant santé SNISB':'🤖 IA Clinique : assistant SNISB'}</p>
     <div className="grid-2">
       <div className="ai-panel" style={{marginBottom:16}}>
         <div className="ai-panel-title">{estPatient?'🤖 Assistant santé (information générale)':'🤖 Assistant IA Clinique'}</div>
-        <div className="ai-panel-sub">Propulsé par Claude • Contexte SNISB intégré</div>
+        <div className="ai-panel-sub">Propulsé par Claude · Contexte SNISB intégré</div>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,opacity:0.6,marginBottom:8,textTransform:'uppercase',letterSpacing:'0.5px'}}>Questions rapides :</div>
-          {QUICK_PROMPTS.map((p,i)=><button key={i} className="ai-chip" onClick={()=>send(p)}>{p}</button>)}
         </div>
         <div style={{padding:12,background:'rgba(255,255,255,0.06)',borderRadius:10,fontSize:12,opacity:0.7}}>
           <div style={{fontWeight:600,marginBottom:4}}>⚠️ Avertissement</div>
@@ -1489,7 +1563,7 @@ function IAClinique({user,patients,consultations}){
     <div className="card" style={{padding:0,overflow:'hidden'}}>
       <div style={{padding:'14px 20px',background:'linear-gradient(135deg,#0D1B2A,#1B2838)',color:'white',display:'flex',alignItems:'center',gap:10}}>
         <span style={{fontSize:20}}>🤖</span>
-        <div><div style={{fontWeight:700,fontSize:14}}>{estPatient?'Assistant santé SNISB':'Assistant IA Clinique SNISB'}</div><div style={{fontSize:11,opacity:0.6}}>{estPatient?'Information générale de prévention':'Claude • Contexte Bénin intégré'}</div></div>
+        <div><div style={{fontWeight:700,fontSize:14}}>{estPatient?'Assistant santé SNISB':'Assistant IA Clinique SNISB'}</div><div style={{fontSize:11,opacity:0.6}}>{estPatient?'Information générale de prévention':'Claude · Contexte Bénin intégré'}</div></div>
         <div style={{marginLeft:'auto',display:'flex',gap:6}}>
           <span style={{fontSize:10,padding:'3px 8px',background:'rgba(0,133,62,0.3)',borderRadius:10,color:'#2ECC71'}}>● En ligne</span>
         </div>
@@ -1539,7 +1613,7 @@ function Formation({user}){
       </div>
       <button className="btn btn-primary" onClick={next}>{chap<active.chapitres.length-1?'→ Chapitre suivant':'📝 Passer au quiz'}</button>
     </div>):!done?(<div className="card" style={{maxWidth:600}}>
-      <div className="card-title">📝 Quiz — {active.titre}</div>
+      <div className="card-title">📝 Quiz : {active.titre}</div>
       {active.quiz.map((q,qi)=><div key={qi} style={{marginBottom:20}}>
         <div style={{fontWeight:600,marginBottom:10}}>{qi+1}. {q.q}</div>
         {q.opts.map((o,oi)=><div key={oi} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',border:`2px solid ${ans[qi]===oi?'var(--primary)':'var(--border)'}`,borderRadius:10,marginBottom:6,cursor:'pointer',background:ans[qi]===oi?'var(--primary-light)':'white',transition:'all 0.15s'}} onClick={()=>setAns(a=>({...a,[qi]:oi}))}>
@@ -1552,8 +1626,8 @@ function Formation({user}){
       <div style={{fontSize:64,marginBottom:12}}>{pr?.ok?'🏆':'📝'}</div>
       <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>{pr?.ok?'Félicitations !':'À revoir...'}</h3>
       <div style={{fontSize:36,fontWeight:700,color:pr?.ok?'var(--success)':'var(--warning)',marginBottom:12}}>{pr?.sc}%</div>
-      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{pr?.ok?'Module validé avec succès !':'Score insuffisant — minimum 70% requis'}</p>
-      {pr?.ok&&<div className="alert alert-success" style={{textAlign:'left',marginBottom:16}}><span className="alert-icon">🏅</span><div className="alert-content"><div className="alert-title">Certificat obtenu !</div><div className="alert-text">{user.nom} — {active.titre} — {new Date().toLocaleDateString('fr-FR')}</div></div></div>}
+      <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:20}}>{pr?.ok?'Module validé avec succès !':'Score insuffisant, minimum 70% requis'}</p>
+      {pr?.ok&&<div className="alert alert-success" style={{textAlign:'left',marginBottom:16}}><span className="alert-icon">🏅</span><div className="alert-content"><div className="alert-title">Certificat obtenu !</div><div className="alert-text">{user.nom}, {active.titre}, {new Date().toLocaleDateString('fr-FR')}</div></div></div>}
       <div style={{display:'flex',gap:8,justifyContent:'center'}}><button className="btn btn-outline" onClick={()=>start(active)}>🔄 Recommencer</button><button className="btn btn-primary" onClick={()=>setActive(null)}>← Modules</button></div>
     </div>)}
   </div>);}
@@ -1573,7 +1647,7 @@ function Formation({user}){
             {pr&&!pr.ok&&<span className="badge badge-hebdo">⚠️ {pr.sc}%</span>}
           </div>
           <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>{m.titre}</div>
-          <div style={{fontSize:11,color:'var(--text-muted)'}}>{m.duree} • {m.niveau} • {m.chapitres.length} chapitres • {m.quiz.length} questions</div>
+          <div style={{fontSize:11,color:'var(--text-muted)'}}>{m.duree} · {m.niveau} · {m.chapitres.length} chapitres · {m.quiz.length} questions</div>
           {pr&&<div style={{marginTop:10}}><div className="progress-bar" style={{height:6}}><div className="progress-fill" style={{width:`${pr.sc}%`,background:pr.ok?'var(--success)':'var(--warning)'}}/></div></div>}
         </div>
       );})}
@@ -1626,14 +1700,14 @@ function Admin({user,patients,consultations}){
           <div className="form-group"><label className="form-label">Identifiant * (lettres/chiffres)</label><input className="form-input" value={nc.username} onChange={e=>setNc(Object.assign({},nc,{username:e.target.value}))}/></div>
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Rôle *</label><select className="form-select" value={nc.role} onChange={e=>setNc(Object.assign({},nc,{role:e.target.value}))}>{['medecin','infirmier','statisticien','superviseur','admin','asc','relais'].map(r=><option key={r} value={r}>{ROLES[r]?ROLES[r].label:r}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Rôle *</label><select className="form-select" value={nc.role} onChange={e=>setNc(Object.assign({},nc,{role:e.target.value,structure_type:''}))}>{['medecin','infirmier','statisticien','superviseur','admin','asc','relais'].map(r=><option key={r} value={r}>{ROLES[r]?ROLES[r].label:r}</option>)}</select></div>
           <div className="form-group"><label className="form-label">E-mail (facultatif)</label><input className="form-input" type="email" value={nc.email} onChange={e=>setNc(Object.assign({},nc,{email:e.target.value}))}/></div>
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Département</label>
-            <select className="form-select" value={nc.departement} onChange={e=>setNc(Object.assign({},nc,{departement:e.target.value,zone:''}))}><option value="">— Choisir —</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d} value={d}>{d}</option>)}</select></div>
-          <div className="form-group"><label className="form-label">Zone sanitaire{(nc.role==='relais'||nc.role==='asc'||nc.role==='medecin'||nc.role==='infirmier')?' *':''}</label>
-            <select className="form-select" value={nc.zone} disabled={!nc.departement} onChange={e=>setNc(Object.assign({},nc,{zone:e.target.value}))}><option value="">— Choisir —</option>{(ZONES_SANITAIRES[nc.departement]||[]).map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Département{(nc.role==='statisticien'&&/Direction départementale/.test(nc.structure_type))?' *':''}</label>
+            <select className="form-select" value={nc.departement} onChange={e=>setNc(Object.assign({},nc,{departement:e.target.value,zone:''}))}><option value="">Choisir</option>{Object.keys(ZONES_SANITAIRES).map(d=><option key={d} value={d}>{d}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Zone sanitaire{(nc.role==='relais'||nc.role==='asc'||nc.role==='medecin'||nc.role==='infirmier'||(nc.role==='statisticien'&&/Bureau de coordination/.test(nc.structure_type)))?' *':''}</label>
+            <select className="form-select" value={nc.zone} disabled={!nc.departement} onChange={e=>setNc(Object.assign({},nc,{zone:e.target.value}))}><option value="">Choisir</option>{(ZONES_SANITAIRES[nc.departement]||[]).map(z=><option key={z.code} value={z.code}>{z.nom}</option>)}</select></div>
         </div>
         {(nc.role==='relais'||nc.role==='asc')&&<div className="form-row">
           <div className="form-group"><label className="form-label">Commune</label><input className="form-input" value={nc.commune} onChange={e=>setNc(Object.assign({},nc,{commune:e.target.value}))}/></div>
@@ -1641,11 +1715,11 @@ function Admin({user,patients,consultations}){
           <div className="form-group"><label className="form-label">Village / quartier{nc.role==='relais'?' *':''}</label><input className="form-input" value={nc.village} onChange={e=>setNc(Object.assign({},nc,{village:e.target.value}))}/></div>
         </div>}
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Structure de rattachement (détermine l’espace de la personne dans la pyramide)</label><select className="form-select" value={nc.structure_type} onChange={e=>setNc(Object.assign({},nc,{structure_type:e.target.value}))}><option value="">—</option>{STRUCTURES_TYPES.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Structure de rattachement{nc.role==='statisticien'?' *':''}</label><select className="form-select" value={nc.structure_type} onChange={e=>setNc(Object.assign({},nc,{structure_type:e.target.value}))}><option value="">Sélectionner</option>{(nc.role==='statisticien'?STRUCTURES_STATISTICIEN:STRUCTURES_TYPES).map(t=><option key={t} value={t}>{t}</option>)}</select></div>
           <div className="form-group"><label className="form-label">Nom de la structure (centre de santé de rattachement)</label><input className="form-input" value={nc.structure_nom} onChange={e=>setNc(Object.assign({},nc,{structure_nom:e.target.value}))}/></div>
         </div>
-        <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3||((nc.role==='relais'||nc.role==='asc')&&(!nc.zone||!nc.arrondissement.trim()||(nc.role==='relais'&&!nc.village.trim())))}>{ncBusy?'Création...':'Créer le compte'}</button>
-        <div className="form-hint">Un mot de passe temporaire est généré ; la personne devra le changer à sa première connexion. Médecin et infirmier d’une même zone voient les mêmes patients. Relais et ASCQ : zone, arrondissement et village obligatoires ; ils ne voient aucun dossier médical.</div>
+        <button className="btn btn-primary" onClick={creerCompte} disabled={ncBusy||nc.nom.trim().length<3||nc.username.trim().length<3||((nc.role==='relais'||nc.role==='asc')&&(!nc.zone||!nc.arrondissement.trim()||(nc.role==='relais'&&!nc.village.trim())))||(nc.role==='statisticien'&&(!nc.structure_type||(/Bureau de coordination/.test(nc.structure_type)&&!nc.zone)||(/Direction départementale/.test(nc.structure_type)&&!nc.departement)))}>{ncBusy?'Création...':'Créer le compte'}</button>
+        <div className="form-hint">Un mot de passe temporaire est généré ; la personne devra le changer à sa première connexion. Médecin et infirmier d’une même zone voient les mêmes patients. Le statisticien est rattaché au bureau de zone (sa zone), à la DDS (son département) ou au niveau central (national). Relais et ASCQ : zone, arrondissement et village obligatoires ; ils ne voient aucun dossier médical.</div>
       </div>
     </div>}
     {tab==='users'&&<div className="card"><div className="card-title">👥 Utilisateurs du système</div>
@@ -1654,15 +1728,15 @@ function Admin({user,patients,consultations}){
       :realUsers.length===0?<div className="empty-state"><div className="empty-text">Aucun utilisateur trouvé dans la base.</div></div>
       :<div className="table-wrap"><table>
       <thead><tr><th>Nom</th><th>Username</th><th>Rôle</th><th>Zone</th><th>Département</th><th>Structure / village</th><th>Statut</th></tr></thead>
-      <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'—'}</td><td>{u.departement||'—'}</td><td style={{fontSize:11}}>{[u.structure_nom,u.village].filter(Boolean).join(' · ')||'—'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
+      <tbody>{realUsers.map(u=><tr key={u.username}><td><strong>{u.nom}</strong></td><td><code>{u.username}</code></td><td><span className={`role-chip role-${u.role}`}>{ROLES[u.role]?.label}</span></td><td style={{fontSize:11}}>{u.zone||'n/d'}</td><td>{u.departement||'n/d'}</td><td style={{fontSize:11}}>{[u.structure_nom,u.village].filter(Boolean).join(' · ')||'n/d'}</td><td><span className={`badge ${u.actif?'badge-success':'badge-grey'}`}>{u.actif?'✅ Actif':'Inactif'}</span></td></tr>)}</tbody>
     </table></div>}</div>}
-    {tab==='zones'&&<div className="card"><div className="card-title">🗺️ 34 Zones Sanitaires — 12 Départements</div><div className="table-wrap"><table>
+    {tab==='zones'&&<div className="card"><div className="card-title">🗺️ 34 zones sanitaires, 12 départements</div><div className="table-wrap"><table>
       <thead><tr><th>Code</th><th>Zone Sanitaire</th><th>Département</th><th>Formations publiques (annuaire 2019)</th></tr></thead>
       <tbody>{TOUTES_ZONES.map(z=><tr key={z.code}><td><code style={{fontSize:11}}>{z.code}</code></td><td>{z.nom}</td><td>{z.departement}</td><td>{(FORMATIONS_PUBLIQUES[z.nom]||[]).length}</td></tr>)}</tbody>
     </table></div></div>}
     {tab==='kpi'&&<div className="card"><div className="card-title">📊 KPIs Nationaux SNISB</div>
       <div className="grid-2">
-        {[['Patients enregistrés','—',patients.length,'↑'],['Consultations totales','—',consultations.length,'↑'],['Délai disponibilité','15-30j','<24h','-95%'],['Temps saisie','3-4h/j','15-20min','-85%'],["Taux d'erreurs",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%']].map(([l,a,b,g],i)=>(
+        {[['Patients enregistrés','',patients.length,'↑'],['Consultations totales','',consultations.length,'↑'],['Délai disponibilité','15-30j','<24h','-95%'],['Temps saisie','3-4h/j','15-20min','-85%'],["Taux d'erreurs",'30%','5%','-83%'],['Score qualité rapports','45/100','88/100','+95%']].map(([l,a,b,g],i)=>(
           <div key={i} className="kpi-row"><div><div style={{fontSize:12,fontWeight:600}}>{l}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{a} → <strong style={{color:'var(--primary)'}}>{b}</strong></div></div><span className="kpi-gain">{g}</span></div>
         ))}
       </div>
@@ -1674,7 +1748,7 @@ function Admin({user,patients,consultations}){
       :realLogs.map((l,i)=>(
         <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
           <span className={`badge ${l.action==='LOGIN'?'badge-success':l.action==='ALERT'?'badge-immediate':l.action==='SYNC'?'badge-hebdo':'badge-primary'}`}>{l.action}</span>
-          <strong style={{fontSize:12,minWidth:90}}>{l.user_nom||'—'}</strong><span style={{fontSize:12,flex:1}}>{JSON.stringify(l.details||{})}</span>
+          <strong style={{fontSize:12,minWidth:90}}>{l.user_nom||'n/d'}</strong><span style={{fontSize:12,flex:1}}>{JSON.stringify(l.details||{})}</span>
           <span style={{fontSize:11,color:'var(--text-muted)',flexShrink:0}}>{fmtDT(l.created_at)}</span>
         </div>
       ))}
@@ -1709,7 +1783,7 @@ const whoKey=s=>s==='F'?'girls':'boys';
 const whoWeight=(sex,m,z)=>{const t=WHO_LMS[whoKey(sex)][m];if(!t)return null;const L=t[0],M=t[1],S=t[2];return L===0?M*Math.exp(S*z):M*Math.pow(1+L*S*z,1/L);};
 const whoZ=(sex,m,w)=>{const t=WHO_LMS[whoKey(sex)][m];if(!t)return null;const L=t[0],M=t[1],S=t[2];return L===0?Math.log(w/M)/S:(Math.pow(w/M,L)-1)/(L*S);};
 const ageMonths=(birth,at)=>{if(!birth)return null;const b=new Date(birth),a=new Date(at||Date.now());if(isNaN(b.getTime())||isNaN(a.getTime()))return null;return (a-b)/86400000/30.4375;};
-const fmtAge=m=>{if(m===null||m===undefined)return '—';if(m<24)return Math.max(0,Math.floor(m))+' mois';const y=Math.floor(m/12);return y+' an'+(y>1?'s':'');};
+const fmtAge=m=>{if(m===null||m===undefined)return 'n/d';if(m<24)return Math.max(0,Math.floor(m))+' mois';const y=Math.floor(m/12);return y+' an'+(y>1?'s':'');};
 const todayISO=()=>new Date().toISOString().slice(0,10);
 
 const VACCINS_CARNET=[
@@ -1804,7 +1878,7 @@ function CarnetChampsForm({sec,vals,setVals}){
           ?<label style={{display:'flex',alignItems:'center',gap:8,fontSize:14}}><input type="checkbox" checked={!!vals[f.k]} onChange={e=>set(f.k,e.target.checked)}/>{f.l}</label>
           :<>
             <label className="form-label" htmlFor={id}>{f.l}{def.required.indexOf(f.k)>=0?' *':''}</label>
-            {f.t==='select'?<select id={id} className="form-select" value={v} onChange={e=>set(f.k,e.target.value)}><option value="">—</option>{f.opts.map(o=><option key={o} value={o}>{o}</option>)}</select>
+            {f.t==='select'?<select id={id} className="form-select" value={v} onChange={e=>set(f.k,e.target.value)}><option value="">Sélectionner</option>{f.opts.map(o=><option key={o} value={o}>{o}</option>)}</select>
             :f.t==='area'?<textarea id={id} className="form-input" rows={3} value={v} onChange={e=>set(f.k,e.target.value)}/>
             :<input id={id} className="form-input" type={f.t==='number'?'number':f.t==='date'?'date':f.t==='time'?'time':'text'} step={f.step} min={f.min} max={f.max} placeholder={f.ph||''} value={v} onChange={e=>set(f.k,e.target.value)}/>}
           </>}
@@ -1839,10 +1913,10 @@ function CarnetCroissance({patient,entries}){
   const curve=z=>{let d='';for(let m=0;m<=60;m++){const w=whoWeight(sex,m,z);d+=(m===0?'M':'L')+x(m).toFixed(1)+' '+y(Math.min(w,30)).toFixed(1)+' ';}return d;};
   const pts=entries.map(e=>{const mo=ageMonths(patient.date_naissance,e.date_acte);const w=Number(e.data&&e.data.poids_kg);if(mo===null||isNaN(w)||mo<0||mo>60)return null;const mi=Math.round(mo);return{m:mo,w:w,z:whoZ(sex,mi,w),date:e.date_acte};}).filter(Boolean).sort((a,b)=>a.m-b.m);
   const last=pts.length?pts[pts.length-1]:null;
-  const etat=z=>z===null?'—':z<-3?'Insuffisance pondérale sévère':z<-2?'Insuffisance pondérale modérée':z>2?'Poids élevé pour l’âge (à interpréter avec la taille)':'Poids normal pour l’âge';
+  const etat=z=>z===null?'n/d':z<-3?'Insuffisance pondérale sévère':z<-2?'Insuffisance pondérale modérée':z>2?'Poids élevé pour l’âge (à interpréter avec la taille)':'Poids normal pour l’âge';
   return(<div>
     <div style={{background:sex==='F'?'#FCE4EC':'#E3F2FD',borderRadius:10,padding:10,marginBottom:10}}>
-      <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{sex==='F'?'Courbe de poids — Fille':'Courbe de poids — Garçon'} (normes OMS, 0 à 5 ans)</div>
+      <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{sex==='F'?'Courbe de poids : fille':'Courbe de poids : garçon'} (normes OMS, 0 à 5 ans)</div>
       <svg viewBox={'0 0 '+W+' '+H} style={{width:'100%',background:'white',borderRadius:6}} role="img" aria-label="Courbe de poids selon l'âge">
         {[0,5,10,15,20,25,30].map(w=><g key={w}><line x1={PL} x2={W-PR} y1={y(w)} y2={y(w)} stroke="#E0E0E0" strokeWidth="1"/><text x={PL-6} y={y(w)+4} fontSize="11" textAnchor="end" fill="#616161">{w}</text></g>)}
         {[0,12,24,36,48,60].map(m=><g key={m}><line x1={x(m)} x2={x(m)} y1={PT} y2={H-PB} stroke="#E0E0E0" strokeWidth="1"/><text x={x(m)} y={H-PB+16} fontSize="11" textAnchor="middle" fill="#616161">{m===0?'Naiss.':(m/12)+' an'+(m>12?'s':'')}</text></g>)}
@@ -1853,7 +1927,7 @@ function CarnetCroissance({patient,entries}){
         {pts.map((p,i)=><circle key={i} cx={x(p.m)} cy={y(Math.min(p.w,30))} r="4" fill="#1565C0" stroke="white" strokeWidth="1.5"/>)}
       </svg>
     </div>
-    {last?<div className="alert alert-info" style={{marginBottom:10}}><span className="alert-icon">📊</span><div className="alert-content"><div className="alert-title">Dernière mesure : {last.w} kg à {fmtAge(last.m)} — z-score {last.z===null?'—':last.z.toFixed(1)}</div><div className="alert-text">{etat(last.z)}. Indication de dépistage : l’interprétation et la conduite à tenir relèvent du professionnel de santé.</div></div></div>
+    {last?<div className="alert alert-info" style={{marginBottom:10}}><span className="alert-icon">📊</span><div className="alert-content"><div className="alert-title">Dernière mesure : {last.w} kg à {fmtAge(last.m)}, z-score {last.z===null?'n/d':last.z.toFixed(1)}</div><div className="alert-text">{etat(last.z)}. Indication de dépistage : l’interprétation et la conduite à tenir relèvent du professionnel de santé.</div></div></div>
       :<div className="empty-state" style={{padding:16}}><div className="empty-text">Aucune pesée enregistrée (0 à 5 ans)</div></div>}
   </div>);
 }
@@ -1864,7 +1938,7 @@ function CarnetVaccinGrille({entries}){
   const col=g=>VACCINS_CARNET.filter(v=>v.g===g);
   const bloc=(titre,g)=>(<div className="card" style={{margin:0}}>
     <div style={{fontWeight:700,fontSize:12,color:'var(--primary)',marginBottom:6}}>{titre}</div>
-    {col(g).map(v=><div key={v.id} className="kpi-row"><div style={{fontSize:13}}>{v.l}</div><div style={{fontWeight:700,fontSize:13,color:fait[v.id]?'var(--success)':'var(--text-muted)'}}>{fait[v.id]?fmtDate(fait[v.id]):'—'}</div></div>)}
+    {col(g).map(v=><div key={v.id} className="kpi-row"><div style={{fontSize:13}}>{v.l}</div><div style={{fontWeight:700,fontSize:13,color:fait[v.id]?'var(--success)':'var(--text-muted)'}}>{fait[v.id]?fmtDate(fait[v.id]):'n/d'}</div></div>)}
   </div>);
   const autres=entries.filter(e=>e.data&&e.data.vaccin==='Autre (préciser)');
   return(<div>
@@ -1884,7 +1958,7 @@ function CarnetCPNGrille({entries}){
     <thead><tr><th>Consultation prénatale</th>{cols.map(n=><th key={n}>{n}{n===1?'ère':'ème'}</th>)}</tr></thead>
     <tbody>
       <tr><td><strong>Date</strong></td>{cols.map(n=><td key={n}>{fmtDate(byV[n].date_acte)}{byV[n].pending&&<span title="En attente de synchronisation"> ⏳</span>}</td>)}</tr>
-      {rows.map(f=><tr key={f.k}><td>{f.l}</td>{cols.map(n=>{const v=byV[n].data[f.k];return <td key={n}>{v===undefined||v===''?'—':(v===true?'Oui':String(v))}</td>;})}</tr>)}
+      {rows.map(f=><tr key={f.k}><td>{f.l}</td>{cols.map(n=>{const v=byV[n].data[f.k];return <td key={n}>{v===undefined||v===''?'n/d':(v===true?'Oui':String(v))}</td>;})}</tr>)}
     </tbody>
   </table></div>);
 }
@@ -1896,7 +1970,7 @@ function CarnetEntree({e,sec}){
     <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>{fmtDate(e.date_acte)}{e.saisi_par?' · saisi par '+e.saisi_par:''}{e.pending?' · ⏳ en attente de synchronisation':''}</div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'4px 16px',fontSize:13}}>
       {lignes.map(f=><div key={f.k}><span style={{color:'var(--text-muted)'}}>{f.l} : </span><strong>{e.data[f.k]===true?'Oui':String(e.data[f.k])}</strong></div>)}
-      {lignes.length===0&&<div style={{color:'var(--text-muted)'}}>—</div>}
+      {lignes.length===0&&<div style={{color:'var(--text-muted)'}}>n/d</div>}
     </div>
   </div>);
 }
@@ -1954,8 +2028,8 @@ function CarnetSante({user,patient,consultations,readOnly}){
         const r=await supaClient.from('carnet_entries').select('*').eq('patient_isub',isub).order('date_acte',{ascending:true});
         if(!vivant)return;
         if(r.error){
-          if(r.error.code==='42P01'||(r.error.message||'').indexOf('carnet_entries')>=0)setMsg({t:'warning',m:'La base du carnet n’est pas encore installée (script 06_carnet_schema.sql à exécuter dans Supabase).'});
-          else setMsg({t:'warning',m:'Carnet affiché depuis la copie locale : '+(r.error.message||'erreur réseau')});
+          if(r.error.code==='42P01'||(r.error.message||'').indexOf('carnet_entries')>=0)setMsg({t:'warning',m:'Ce service n’est pas encore activé. Contactez l’administrateur du système.'});
+          else setMsg({t:'warning',m:userErr(error)});
         }else{
           const att=lsGet(OUTBOX_KEY,[]).filter(x=>x.patient_isub===isub).map(x=>Object.assign({},x,{pending:true}));
           const tous=(r.data||[]).concat(att);
@@ -1983,13 +2057,13 @@ function CarnetSante({user,patient,consultations,readOnly}){
         else{
           const em=(error.message||'')+' '+(error.code||'');
           if(/42P01|PGRST205|schema cache|carnet_entries.*(exist|find)/i.test(em))tableManquante=true;
-          else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte n’a pas le droit d’écrire ce carnet (rôle médecin/infirmier requis, patient existant). Détail : '+(error.message||error.code)]);setSaving(false);return;}
-          else{setErrs(['Erreur de la base : '+(error.message||error.code)+(error.details?' — '+error.details:'')]);setSaving(false);return;}
+          else if(/42501|row-level/i.test(em)){setErrs([userErr(error)]);setSaving(false);return;}
+          else{setErrs([userErr(error)+(error.details?'. '+error.details:'')]);setSaving(false);return;}
         }
       }catch(e){/* panne réseau : file d’attente locale */}
     }
     if(!envoye){
-      if(tableManquante){setErrs(['La base du carnet n’est pas prête : exécutez 06_carnet_schema.sql puis 08_teleconsultation_v18.sql (qui recharge le cache) dans Supabase, puis réessayez.']);setSaving(false);return;}
+      if(tableManquante){setErrs(['Ce service n’est pas encore activé. Contactez l’administrateur du système.']);setSaving(false);return;}
       const box=lsGet(OUTBOX_KEY,[]);box.push(row);lsSet(OUTBOX_KEY,box);
     }
     const ajoute=Object.assign({},row,{pending:!envoye});
@@ -2019,14 +2093,14 @@ function CarnetSante({user,patient,consultations,readOnly}){
 
     {sec==='resume'&&<div className="grid-2">
       <div className="card"><div className="card-title">🪪 Identification</div>
-        <div className="kpi-row"><div>Département</div><strong>{patient.departement||'—'}</strong></div>
-        <div className="kpi-row"><div>Zone sanitaire</div><strong>{patient.zone_nom||patient.zone_sanitaire||'—'}</strong></div>
+        <div className="kpi-row"><div>Département</div><strong>{patient.departement||'n/d'}</strong></div>
+        <div className="kpi-row"><div>Zone sanitaire</div><strong>{patient.zone_nom||patient.zone_sanitaire||'n/d'}</strong></div>
         <div className="kpi-row"><div>Date de naissance</div><strong>{fmtDate(patient.date_naissance)}</strong></div>
         <div className="kpi-row"><div>Âge</div><strong>{fmtAge(am)}</strong></div>
-        <div className="kpi-row"><div>Sexe</div><strong>{patient.sexe==='F'?'Féminin':patient.sexe==='M'?'Masculin':'—'}</strong></div>
+        <div className="kpi-row"><div>Sexe</div><strong>{patient.sexe==='F'?'Féminin':patient.sexe==='M'?'Masculin':'n/d'}</strong></div>
         {(()=>{const f=duSection('famille');const d=f.length?f[f.length-1].data:{};return <>
-          <div className="kpi-row"><div>Commune</div><strong>{d.commune||'—'}</strong></div>
-          <div className="kpi-row"><div>Formation sanitaire</div><strong>{d.formation_sanitaire||'—'}</strong></div></>;})()}
+          <div className="kpi-row"><div>Commune</div><strong>{d.commune||'n/d'}</strong></div>
+          <div className="kpi-row"><div>Formation sanitaire</div><strong>{d.formation_sanitaire||'n/d'}</strong></div></>;})()}
       </div>
       <div className="card"><div className="card-title">📌 Où en est le carnet</div>
         <div className="kpi-row"><div>Vaccins enregistrés</div><strong>{duSection('vaccination').length}</strong></div>
@@ -2037,7 +2111,7 @@ function CarnetSante({user,patient,consultations,readOnly}){
       </div>
     </div>}
 
-    {sec==='soins'&&<div className="card"><div className="card-title">🩺 Carnet de soins — consultations</div><CarnetSoins consultations={consultations} isub={isub}/></div>}
+    {sec==='soins'&&<div className="card"><div className="card-title">🩺 Carnet de soins, consultations</div><CarnetSoins consultations={consultations} isub={isub}/></div>}
 
     {def&&<div className="card">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,gap:8,flexWrap:'wrap'}}>
@@ -2110,7 +2184,7 @@ function Carnet({user,consultations,patients}){
           <div style={{fontSize:13,opacity:0.7,marginBottom:4,textTransform:'uppercase',letterSpacing:'0.5px'}}>Carnet Numérique de Santé</div>
           <div style={{fontSize:24,fontWeight:700}}>{user.nom}</div>
           <div style={{fontFamily:'monospace',fontSize:13,opacity:0.8,marginTop:6,letterSpacing:1}}>{isub}</div>
-          <div style={{fontSize:11,opacity:0.65,marginTop:4}}>République du Bénin • Ministère de la Santé</div>
+          <div style={{fontSize:11,opacity:0.65,marginTop:4}}>République du Bénin · Ministère de la Santé</div>
         </div>
       </div>
     </div>
@@ -2156,6 +2230,7 @@ const CAT_SIG={
   deces:'Décès dans la communauté',
   evenement_inhabituel:'Événement ou rumeur inhabituelle'
 };
+const STRUCTURES_STATISTICIEN=['Bureau de coordination de zone','Direction départementale de la santé','Niveau central (Ministère)'];
 const STRUCTURES_TYPES=['Centre de santé d’arrondissement','Centre de santé de commune','Hôpital de commune','Hôpital de zone','Maternité / dispensaire isolé','Service de santé communautaire','Bureau de coordination de zone','Direction départementale de la santé','Centre hospitalier départemental (CHD)','Niveau central (Ministère)'];
 const SIG_OUTBOX='snisb_sig_outbox';
 
@@ -2185,23 +2260,23 @@ const ETAGES=[
   ['communautaire','Communauté','ASCQ et relais communautaires']
 ];
 const ECHELONS={
-  central:{nav:'Niveau central',titre:'Niveau central — Ministère de la Santé',
+  central:{nav:'Niveau central',titre:'Niveau central : Ministère de la Santé',
     gouv:['Organe de décision : CNEEP','Organe exécutif : Ministre de la santé','Formations sanitaires : responsables des hôpitaux nationaux'],
     faire:[['Suivre la qualité des rapports communautaires','rapports'],['Suivre les indicateurs de référence','references'],['Suivre la situation nationale par département','carte'],['Suivre les alertes épidémiques','epidemio'],['Exporter les données pour le SNIGS / DHIS2','export'],['Voir les signalements communautaires confirmés','communautaire']],
-    recoit:'Reçoit la synthèse de chaque direction départementale (avant le 20 du mois suivant).'},
-  departement:{nav:'Direction départementale',titre:'Niveau intermédiaire — Direction départementale de la santé (DDS)',
+    recoit:'Exploite les données saisies dans DHIS2 par les zones sanitaires (avant le 20 du mois suivant) et consolidées par les directions départementales.'},
+  departement:{nav:'Direction départementale',titre:'Niveau intermédiaire. Direction départementale de la santé (DDS)',
     gouv:['Organe de décision : CDEEP','Organe exécutif : directeur départemental de la santé (DDS)','Formations sanitaires : responsable du CHD'],
     faire:[['Suivre la qualité des rapports communautaires','rapports'],['Suivre les indicateurs de référence','references'],['Comparer les zones sanitaires de votre département','carte'],['Suivre les alertes épidémiques','epidemio'],['Voir les signalements communautaires','communautaire'],['Exporter la synthèse départementale','export']],
-    recoit:'Reçoit les rapports des zones sanitaires (avant le 15 du mois) et transmet au niveau central (avant le 20).'},
-  zone:{nav:'Bureau de zone',titre:'Zone sanitaire — équipe d’encadrement (EEZS)',
+    recoit:'Reçoit les données saisies dans DHIS2 par les zones sanitaires (avant le 20 du mois suivant), les valide avec les statisticiens et appuie les zones.'},
+  zone:{nav:'Bureau de zone',titre:'Zone sanitaire, équipe d’encadrement (EEZS)',
     gouv:['Équipe d’encadrement de la zone : médecin coordonnateur (MCZS), directeur de l’hôpital de zone, médecins-chefs de commune, chargé de l’administration et des ressources, chargé de la recherche-action et de la mobilisation sociale, chargé de l’hygiène et de l’assainissement, responsable des soins infirmiers et/ou obstétricaux, chargé de la statistique et de la surveillance épidémiologique','Organe de décision : comité de santé de la zone (COSA)'],
     faire:[['Suivre complétude et promptitude des rapports des relais','rapports'],['Suivre les références de la zone','references'],['Valider les signalements communautaires de la zone','communautaire'],['Suivre les alertes épidémiques de la zone','epidemio'],['Exporter les données mensuelles','export'],['Voir la zone sur la carte','carte']],
-    recoit:'Reçoit les rapports des formations sanitaires (avant le 5 du mois suivant) et transmet à la direction départementale (avant le 15).'},
-  fs:{nav:'Ma formation sanitaire',titre:'Niveau périphérique — formation sanitaire (premier contact)',
+    recoit:'Reçoit les rapports des formations sanitaires (avant le 5 du mois suivant) et les saisit dans DHIS2 (avant le 20).'},
+  fs:{nav:'Ma formation sanitaire',titre:'Niveau périphérique, formation sanitaire (premier contact)',
     gouv:['Organe de décision : comité de gestion du centre de santé (COGESCS, 9 membres) ou comité villageois de santé (CVS)','Organe exécutif : chef de poste','Sous la responsabilité du médecin-chef de la commune'],
     faire:[['Recevoir les patients référés et envoyer la contre-référence','references'],['Valider les rapports mensuels des relais','rapports'],['Enregistrer des consultations','consultations'],['Vérifier les signalements des relais et ASCQ','communautaire'],['Répondre aux téléconsultations','teleconsultation'],['Voir les rappels des patients','rappels']],
     recoit:'Reçoit les signalements des relais et ASCQ de son aire de santé et transmet son rapport mensuel à la zone sanitaire (avant le 5).'},
-  communautaire:{nav:'Mon espace communautaire',titre:'Niveau communautaire — village ou quartier',
+  communautaire:{nav:'Mon espace communautaire',titre:'Niveau communautaire, village ou quartier',
     gouv:['Comité villageois de santé (CVS) ou COGESCS du centre de santé de l’aire','Tutelle technique : chef de poste du centre de santé','Un ASCQ encadre en moyenne trois relais'],
     faire:[['Envoyer mon rapport mensuel','rapports'],['Référer un malade au centre de santé','references'],['Faire un signalement','communautaire'],['Me former','formation']],
     recoit:'Vos signalements sont vérifiés par un agent de santé du centre de santé avant d’entrer dans la surveillance.'}
@@ -2242,7 +2317,7 @@ function EspaceNiveau({user,consultations,go}){
       try{
         const r=await supaClient.from('signalements_communautaires').select('id,statut,zone_sanitaire,departement,commune,village,maladie_notif,nb_cas').limit(1000);
         if(!vivant)return;
-        if(r.error){setErr('Signalements indisponibles : '+(r.error.message||r.error.code));}else{setSig(r.data||[]);setErr('');}
+        if(r.error){setErr(userErr(error));}else{setSig(r.data||[]);setErr('');}
         if(['medecin','infirmier'].includes(user.role)){const t=await supaClient.from('teleconsultations').select('id').eq('statut','attente');if(vivant&&!t.error)setTele((t.data||[]).length);}
       }catch(e){if(vivant)setErr('Réseau indisponible.');}
     };
@@ -2260,8 +2335,8 @@ function EspaceNiveau({user,consultations,go}){
   const cnt=(codes)=>consultations.filter(c=>codes.includes(c.zone_sanitaire)).length;
   const imm=(codes)=>consultations.filter(c=>codes.includes(c.zone_sanitaire)&&((matchMaladie(c.diagnostic)||{}).notif==='immédiate')).length;
   if(ech==='central'){titreTab='Par département';lignes=Object.keys(ZONES_SANITAIRES).map(d=>{const codes=ZONES_SANITAIRES[d].map(z=>z.code);const ss=sig.filter(x=>normAccents(x.departement||'')===normAccents(d));return{n:d.charAt(0)+d.slice(1).toLowerCase(),c:cnt(codes),i:imm(codes),a:ss.filter(x=>x.statut==='soumis').length,f:ss.filter(x=>x.statut==='confirme').length};});}
-  else if(ech==='departement'){titreTab='Par zone sanitaire'+(deptKey?' — '+deptKey.charAt(0)+deptKey.slice(1).toLowerCase():'');lignes=(deptKey?ZONES_SANITAIRES[deptKey]:[]).map(z=>{const ss=sig.filter(x=>x.zone_sanitaire===z.code);return{n:z.nom,c:cnt([z.code]),i:imm([z.code]),a:ss.filter(x=>x.statut==='soumis').length,f:ss.filter(x=>x.statut==='confirme').length};});}
-  else if(ech==='zone'||ech==='fs'){titreTab=ech==='zone'?'Par commune de la zone':'Par village de l’aire de santé';const cle=ech==='zone'?'commune':'village';const m={};sig.forEach(x=>{const k=x[cle]||'—';const o=m[k]||(m[k]={n:k,c:0,i:0,a:0,f:0});if(x.statut==='soumis')o.a++;if(x.statut==='confirme')o.f++;});lignes=Object.values(m);}
+  else if(ech==='departement'){titreTab='Par zone sanitaire'+(deptKey?'. '+deptKey.charAt(0)+deptKey.slice(1).toLowerCase():'');lignes=(deptKey?ZONES_SANITAIRES[deptKey]:[]).map(z=>{const ss=sig.filter(x=>x.zone_sanitaire===z.code);return{n:z.nom,c:cnt([z.code]),i:imm([z.code]),a:ss.filter(x=>x.statut==='soumis').length,f:ss.filter(x=>x.statut==='confirme').length};});}
+  else if(ech==='zone'||ech==='fs'){titreTab=ech==='zone'?'Par commune de la zone':'Par village de l’aire de santé';const cle=ech==='zone'?'commune':'village';const m={};sig.forEach(x=>{const k=x[cle]||'n/d';const o=m[k]||(m[k]={n:k,c:0,i:0,a:0,f:0});if(x.statut==='soumis')o.a++;if(x.statut==='confirme')o.f++;});lignes=Object.values(m);}
   const auj=new Date();const jour=auj.getDate();
   const moisRapport=MOIS_FR[(auj.getMonth()+11)%12];
   const ech_dates=[['fs','Formations sanitaires → zone sanitaire',5],['zone','Zone sanitaire → direction départementale',15],['departement','Direction départementale → niveau central',20]];
@@ -2310,13 +2385,13 @@ function EspaceNiveau({user,consultations,go}){
       <div className="form-hint">Chiffres calculés à partir des données de SNISB visibles par votre compte. Ils ne remplacent pas les rapports mensuels du SNIGS.</div>
     </div>}
 
-    {ech!=='communautaire'&&<div className="card"><div className="card-title">Circuit des rapports mensuels — rapports de {moisRapport}</div>
+    {ech!=='communautaire'&&<div className="card"><div className="card-title">Circuit des rapports mensuels, rapports de {moisRapport}</div>
       <table><tbody>{ech_dates.map(([k,t,j])=>{const e=etat(j);return <tr key={k} style={k===ech?{background:'#F1F8F4',fontWeight:700}:undefined}><td>{t}</td><td>avant le {j}</td><td><span className={'badge '+e.c}>{e.t}</span></td></tr>;})}</tbody></table>
       <div className="form-hint">Maladies à notification immédiate : le circuit est direct, la notification part à l’échelon suivant sans attendre le rapport mensuel. Source : notes de cours SNIGS, ENATSE 2025-2026.</div>
     </div>}
 
     <div className="card"><div className="card-title">Organes de gouvernance de ce niveau</div>
-      {E.gouv.map((g,i)=><div key={i} style={{fontSize:13,padding:'4px 0'}}>• {g}</div>)}
+      {E.gouv.map((g,i)=><div key={i} style={{fontSize:13,padding:'4px 0'}}>· {g}</div>)}
       <div className="form-hint">Source : syllabus « Organisation des systèmes de santé », ENATSE 2025-2026 (organes de gouvernance du système de santé du Bénin).</div>
     </div>
 
@@ -2345,8 +2420,8 @@ function PyramideSanitaire({user}){
       </div>
       <div style={{fontSize:13,marginBottom:6}}>{n.role}</div>
       <ul style={{fontSize:13,paddingLeft:18,margin:'0 0 8px'}}>{n.structures.map((s,j)=><li key={j} style={{marginBottom:3}}>{s}</li>)}</ul>
-      <div style={{fontSize:12}}><strong>Rôles SNISB :</strong> {n.snisb.join(' • ')}</div>
-      {i<PYRAMIDE.length-1&&<div style={{textAlign:'center',fontSize:11,color:'var(--text-muted)',marginTop:8}}>↓ référence des cas vers le haut ↑ — supervision vers le bas</div>}
+      <div style={{fontSize:12}}><strong>Rôles SNISB :</strong> {n.snisb.join(' · ')}</div>
+      {i<PYRAMIDE.length-1&&<div style={{textAlign:'center',fontSize:11,color:'var(--text-muted)',marginTop:8}}>↓ référence des cas vers le haut ↑, supervision vers le bas</div>}
     </div>)}
     <div className="alert alert-info"><div className="alert-content"><div className="alert-title">Circuit de l’information</div><div className="alert-text">Relais communautaire → agent de santé communautaire → chef de poste du centre de santé (validation) → zone sanitaire → direction départementale → niveau central. Dans SNISB, un signalement communautaire n’entre dans la surveillance qu’après confirmation par un agent de santé.</div></div></div>
     <div className="form-hint">Sources : Décret n° 2022-148 du 02 mars 2022 portant organisation de la pyramide sanitaire (le décret ne décrit pas de circuit de référence formel ; celui-ci découle de la structure) ; Politique nationale de santé communautaire du Bénin. Le niveau communautaire est décrit dans la politique de santé communautaire, non dans le décret.</div>
@@ -2373,9 +2448,9 @@ function SanteCommunautaire({user}){
     if(!enligne)return;
     try{
       const{data,error}=await supaClient.from('signalements_communautaires').select('*').order('created_at',{ascending:false}).limit(300);
-      if(error){setLoadErr(/signalements_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module communautaire n’est pas installé : exécutez 12_pyramide_communautaire.sql dans Supabase.':'Chargement impossible : '+error.message);return;}
+      if(error){setLoadErr(/signalements_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':'Chargement impossible : '+error.message);return;}
       setLoadErr('');setItems(data||[]);
-    }catch(e){setLoadErr('Réseau indisponible — les signalements déjà saisis restent affichés.');}
+    }catch(e){setLoadErr('Réseau indisponible, les signalements déjà saisis restent affichés.');}
   };
   const[etatEnvoi,setEtatEnvoi]=useState('');
   const envoyerAttente=async()=>{
@@ -2421,9 +2496,9 @@ function SanteCommunautaire({user}){
         else{
           const em=(error.message||'')+' '+(error.code||'');
           if(/JWT|PGRST30|401/i.test(em)){/* session expirée : on garde le signalement sur l’appareil */}
-          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Le module communautaire n’est pas prêt : exécutez 12_pyramide_communautaire.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Ce service n’est pas encore activé. Contactez l’administrateur du système.']);setBusy(false);return;}
           else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);setBusy(false);return;}
-          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
+          else{setErrs([userErr(error)]);setBusy(false);return;}
         }
       }catch(x){/* panne réseau : mise en attente locale */}
     }
@@ -2439,17 +2514,17 @@ function SanteCommunautaire({user}){
     setBusy(true);setMsg(null);
     const{data,error}=await supaClient.from('signalements_communautaires').update({statut:statut,valide_par:user.nom,valide_id:user.supabase_id,motif_rejet:statut==='rejete'?motifRejet.trim():null}).eq('id',s.id).eq('statut','soumis').select();
     setBusy(false);
-    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||'')});return;}
+    if(error){setMsg({t:'danger',m:userErr(error)});return;}
     if(!data||data.length===0){setMsg({t:'warning',m:'Ce signalement a déjà été traité ou n’est pas dans votre zone.'});await charger();return;}
     setRejetId(null);setMotif('');
-    setMsg({t:'success',m:statut==='confirme'?('Signalement confirmé par '+user.nom+(s.maladie_notif==='immédiate'?' — une alerte épidémique a été ouverte (onglet Épidémiologie).':'.')):'Signalement rejeté.'});
+    setMsg({t:'success',m:statut==='confirme'?('Signalement confirmé par '+user.nom+(s.maladie_notif==='immédiate'?', une alerte épidémique a été ouverte (onglet Épidémiologie).':'.')):'Signalement rejeté.'});
     await charger();
   };
 
   const aValider=items.filter(x=>x.statut==='soumis');
   const confirmes=items.filter(x=>x.statut==='confirme');
   const parVillage={};
-  confirmes.forEach(x=>{const k=(x.village||'—')+'|'+(x.commune||'')+'|'+(x.zone_sanitaire||'');const o=parVillage[k]||(parVillage[k]={village:x.village,commune:x.commune,zone:x.zone_sanitaire,cas:0,deces:0,orientes:0,n:0});o.cas+=x.nb_cas;o.deces+=x.nb_deces;o.orientes+=x.nb_orientes;o.n+=1;});
+  confirmes.forEach(x=>{const k=(x.village||'n/d')+'|'+(x.commune||'')+'|'+(x.zone_sanitaire||'');const o=parVillage[k]||(parVillage[k]={village:x.village,commune:x.commune,zone:x.zone_sanitaire,cas:0,deces:0,orientes:0,n:0});o.cas+=x.nb_cas;o.deces+=x.nb_deces;o.orientes+=x.nb_orientes;o.n+=1;});
   const lignes=Object.values(parVillage).sort((a,b)=>b.cas-a.cas);
   const exporterCSV=()=>{
     const cols=['date_evenement','zone_sanitaire','commune','arrondissement','village','categorie','maladie_code','maladie_nom','nb_cas','nb_deces','nb_orientes','auteur_nom','valide_par','valide_at'];
@@ -2459,11 +2534,11 @@ function SanteCommunautaire({user}){
   };
   const badge=s=><span className={'badge '+(s==='confirme'?'badge-success':s==='rejete'?'badge-immediate':'badge-hebdo')}>{s==='confirme'?'Confirmé':s==='rejete'?'Rejeté':'À vérifier'}</span>;
   const carte=(s,actions)=><div key={s.id} className="consultation-item">
-    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{fmtDate(s.date_evenement)} — {s.village}{s.commune?' ('+s.commune+')':''}</div>{badge(s.statut)}</div>
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{fmtDate(s.date_evenement)} : {s.village}{s.commune?' ('+s.commune+')':''}</div>{badge(s.statut)}</div>
     <div style={{fontWeight:600,fontSize:13,marginTop:2}}>{CAT_SIG[s.categorie]||s.categorie}{s.maladie_nom?' : '+s.maladie_nom:''}{s.maladie_notif==='immédiate'&&<span className="badge badge-immediate" style={{marginLeft:6}}>Notification immédiate</span>}</div>
-    <div style={{fontSize:12,margin:'2px 0'}}>{s.nb_cas} cas • {s.nb_deces} décès • {s.nb_orientes} orienté(s) vers un centre de santé</div>
+    <div style={{fontSize:12,margin:'2px 0'}}>{s.nb_cas} cas · {s.nb_deces} décès · {s.nb_orientes} orienté(s) vers un centre de santé</div>
     {s.description&&<div style={{fontSize:13}}>{s.description}</div>}
-    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {s.auteur_nom} ({s.auteur_role==='asc'?'ASCQ':'relais'}){s.valide_par?' • Traité par '+s.valide_par:''}{s.motif_rejet?' • Motif du rejet : '+s.motif_rejet:''}</div>
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {s.auteur_nom} ({s.auteur_role==='asc'?'ASCQ':'relais'}){s.valide_par?' · Traité par '+s.valide_par:''}{s.motif_rejet?' · Motif du rejet : '+s.motif_rejet:''}</div>
     {actions}
   </div>;
   const Msg=()=>msg?<div className={'alert alert-'+(msg.t==='danger'?'danger':msg.t==='warning'?'warning':'success')}><div className="alert-content"><div className="alert-text">{msg.m}</div></div></div>:null;
@@ -2488,7 +2563,7 @@ function SanteCommunautaire({user}){
       <div className="form-group"><label className="form-label">Que signalez-vous ? *</label>
         <select className="form-select" value={form.categorie} onChange={e=>setForm(Object.assign({},form,{categorie:e.target.value,maladie_code:''}))}>{Object.keys(CAT_SIG).map(k=><option key={k} value={k}>{CAT_SIG[k]}</option>)}</select></div>
       {form.categorie==='maladie_surveillance'&&<div className="form-group"><label className="form-label">Maladie suspectée *</label>
-        <select className="form-select" value={form.maladie_code} onChange={e=>setForm(Object.assign({},form,{maladie_code:e.target.value}))}><option value="">— Choisir —</option>{MALADIES_SIMR.map(m=><option key={m.code} value={m.code}>{m.nom} ({m.code})</option>)}</select></div>}
+        <select className="form-select" value={form.maladie_code} onChange={e=>setForm(Object.assign({},form,{maladie_code:e.target.value}))}><option value="">Choisir</option>{MALADIES_SIMR.map(m=><option key={m.code} value={m.code}>{m.nom} ({m.code})</option>)}</select></div>}
       {maladie&&maladie.notif==='immédiate'&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-title">Maladie à notification immédiate</div><div className="alert-text">Prévenez tout de suite le chef de poste du centre de santé (téléphone ou en personne). Ce formulaire ne remplace pas cet appel.</div></div></div>}
       <div className="form-row">
         <div className="form-group"><label className="form-label">Nombre de cas</label><input className="form-input" type="number" min="0" value={form.nb_cas} onChange={e=>setForm(Object.assign({},form,{nb_cas:e.target.value}))}/></div>
@@ -2520,12 +2595,12 @@ function SanteCommunautaire({user}){
         <button className="btn btn-outline btn-sm" onClick={exporterCSV} disabled={confirmes.length===0}>⬇️ Exporter (CSV)</button></div>
       {lignes.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement confirmé pour le moment</div></div>
         :<div className="table-wrap"><table><thead><tr><th>Village</th><th>Commune</th><th>Zone</th><th>Signalements</th><th>Cas</th><th>Décès</th><th>Orientés</th></tr></thead>
-          <tbody>{lignes.map((l,i)=><tr key={i}><td><strong>{l.village}</strong></td><td>{l.commune||'—'}</td><td>{l.zone||'—'}</td><td>{l.n}</td><td>{l.cas}</td><td>{l.deces}</td><td>{l.orientes}</td></tr>)}</tbody></table></div>}
+          <tbody>{lignes.map((l,i)=><tr key={i}><td><strong>{l.village}</strong></td><td>{l.commune||'n/d'}</td><td>{l.zone||'n/d'}</td><td>{l.n}</td><td>{l.cas}</td><td>{l.deces}</td><td>{l.orientes}</td></tr>)}</tbody></table></div>}
       <div className="form-hint">L’export CSV sert de base de transmission ; l’envoi vers DHIS2 (SNIGS) demande les codes officiels des éléments de données du Bénin, à intégrer avec la direction en charge du SNIGS.</div>
     </div>}
 
     {tab==='liste'&&<div className="card">
-      {items.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement</div></div>:attente.map(s=>carte(s,<div style={{marginTop:4}}><span className="badge badge-hebdo">En attente d’envoi — sur cet appareil</span></div>)).concat(items.map(s=>carte(s,null)))}
+      {items.length===0&&attente.length===0?<div className="empty-state"><div className="empty-text">Aucun signalement</div></div>:attente.map(s=>carte(s,<div style={{marginTop:4}}><span className="badge badge-hebdo">En attente d’envoi, sur cet appareil</span></div>)).concat(items.map(s=>carte(s,null)))}
     </div>}
   </div>);
 }
@@ -2533,20 +2608,20 @@ function SanteCommunautaire({user}){
 // ═══════════════════════════════════════════════════════════════════════
 // V22 — Référence / contre-référence, rapports communautaires (PIHI), qualité des données, conformité APDP
 // Sources (voir DOCUMENTATION_V22.md) :
-//  • Directives nationales de référence et de contre-référence, Ministère de la Santé, 2018 (annexes 1 à 7)
-//  • Guide SNIGS (projet du 13/07/2021) : rapports communautaires « prévention (VAD+SEG) » et « cas pris en charge »
-//  • Directives nationales de suivi-évaluation du PIHI communautaire, janvier 2015 (circuit, délais, qualité des données)
-//  • Code du numérique du Bénin (loi n° 2017-20), Livre V : art. 394, 405, 426, 427, 430
-//  • Annuaire des statistiques sanitaires 2019, annexe 2 (formations publiques) ; annuaires 2016 et 2022 (noms des 34 zones)
+//  · Directives nationales de référence et de contre-référence, Ministère de la Santé, 2018 (annexes 1 à 7)
+//  · Guide SNIGS (projet du 13/07/2021) : rapports communautaires « prévention (VAD+SEG) » et « cas pris en charge »
+//  · Directives nationales de suivi-évaluation du PIHI communautaire, janvier 2015 (circuit, délais, qualité des données)
+//  · Code du numérique du Bénin (loi n° 2017-20), Livre V : art. 394, 405, 426, 427, 430
+//  · Annuaire des statistiques sanitaires 2019, annexe 2 (formations publiques) ; annuaires 2016 et 2022 (noms des 34 zones)
 // ═══════════════════════════════════════════════════════════════════════
 const FORMATIONS_PUBLIQUES={"Banikoara":["CS Banikoara","HZ Banikoara","CS Founougo","CS Gama","CS Gbanni","CS Igrigou","CS Kanderou","CS Sampeto","CS Alibori","CS Bouhanrou","CS Gnambanou","CS Gomparou","CS Boni","CS Gbassa","CS Goumori","CS Kokey","CS Sonwari","CS Yambérou","CS Bonte","CS Kokiborou","CS Yampogou","CS Boniki","CS Ounet","CS Sonnou","CS Poto","CS Somperekou","CS Gbeniki","CS Guimbagou","CS Kakorokou","CS Toura"],"Kandi-Gogounou-Ségbana":["CS Badou","CS Bagou","CS Gogounou","CS Ouere","CS Borodarou","CS Gounarou","CS Lougou (Gog)","CS Ouara","CS Sori","CS Zougou Pantrossi","CS Alfakoara","CS Angaradebou","CS Fouet","CS Thya","CS Bensekou","CS Donwari","CS Gansosso","CS Kandi II","HZ Kandi","CS Kassakou","CS Saah","CS Sam","CS Tankongou","CS Sonsoro","CS Bobena","CS Libante","CS Saonzi","CS Liboussou","CS Lougou","CS Piami","CS Segbana","CS Morou","CS Serebani","CS Sokotindji"],"Malanville-Karimama":["CS Birni Lafia","CS Bogo-Bogo","CS Karimama","CS Kompa","CS Monsey","CS Pétchinga","CS Garou","CS Garou Tedji","CS Banite","CS Goun-Goun","CS Guene","CS Madecali","CS Bodjecali","CS Malanville","HZ Malanville-Karimama","CS Molla","CS Sakawan-Tedji","CS Toumboutou"],"Kouandé-Péhunco-Kérou":["CS Birni","CS Goufanrou","CS Chabi Couma","CS Sakasson","CS Fo-Tance","CS Guilmaro","CS Kpakou Tankouga","CS Kouande","CS Makrou","HZ Kouande","CS Niarosson","CS Niékénébansou","CS Orou Kayo","CS Bagou-Bagou","CS Brignamaro","CS Bérékousou","CS Ouinra","CS Batenin","CS Firou","CS Gori","CS Kaobagou","CS Bakoussarou","CS Boukoubourou","CS Fetekou","CS Kerou","CS Ouore","CS Pikire","CS Gnemasson","CS Pehunco","CS Bana","CS Ouassa-Maro","CS Ouassa-Tobre"],"Natitingou-Boukoumbé-Toucountouna":["CS Boukombe","Cases Dipoli","CS Korontiere","CS Koussoucoingou","CS Manta","CS Natta","CS Tabota","CS Kotopounga","CS Pouya","CS Yarikou","CS Kouaba","CS Tagaye","CS Kouandata","CS Natitingou","HZ Natitingou","Forces Armees","CHD Atacora","Ecole Normale Superieur","Lycee Des Jeunes Filles","Prison Civile","CS Perporiyakou","CS Perma","CS Tchoumi-Tchoumi","CS Kouarfa","CS Kouba","CS Tampegre","CS Toucountouna"],"Tanguiéta-Cobly-Matéri":["CS Bagapodi","CS Cobly","CS Datori","CS Kountori","CS Oroukparé","CS Tapoga","CS Dassari","CS Gouande","CS Materi","CS Pingou","CS Kotari","CS Nodi","CS Tantega","CS Tchanhoun-Cossi","CS Cotiakou","CS Koronkore","CS Tora","CS N'Dahonta","CS Taîakou","CS Mamoussa","CS Tanguieta","Inf Camp Militaire","CS Tanongou","CS Tchatingou"],"Abomey-Calavi-So-Ava":["CS Abomey-Calavi","HZ Abomey-Calavi","Infirmerie UAC","CS Akassato","CS Glo-Djigbe","CS Cococodji","CS Dekoungbe","CS Godomey","CS Womey","CS Hevie","CS Kpanroun","CS Ouedo","CS Maria Gléta","CS Togba","CS Wawata","CS Zinvie","CS Ahomey Lokpo","CS Kinto Oudjra","CS Ganvie","CS Gbessou","CS Houedo-Aguekon","CS So-Ava","CS Vekky"],"Allada-Toffo-Zè":["CS Agbanou","CS Ahouannonzoun","CS Allada","CS Soyo","CS Attogon","CS Avakpa","CS Ayou","HZ Allada","CS Hinvi","CS Adjimè-Aota","CS Lissegazoun","CS Lon-Agonmey","CS Dodji Aliho","CS Sekou","CS Togoudo","CS Tokpa (Allada)","CS Ague","CS Colli","CS Coussi","CS Agon","CS Dame","CS Djanglanme","CS Houegbo","CS Kpome","CS Sey","CS Sehoue","CS Toffo","CS Adjan","CS Djigbe (Ze)","CS Dodji-Bata","CS Koudokpoe","CS Sedje-Denou","CS Ahozonnoude","CS Tangbo Djevie","CS Ze"],"Ouidah-Kpomassè-Tori-Bossito":["CS Aganmalome","CS Kougbedji","CS Agonkanme","CS Dedome","CS Dekanme","CS Kpago-Houedjro","CS Kpomasse","CS Segbeya","CS Segbohoue","CS Tokpa Dome","CS Avlekete","DI Adounko","CS Djegbadji","DI Djondji","CS Gakpe","CS Houakpe-Daho","CS Kindji","DI Ganlonon-Codji","DI Prison Civil","HZ Ouidah","CS Kpasse","CS Pahou","DI Acadjame","DI Houndjava","MI Kpovie","CS Savi","CS Avame","CS Azohoue-Aliho","CS Azohoue-Cada","Cases Houenouko","CS Tori-Bossito","MI Hekandji","CS Tori-Cada","CS Akadjame","CS Tori Gare"],"Bembèrèkè-Sinendé":["CS Bembereke","CS Garnison Bembereke","CS Kokabo","HZ Bembereke","CS Beroubouay","CS Bouanri","CS Guerankali","CS Gamia","DI Ganro","CS Guessou Sud","CS Ina","DI Goua","CS Fo-Boure","DI Fo Boko","DI Sokka","CS Sekere","CS Yarra","CMC Wari","CS Sikki","CS Guessou-Bani","CS Sinende","MI Kossia","MI Niaro"],"N'Dali-Parakou":["CS Bori","CS Gounin","CS Maregourou","CS Teme","CS Gbegourou","EpiCentre Darnon","CS Ndali","CS Ouenou (Ndali)","CS Sirarou","CS Kpebie (Pkou)","CS Madina","CS Tourou","CHD Borgou","CS Banikanni","CS Parakou","DI Prison Civile (Pkou)","Cnss","CS Ganou","CS Zongo II"],"Nikki-Kalalé-Pèrèrè":["CS Basso","CS Neganzi","CS Bouca","CS Kourel","CS Derassi","CS Djega","CS Dunkassa","CS Gbessakperou","CS Bessassi","CS Kalale","CS Kidaroukperou","CS Lou","CS Yolla","CS Zambara","CS Peonga","CS Biro","CS Sonsonre","CS Tebo","CS Gbari","CS Gnonkourokali","CS Soubo","CS Nikki","CS Sakabansi","CS Tontarou","CS Fombawi","CS Ouenou (Nikki)","CS Tchikandou","CS Serekali","CS Suya","CS Tasso","CS Boro","CS Diguidirou","CS Gninsy","CS Sandilo","CS Gommey","CS Guinagourou","CS Nassy","CS Paneguea","CS Kpebie (Pèrèrè)","CS Perere","CS Sontou"],"Tchaourou":["CS Agbassa","CS Alafiarou","CS Koko","CS Beterou","CS Kaki Koka","CS Wari Maro","CS Yebessi","CS Goro","CS Kabo","CS Kika","CS Kpari","CS Tandou","CS Sanson","CS Tchaourou","CS Kinnou Kpanou","CS Tchatchou"],"Dassa-Glazoué":["CS Betecoucou","MI Attinkpayé","CS Dassa","HZ Dassa","CS Gbaffo","MI Gnokpingnon","CS Kere","MI Igoho","CS Kpingni","MI Fita","CS Lema","MI Erokoya","MI Kpakpa Agbagoule","CS Paouignan","DI Agbogbome","MI Adjanoudoho","MI Hounkpogon","CS Soclogbo","MI Agbondjèdo","MI Miniffi","CS Tre","CS Aklampa","CS Sowiandji","CS Assante","MI Gbanlin","CS Glazoue","CS Gome","MI Haya","MI Tchatchegou","CS Kpakpaza","MI Sowe","CS Magoumi","CS Ouedeme","MI Yagbo","CS Oké okounou","CS Sokponta","CS Thio","MI Akomya","MI Béthel","MI Hoco","MI Riffo","CS Madengbé","CS Zaffé","MI Adourekonan"],"Savalou-Bantè":["CS Agoua","CS Akpassi","CS Atokolibé","CS Bante","CS Bobe","MI Djagbalo","CS Gouka","CS Koko","CS Lougba","CS Pira","MI Okouta-Ossé","CS Djalloukou","CS Doume","MI COFFE AGBALLA","CS Gobada","CS Kpataba","CS Lahotan","DI MEDETEKPO","CS Logozohe","CS Monkpa","CS Ottola","CS Ouessè (Savalou)","CS Savalou","CS Zounzonkamey","Hopital Savalou","CS Doissa","CS Lowo","CS Tchetti"],"Savè-Ouèssè":["CS Challa-Ogoi","CS Gbédé","CS Kokoro","CS Djègbé","CS Gbanlin","CS Vossa","MI Idadjo","CS Kemon","MI Akpero","CS Kilibo","MI Yaoui","CS Laminou","MI Odougba","CS Ouesse Centre","CS Ogoutèdo","CS Toui","CS Toui PK","MI Toui gare","HZ Save","CS Besse","CS Kadjogbé","MI Okpa","CS Boni","CS Kaboua","MI Alafia","MI Okounfo","CS Offe","MI Ayédjoko","MI Dani","CS Akon","CS Oke-Owo","MI Monka","CS Sakin","MI Ouoghi","CS Plateau","MI Boubou"],"Aplahoué-Djakotomey-Dogbo":["CS Aplahoue","HZ Aplahoue","CS Atomey","CS Azove","CS Dekpo","CS Lagbavey","CS Godohou","CS Houetan","MI Epi Centre Kissamey","CS Lonkly","CS Adjintimey","CS Betoumey","CS Djakotome","CS Houegamey","CS Kokohoue","CS Kpoba","CS Sokouhoue","CS Ayomi","MI Kpodaha","CS Dogbo Tota","MI Mandankanmey","CS Deve","CS Honton","MI Dadohoue","CS Lokogohoue","CS Madjre","CS Totchangni"],"Klouékanmè-Lalo-Toviklin":["CS Adjahonme","CS Ahogbeya","CS Ayahohoue","CS Djotto","DI Akime","CS Hondjin","CS Klouekanme","HZ Klouekanme","CS Lanta","MI Gbowime","CS Tchikpe","CS Adoukandji","CS Tchi-Ahodjinnako","CS Tchi-Ahomadegbe","CS Banigbe (Lalo)","CS Gnizounme","CS Hlassame","DI Sohounouhoue","CS Lalo","CS Lokogba","MI Kuivonhoue","CS Tchito","CS Tohou","CS Zalli","CS Adjido","CS Banonsi-Avedjin","CS Doko","CS Houedogli","CS Missinko","CS Tannou-Gola","CS Toviklin"],"Bassila":["CS Aledjo","CS Kaouté","CS Partago","CS Aoro","CS Bassila","CS Biguina","CS Diépani","CS Dogue","CS Frignon","CS Igbomacro","CS Kikele","CS Kprekete","HZ Bassila","CS Manigri","CS Manigri Ikanni","CS Bodi","CS Nagayile","CS Nioro","CS Penelan","CS Penessoulou","CS Salmanga","MI Dengou"],"Djougou-Ouaké-Copargo":["CS Anandana","MI Setrah","CS Copargo","CS Kpassabla","CS Yaoura","CS Gnanfouroum","CS Pabegou","CS Karhum","CS Singre","CS Djougou1","MI Founga","CS Barienou","CS Foyo","CS Gaounga","CS Toko-Toko","CS Anoum","CS Barei","CS Bellefoungou","CS Bougou","CS Djakpingou","CS Djougou2","CHD Donga","CS Djougou","CS Bari","CS Gangamou","CS Kolokonde","CS Yorossonga","CS Daringa","CS Onklou","MI Bakou","CS Dabogou","CS Partago","CS Pelebina","CS Alfa-Kpara","CS Badjoude","CS Assodè","CS Komde","CS Ouake","CS Semere 1","CS Awotobi","CS Gbaou","DI Tchalinga","MI Madjatom"],"Cotonou 1-Cotonou 4":["CHU-MEL Cotonou","CS Cotonou 1","CS Placodji","Inf. LT Coulibaly","CS Ahouansori","CS Aïdjèdo","Inf CEG Dantokpa"],"Cotonou 2-Cotonou 3":["CS Agbato","CS Ayélawadjè","CS Missessin","CS Avotrou","CHUZ SURU-LERE","CS Gankpodo","Inf CEG Suru-Léré"],"Cotonou 5":["CS Police Républicaine","CS Saint Michel","CS Sikecodji","Ceg Ste Rita (Infirmerie Scolaire)","CS Zogbo","HZ Menontin"],"Cotonou 6":["Camp Guezo(Garnison)","Ceg Notre Dame","CS Gbegamey","INF ENEAM","Cnhu","CS Akogbato","CS Cadjehoun","CS Djomehountin","CS Agla","CS Houenoussou"],"Comè-Grand-Popo-Houèyogbé-Bopa":["CS Agbodji","CS Badazouin","MI MEDESSEDJI","CS Bopa","CS Gbakpodji","CS Lobogo","CS Possotome","CS Yegodoe","CS Agatogbo","CS Kpetou","CS Akodeha","CS Come","CS Gadome","HZ Come","CS Oumako","CS Ouedeme-Peda","CS Adjaha","CS Agoue","CS Ayiguinnou","CS Hilla-Condji","CS Avlo","MI GNIHOUNTINMEY","CS Djanglanmey","CS Gbehoue","CS Grand-Popo","CS Sazue","MI Gnito","CS Dahe","CS Djibio","CS Adromey","CS Ahouloume","CS Doutou","CS Honhoue","CS Houeyogbe","CS Drè","CS Sè","CS Dave","CS Manonkpon"],"Lokossa-Athiémè":["CS Adohoun","MI Aguidahoue","CS Atchannou","CS Konouhoue","DI Akonana","CS Athieme","DI Awame","MI Agbobada","MI Koudohounhoue","MI Zounhoue","CS Dedekpoe","CS Kpinnou","CS Agame","MI 4A Agame","CS Houin","MI Dessa","CS Koudo","MI Tinou","CHD Mono","CS Lokossa","DI Ceg1 Lokossa","DI Prison Civile (Lokossa)","HZ Lokossa","CS Djondji-Zoume","CS Ouedeme-Adja","DI Dansihoue"],"Adjohoun-Bonou-Dangbo":["CS Adjohoun","CS Goutin","HZ Adjohoun","CS Akpadanou","CS Houedo","CS Awonou","CS Agué Gbagodo","CS Azowlisse","CS Gbada","CS Gbekandji 1","CS Gbekandji 2","CS Houèda","CS Deme","CS Gangban","CS Gogbo","CS Kode","DI Gbannan","CS Togbota","CS Affame","CS Agbomahan","CS Atchonsa","CS Dogba-Hê","CS Bonou","CS Assrossa","CS Dame-Wogon","CS Allankpon","CS Hounvigue","CS Dangbo","CS Dekin","CS Gbeko","CS Agonguè","CS Houedomey","CS Akpame","CS Djigbe (Hozin)","CS Hozin","CS Hetin-Sota","CS Kessounou","CS Zoungue","CS Zounta"],"Akpro-Missérété-Avrankou-Adjarra":["CS Adjarra 1","CS Adjarra 2","CS Aglogbe","CS Honvie","CS Malanhoui","CS Mededjonou","CS Tchakou","CS Akpro-Misserete","DI Prison Civile (Akpro Misserete)","CS Agondozoun","CS Gome-Sota","CS Katagon","CS Ouiya","CS Danto","CS Vakon","CS Kpanoukpade","CS Zoungbome","CS Atchoukpa","CS Avrankou","CS Djomon","CS Gbozounme","CS Gbagla Ganfan","CS Kouti","CS Ouanho","CS Sado"],"Porto-Novo-Sèmè-Kpodji-Aguégués":["CS Avagbodji","CS Bembe","CS Houédomey (Aguegues)","CS Zoungame","CS Akron","CS Agbokou","CS Attakè","CS Djegan-Daho","CHD Oueme","CS Foun-Foun","CS Oganla","CS Zebou","Lourdes Porto-Novo","Inf. ENS","Infirmerie de l'INJEPS","CS Djegan-Kpevi","CS Houinmè","CS Hounsouko","CS Dowa","CS Louho","CS Ouando","CS Tokpota","CS Agblangandan","CS Sekandji","CS Aholouyeme","CS Djregbe","CS Djeffa","CS Ekpe","CS Tchonvi","CS Seme-Kpodji","CS Krake","CS Tohoue"],"Pobè-Kétou-Adja-Ouèrè":["CS Adja Ouere","CS Gbahouete","CS Ikpinle","CS Houedame","CS Abadago","CS Masse","CS Oko-Akare","CS Ologo","CS Logou","CS Tatonnoukon","CS Adakplame","CS Ewè","CS Effeoute","CS Idigny","CS Illara","CS Illikimou","CS Ayekou","CS Kpankou","CS Ketou I","CS Ketou II","CS Odometa","CS Okpometa","CS Omou","CS Ahoyeye","CS Igana","CS Issaba","CS Onigbolo","CS Akouho","HZ Pobe","CS Towe"],"Sakété-Ifangni":["CS Akadja","CS Banigbe (Ifangni)","CS Doke","CS Daagbe","CS Djegou Djedje","CS Gbokoutou","CS Ifangni","CS Iguillanhoun","CS Ita-Soumba","CS Ko-koumolou","CS Lagbe","CS Tchaada","CS Ikpedjile","CS Igba","CS Itadjebou","CS Sakete 1","HZ Sakete","CS Sakete 2","CS Ayidjedo","CS Takon","CS Yoko"],"Bohicon-Za-Kpota-Zogbodomey":["CS Avogbana","CS Bohicon I","CS Bohicon II","CS Gnidjazoun","CS Lissezoun","CS Ouassaho","CS Passagon","CS Saclo","CS Sodohomè","CS Allahe","MI Zaxla","CS Assanlin","MI Kpolokoue","MI Zounzonme","CS Houngome","CS Kpakpame","CS Kpozoun","CS Zakpota","MI Adjinagon","CS Za-Tanta","CS Tindji","CS Akiza","CS Avlame","CS Cana","MI Zoungbo Bogon","CS Dome","CS Koussoukpa","MI Deme","CS Kpokissa","CS Massi","CS Zogbodome","CS Zoukou"],"Covè-Zagnanado-Ouinhi":["DI Hounso","CS Covè","HZ Cove","CS Lainta Cogbé","CS Naogon","CS Dasso","CS Ouinhi","CS Sagon","MI Aïzè","CS Tohoues","CS Agonlin-Houegbo","CS Baname","MI Gossoé","CS Don-Tan","CS Dovi-Dove","MI Dovi Zounnou","CS Kpedekpo","CS Zagnannado"],"Djidja-Abomey-Agbangnizoun":["CS Agbokpa","CS Detohou","CHD Zou","CS Djegbe (Abomey)","CS Hounli","MI Sehoun","CS Vidole","MI Adandokpodji","CS Zounzonme","CS Adanhondjigon","CS Adingnigon","CS Agbangnizoun","CS Kinta","CS Lissazounme","MI Sahe","MI Sinwe-Kpota","CS Sinwe-Hounto","CS Tanve","CS Kpoto","CS Agondji","CS Agouna","CS Dan","CS Djidja","MI Dohouime","CS Gobaix","CS Monsourou","CS Mougnon","HZ Djidja","CS Oumgbega","CS Outo","CS Setto"]};
 const REF_OUTBOX='snisb_ref_outbox';
 const RAP_OUTBOX='snisb_rap_outbox';
-const zoneNom=c=>{const z=TOUTES_ZONES.find(x=>x.code===c);return z?z.nom:(c||'—');};
+const zoneNom=c=>{const z=TOUTES_ZONES.find(x=>x.code===c);return z?z.nom:(c||'n/d');};
 const ZONE_PAR_NOM=nom=>TOUTES_ZONES.find(z=>z.nom===nom)||null;
 const pct=(a,b)=>b>0?Math.round(a*1000/b)/10:null;
-const fmtPct=(a,b)=>{const p=pct(a,b);return p===null?'—':p.toLocaleString('fr-FR')+' %';};
-const fmtDH=d=>{if(!d)return'—';const x=new Date(d);return isNaN(x)?'—':x.toLocaleDateString('fr-FR')+' '+x.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
+const fmtPct=(a,b)=>{const p=pct(a,b);return p===null?'n/d':p.toLocaleString('fr-FR')+' %';};
+const fmtDH=d=>{if(!d)return'n/d';const x=new Date(d);return isNaN(x)?'n/d':x.toLocaleDateString('fr-FR')+' '+x.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
 const ROLES_PERSONNEL=['medecin','infirmier'];
 const ROLES_PILOTAGE=['admin','superviseur','statisticien'];
 
@@ -2588,17 +2663,17 @@ const EVOLUTIONS=['Guéri(e)','Évadé(e)','Décédé(e)','Sortie contre avis m�
 const REF_TYPES={
   general:{nom:'Fiche standard (formations sanitaires)',couleur:'#455A64',annexe:'Annexe 2',personnel:true,
     motifs:['Absence de médicaments','Absence de moyens de diagnostic','Absence de personnel qualifié','Pas de réponse au traitement'],soins:[]},
-  enfant:{nom:'Enfant de 0 à 59 mois',couleur:'#C62828',annexe:'Annexe 3 — fiche rouge',
+  enfant:{nom:'Enfant de 0 à 59 mois',couleur:'#C62828',annexe:'Annexe 3, fiche rouge',
     motifs:['Enfant de moins de 2 mois malade','Est incapable de boire ou de prendre le sein','A le corps chaud ou pleure sans arrêt','Vomit tout ce qu’il mange','Est très fatigué et ne s’amuse plus','A le corps chaud et les yeux jaunes','A du sang dans les selles ou un saignement anormal','A le pli cutané qui s’efface lentement et les yeux enfoncés','A convulsé à la maison ou convulse actuellement','A le corps chaud et une raideur du cou','A les mâchoires serrées ou les yeux qui tournent au blanc','Mesure du PB dans le rouge ou œdème des 2 pieds','A une pâleur palmaire sévère','A des éruptions généralisées ou un très mauvais état général','Est inconscient ou sans énergie (léthargique)','A le corps chaud et les urines « coca-cola »','A une respiration difficile','A la respiration qui siffle ou a avalé un objet'],
     soins:['Aucun','CTA','SRO/Zinc','Enveloppement humide','Paracétamol','Amoxicilline 500 mg','Garder au chaud sur le trajet','Sein ou SRO/Zinc sur le trajet']},
-  femme:{nom:'Femme et/ou nouveau-né',couleur:'#D81B8A',annexe:'Annexe 4 — fiche rose',
+  femme:{nom:'Femme et/ou nouveau-né',couleur:'#D81B8A',annexe:'Annexe 4, fiche rose',
     motifs:['Consultation prénatale 1 (1er trimestre)','Pertes de sang','Violents maux de ventre','Œdèmes des pieds','Convulsions','Vomissements intenses','Troubles de la vue / vision floue','Consultation postnatale 1 (10 premiers jours après l’accouchement)','Femme : a le corps chaud','Femme : pertes de sang et de pus','Femme : perd des urines','Femme : violents maux de tête','Femme : arrière-jambe qui fait mal','Nouveau-né : a les yeux ou la peau jaunes','Nouveau-né : a le corps chaud','Nouveau-né : refuse de téter','Nouveau-né : pleurs incessants','Nouveau-né : convulsions'],
     soins:['Aucun','CTA','Paracétamol','Amoxicilline 500 mg']},
-  pf:{nom:'Planification familiale',couleur:'#7CB342',annexe:'Annexe 5 — fiche vert clair',
+  pf:{nom:'Planification familiale',couleur:'#7CB342',annexe:'Annexe 5, fiche vert clair',
     motifs:['Demande de la femme','Demande d’un ménage pour la PF'],soins:[]},
-  indigent:{nom:'Personne indigente',couleur:'#9E9E9E',annexe:'Annexe 6 — fiche blanche',
+  indigent:{nom:'Personne indigente',couleur:'#9E9E9E',annexe:'Annexe 6, fiche blanche',
     motifs:[],soins:[]},
-  tousseur:{nom:'Tousseur chronique',couleur:'#F9A825',annexe:'Annexe 7 — fiche jaune',
+  tousseur:{nom:'Tousseur chronique',couleur:'#F9A825',annexe:'Annexe 7, fiche jaune',
     motifs:['Toux chronique sans crachats','Toux chronique avec crachats','Mauvais état général','Amaigrissement / dénutrition','Fièvre'],soins:[]}
 };
 const STATUT_REF={emise:['Émise','badge-hebdo'],recue:['Reçue','badge-primary'],contre_referee:['Contre-référée','badge-success'],non_arrivee:['Non arrivée','badge-immediate']};
@@ -2634,9 +2709,9 @@ function ReferenceCR({user}){
     if(!enligne)return;
     try{
       const{data,error}=await supaClient.from('references_cr').select('*').order('created_at',{ascending:false}).limit(500);
-      if(error){setLoadErr(/references_cr|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module de référence n’est pas installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':'Chargement impossible : '+(error.message||error.code));return;}
+      if(error){setLoadErr(/references_cr|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':userErr(error));return;}
       setLoadErr('');setItems(data||[]);
-    }catch(e){setLoadErr('Réseau indisponible — les fiches déjà chargées restent affichées.');}
+    }catch(e){setLoadErr('Réseau indisponible, les fiches déjà chargées restent affichées.');}
   };
   const envoyerAttente=async()=>{
     if(!lsGet(REF_OUTBOX,[]).length){setAttente([]);return;}
@@ -2696,9 +2771,9 @@ function ReferenceCR({user}){
         else{
           const em=(error.message||'')+' '+(error.code||'');
           if(/JWT|PGRST30|401/i.test(em)){/* session expirée : mise en attente */}
-          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Module non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Ce service n’est pas encore activé. Contactez l’administrateur du système.']);setBusy(false);return;}
           else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être rattaché à une zone sanitaire.']);setBusy(false);return;}
-          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
+          else{setErrs([userErr(error)]);setBusy(false);return;}
         }
       }catch(x){/* réseau : mise en attente */}
     }
@@ -2717,7 +2792,7 @@ function ReferenceCR({user}){
     if(!enligne||busy)return;setBusy(true);setMsg(null);
     const{data,error}=await supaClient.from('references_cr').update(patch).eq('id',r.id).select('id');
     setBusy(false);
-    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||error.code)});return false;}
+    if(error){setMsg({t:'danger',m:userErr(error)});return false;}
     if(!data||data.length===0){setMsg({t:'warning',m:'Cette fiche a déjà été traitée ou ne relève pas de votre structure.'});await charger();return false;}
     await charger();return true;
   };
@@ -2741,13 +2816,13 @@ function ReferenceCR({user}){
 
   const badge=s=>{const b=STATUT_REF[s]||[s,'badge-grey'];return <span className={'badge '+b[1]}>{b[0]}</span>;};
   const carte=(r,actions)=>{const T2=REF_TYPES[r.type_fiche]||REF_TYPES.general;return <div key={r.id} className="consultation-item" style={{borderLeft:'4px solid '+T2.couleur}}>
-    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{r.numero} — {fmtDH(r.date_reference)}</div><div>{r.urgent&&<span className="badge badge-immediate" style={{marginRight:4}}>URGENT</span>}{badge(r.statut)}</div></div>
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{r.numero} : {fmtDH(r.date_reference)}</div><div>{r.urgent&&<span className="badge badge-immediate" style={{marginRight:4}}>URGENT</span>}{badge(r.statut)}</div></div>
     <div style={{fontWeight:600,fontSize:13,marginTop:2}}>{r.patient_nom} · {r.sexe==='F'?'F':'M'} · {r.age_mois<24?r.age_mois+' mois':Math.floor(r.age_mois/12)+' ans'} <span style={{fontWeight:400,color:'var(--text-muted)'}}>({T2.nom})</span></div>
     <div style={{fontSize:12}}>De {r.structure_origine||zoneNom(r.zone_sanitaire)} → {r.structure_destination} ({zoneNom(r.zone_destination)})</div>
     {(r.motifs&&r.motifs.length>0||r.motif_autre)&&<div style={{fontSize:12,margin:'2px 0'}}>Motifs : {(r.motifs||[]).concat(r.motif_autre?[r.motif_autre]:[]).join(' ; ')}</div>}
     {r.symptomes&&<div style={{fontSize:12}}>Symptômes / diagnostic : {r.symptomes}</div>}
-    {r.statut==='contre_referee'&&r.contre&&<div style={{fontSize:12,marginTop:4,padding:'6px 8px',background:'var(--gray-100)',borderRadius:6}}><strong>Contre-référence</strong> ({r.contre_par}, {fmtDH(r.contre_at)}) : traité pour {r.contre.traite_pour} — référence {r.reference_justifiee?'justifiée':'non justifiée'}{r.evolution?' — évolution : '+r.evolution:''}. Conseils : {r.contre.recommandations}</div>}
-    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Émise par {r.emetteur_nom} ({r.emetteur_role==='asc'?'ASCQ':r.emetteur_role==='relais'?'relais':'agent de santé'}){r.recu_par?' • Reçue par '+r.recu_par:''}</div>
+    {r.statut==='contre_referee'&&r.contre&&<div style={{fontSize:12,marginTop:4,padding:'6px 8px',background:'var(--gray-100)',borderRadius:6}}><strong>Contre-référence</strong> ({r.contre_par}, {fmtDH(r.contre_at)}) : traité pour {r.contre.traite_pour}, référence {r.reference_justifiee?'justifiée':'non justifiée'}{r.evolution?', évolution : '+r.evolution:''}. Conseils : {r.contre.recommandations}</div>}
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Émise par {r.emetteur_nom} ({r.emetteur_role==='asc'?'ASCQ':r.emetteur_role==='relais'?'relais':'agent de santé'}){r.recu_par?' · Reçue par '+r.recu_par:''}</div>
     {actions}
   </div>;};
 
@@ -2763,7 +2838,7 @@ function ReferenceCR({user}){
   const justif=periodeItems.filter(r=>r.statut==='contre_referee'&&r.reference_justifiee).length;
   const IND=[[2,'Taux de référence reçue','Malades référés et reçus / total référés',recues,N],
     [3,'Taux de rétro-information','Cas référés ayant bénéficié d’une contre-référence / total référés',retro,N],
-    [9,'Taux de décès parmi les cas référés','Décès connus (par la contre-référence) / total référés — sous-estimé tant que les contre-références manquent',deces,N],
+    [9,'Taux de décès parmi les cas référés','Décès connus (par la contre-référence) / total référés, sous-estimé tant que les contre-références manquent',deces,N],
     [12,'Taux d’utilisation des ambulances','Cas référés en ambulance / total référés',amb,N],
     [13,'Taux de référés accompagnés d’un agent qualifié','Référés accompagnés / total référés',acc,N],
     [14,'Taux de référence précédé d’un appel','Cas référés précédés d’un appel / total référés',appel,N]];
@@ -2793,10 +2868,10 @@ function ReferenceCR({user}){
         <div className="form-hint">{T.annexe}. Les intitulés des motifs sont ceux de la fiche officielle.</div></div>
       <div className="form-row">
         <div className="form-group"><label className="form-label">Nom et prénoms du patient *</label><input className="form-input" value={form.patient_nom} onChange={e=>upd('patient_nom',e.target.value)}/></div>
-        <div className="form-group"><label className="form-label">Sexe *</label><select className="form-select" value={form.sexe} disabled={form.type_fiche==='femme'||form.type_fiche==='pf'} onChange={e=>upd('sexe',e.target.value)}><option value="">—</option><option value="F">Féminin</option><option value="M">Masculin</option></select></div>
+        <div className="form-group"><label className="form-label">Sexe *</label><select className="form-select" value={form.sexe} disabled={form.type_fiche==='femme'||form.type_fiche==='pf'} onChange={e=>upd('sexe',e.target.value)}><option value="">Sélectionner</option><option value="F">Féminin</option><option value="M">Masculin</option></select></div>
         <div className="form-group"><label className="form-label">Âge *</label><div style={{display:'flex',gap:4}}><input className="form-input" type="number" min="0" value={form.age} onChange={e=>upd('age',e.target.value)}/><select className="form-select" style={{maxWidth:90}} value={form.age_unite} onChange={e=>upd('age_unite',e.target.value)}><option value="mois">mois</option><option value="ans">ans</option></select></div></div>
       </div>
-      {form.type_fiche==='femme'&&<div className="form-group"><label className="form-label">Statut *</label><select className="form-select" value={form.statut_femme} onChange={e=>upd('statut_femme',e.target.value)}><option value="">— Choisir —</option><option value="grossesse">Grossesse</option><option value="accouchee_recente">Accouchée récente</option><option value="nouveau_ne_avec_mere">Nouveau-né avec sa mère</option></select></div>}
+      {form.type_fiche==='femme'&&<div className="form-group"><label className="form-label">Statut *</label><select className="form-select" value={form.statut_femme} onChange={e=>upd('statut_femme',e.target.value)}><option value="">Choisir</option><option value="grossesse">Grossesse</option><option value="accouchee_recente">Accouchée récente</option><option value="nouveau_ne_avec_mere">Nouveau-né avec sa mère</option></select></div>}
       <div className="form-row">
         <div className="form-group"><label className="form-label">Village / quartier</label><input className="form-input" value={form.village} onChange={e=>upd('village',e.target.value)}/></div>
         <div className="form-group"><label className="form-label">Accompagnant / parent / tuteur</label><input className="form-input" value={form.accompagnant} onChange={e=>upd('accompagnant',e.target.value)}/></div>
@@ -2815,18 +2890,18 @@ function ReferenceCR({user}){
       {T.soins.length>0&&<div className="form-group"><label className="form-label">Médicaments déjà donnés / conseils pour le trajet</label>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>{T.soins.map(s=><label key={s} style={{fontSize:13}}><input type="checkbox" checked={form.soins.includes(s)} onChange={()=>bascule('soins',s)}/> {s}</label>)}</div></div>}
       <div className="form-row">
-        <div className="form-group"><label className="form-label">Zone sanitaire de destination *</label><select className="form-select" value={form.zone_destination} onChange={e=>setForm(Object.assign({},form,{zone_destination:e.target.value,structure_destination:''}))}><option value="">— Choisir —</option>{TOUTES_ZONES.map(z=><option key={z.code} value={z.code}>{z.nom} ({z.departement.charAt(0)+z.departement.slice(1).toLowerCase()})</option>)}</select></div>
-        <div className="form-group"><label className="form-label">Structure de destination *</label><select className="form-select" value={form.structure_destination} onChange={e=>upd('structure_destination',e.target.value)}><option value="">— Choisir —</option>{zoneDestStructs.map(s=><option key={s} value={s}>{s}</option>)}<option value="__autre">Autre structure (à saisir)</option></select>
+        <div className="form-group"><label className="form-label">Zone sanitaire de destination *</label><select className="form-select" value={form.zone_destination} onChange={e=>setForm(Object.assign({},form,{zone_destination:e.target.value,structure_destination:''}))}><option value="">Choisir</option>{TOUTES_ZONES.map(z=><option key={z.code} value={z.code}>{z.nom} ({z.departement.charAt(0)+z.departement.slice(1).toLowerCase()})</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Structure de destination *</label><select className="form-select" value={form.structure_destination} onChange={e=>upd('structure_destination',e.target.value)}><option value="">Choisir</option>{zoneDestStructs.map(s=><option key={s} value={s}>{s}</option>)}<option value="__autre">Autre structure (à saisir)</option></select>
           {form.structure_destination==='__autre'&&<input className="form-input" style={{marginTop:4}} placeholder="Nom de la structure" value={form.structure_autre} onChange={e=>upd('structure_autre',e.target.value)}/>}
           <div className="form-hint">Liste des formations publiques de l’annuaire statistique 2019 ; les structures privées ou plus récentes se saisissent à la main.</div></div>
       </div>
       <div className="form-row">
-        <div className="form-group"><label className="form-label">Moyen de transport</label><select className="form-select" value={form.moyen_transport} onChange={e=>upd('moyen_transport',e.target.value)}><option value="">—</option>{MOYENS_TRANSPORT.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Moyen de transport</label><select className="form-select" value={form.moyen_transport} onChange={e=>upd('moyen_transport',e.target.value)}><option value="">Sélectionner</option>{MOYENS_TRANSPORT.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
         <div className="form-group"><label><input type="checkbox" checked={form.urgent} onChange={e=>upd('urgent',e.target.checked)}/> Cas urgent</label><br/><label><input type="checkbox" checked={form.accompagne_qualifie} onChange={e=>upd('accompagne_qualifie',e.target.checked)}/> Accompagné par un agent qualifié</label><br/><label><input type="checkbox" checked={form.appel_prealable} onChange={e=>upd('appel_prealable',e.target.checked)}/> Centre d’accueil alerté par appel</label></div>
       </div>
       <div className="alert alert-info"><div className="alert-content"><div className="alert-title">Consentement (Code du numérique, art. 394)</div>
         <div className="alert-text">Les données de santé ne peuvent être traitées qu’avec le consentement explicite de la personne (ou de son représentant), sauf sauvegarde de ses intérêts vitaux lorsqu’elle ne peut pas consentir. Informez le patient que la fiche sera lue par la structure d’accueil.</div>
-        <select className="form-select" style={{marginTop:6}} value={form.consentement} onChange={e=>upd('consentement',e.target.value)}><option value="">— Consentement * —</option><option value="explicite">Le patient (ou son représentant) a donné son consentement explicite</option><option value="urgence_vitale">Urgence vitale : le patient ne peut pas consentir</option></select></div></div>
+        <select className="form-select" style={{marginTop:6}} value={form.consentement} onChange={e=>upd('consentement',e.target.value)}><option value="">Consentement *</option><option value="explicite">Le patient (ou son représentant) a donné son consentement explicite</option><option value="urgence_vitale">Urgence vitale : le patient ne peut pas consentir</option></select></div></div>
       <button className="btn btn-primary" disabled={busy} onClick={emettre}>{busy?'Envoi...':'📤 Émettre la fiche'}</button>
     </div>}
 
@@ -2902,7 +2977,7 @@ const TYPES_RAP={COM1:'Prévention (VAD + séances éducatives)',COM3:'Cas pris 
 const RAP_NUM={COM1:'Rapport mensuel des activités de prévention (VAD+SEG)',COM3:'Rapport mensuel des cas pris en charge'};
 const dateLimite=(annee,mois)=>{const d=new Date(Date.UTC(annee,mois,5));return d.toISOString().slice(0,10);}; // le 5 du mois suivant (mois 1-12 → index mois = mois suivant)
 const libMois=(a,m)=>MOIS_FR[m-1]+' '+a;
-const nomRelais=r=>r.auteur_nom||'—';
+const nomRelais=r=>r.auteur_nom||'n/d';
 
 function RapportsCommunautaires({user}){
   const estAuteur=user.role==='relais'||user.role==='asc';
@@ -2927,9 +3002,9 @@ function RapportsCommunautaires({user}){
     if(!enligne)return;
     try{
       const{data,error}=await supaClient.from('rapports_communautaires').select('*').order('created_at',{ascending:false}).limit(1000);
-      if(error){setLoadErr(/rapports_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Le module de rapports n’est pas installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':'Chargement impossible : '+(error.message||error.code));return;}
+      if(error){setLoadErr(/rapports_communautaires|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':userErr(error));return;}
       setLoadErr('');setItems(data||[]);
-    }catch(e){setLoadErr('Réseau indisponible — les rapports déjà chargés restent affichés.');}
+    }catch(e){setLoadErr('Réseau indisponible, les rapports déjà chargés restent affichés.');}
     if(!estAuteur){try{const{data}=await supaClient.rpc('effectif_relais');if(Array.isArray(data))setEffectif(data);}catch(e){}}
   };
   const envoyerAttente=async()=>{
@@ -2971,7 +3046,7 @@ function RapportsCommunautaires({user}){
       if(!enligne||!navigator.onLine){setErrs(['Le renvoi d’un rapport retourné demande du réseau.']);setBusy(false);return;}
       const{data,error}=await supaClient.from('rapports_communautaires').update({valeurs:vals,village:village.trim(),statut:'soumis',saisi_le:row.saisi_le}).eq('id',corrigeId).select('id');
       setBusy(false);
-      if(error||!data||!data.length){setErrs(['Renvoi impossible : '+((error&&(error.message||error.code))||'rapport introuvable ou déjà validé')]);return;}
+      if(error||!data||!data.length){setErrs([(error?userErr(error):'Rapport introuvable ou déjà validé.')]);return;}
       setCorrigeId(null);setVals({});setMsg({t:'success',m:'Rapport corrigé et renvoyé au chef de poste.'});charger();return;
     }
     if(enligne&&navigator.onLine){
@@ -2981,10 +3056,10 @@ function RapportsCommunautaires({user}){
         else{
           const em=(error.message||'')+' '+(error.code||'');
           if(/JWT|PGRST30|401/i.test(em)){/* mise en attente */}
-          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Module non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.']);setBusy(false);return;}
+          else if(/42P01|PGRST205|schema cache/i.test(em)){setErrs(['Ce service n’est pas encore activé. Contactez l’administrateur du système.']);setBusy(false);return;}
           else if(/42501|row-level/i.test(em)){setErrs(['Refusé par la base : votre compte doit être un relais ou un ASCQ rattaché à une zone sanitaire.']);setBusy(false);return;}
           else if(/uq_rapport|duplicate/i.test(em)){setErrs(['Un rapport de ce type existe déjà pour ce mois et ce village. S’il vous a été retourné, ouvrez-le depuis « Mes rapports ».']);setBusy(false);return;}
-          else{setErrs(['Erreur de la base : '+(error.message||error.code)]);setBusy(false);return;}
+          else{setErrs([userErr(error)]);setBusy(false);return;}
         }
       }catch(x){/* réseau */}
     }
@@ -2999,10 +3074,10 @@ function RapportsCommunautaires({user}){
     setBusy(true);setMsg(null);
     const{data,error}=await supaClient.from('rapports_communautaires').update({statut:statut,valide_par:user.nom,valide_id:user.supabase_id,motif_retour:statut==='retourne'?mot.trim():null}).eq('id',r.id).eq('statut','soumis').select('id');
     setBusy(false);
-    if(error){setMsg({t:'danger',m:'Action impossible : '+(error.message||error.code)});return;}
+    if(error){setMsg({t:'danger',m:userErr(error)});return;}
     if(!data||!data.length){setMsg({t:'warning',m:'Ce rapport a déjà été traité ou n’est pas dans votre zone.'});await charger();return;}
     setRetId(null);setMotif('');
-    setMsg({t:'success',m:statut==='valide'?'Rapport validé. Le statisticien de zone peut le saisir dans DHIS2 (avant le 15).':'Rapport retourné à '+nomRelais(r)+'.'});
+    setMsg({t:'success',m:statut==='valide'?'Rapport validé. Le statisticien peut le saisir dans DHIS2 (avant le 20).':'Rapport retourné à '+nomRelais(r)+'.'});
     await charger();
   };
 
@@ -3011,8 +3086,8 @@ function RapportsCommunautaires({user}){
   const badge=s=><span className={'badge '+(s==='valide'?'badge-success':s==='retourne'?'badge-immediate':'badge-hebdo')}>{s==='valide'?'Validé':s==='retourne'?'Retourné':'À vérifier'}</span>;
   const resume=r=>{
     const v=r.valeurs||{};
-    if(r.type_rapport==='COM3')return 'Enfants malades reçus : '+((Number((v.i1||{}).m)||0)+(Number((v.i1||{}).f)||0))+' • référés (SGD/SG) : '+((Number((v.i2||{}).m)||0)+(Number((v.i2||{}).f)||0))+' • reçus au CS : '+((Number((v.i3||{}).m)||0)+(Number((v.i3||{}).f)||0));
-    return 'Ménages visités : '+(Number(v.i18)||0)+' • enfants 0-5 ans vus : '+((Number(v.i1)||0)+(Number(v.i2)||0))+' • tousseurs chroniques référés : '+(Number(v.i13)||0);
+    if(r.type_rapport==='COM3')return 'Enfants malades reçus : '+((Number((v.i1||{}).m)||0)+(Number((v.i1||{}).f)||0))+' · référés (SGD/SG) : '+((Number((v.i2||{}).m)||0)+(Number((v.i2||{}).f)||0))+' · reçus au CS : '+((Number((v.i3||{}).m)||0)+(Number((v.i3||{}).f)||0));
+    return 'Ménages visités : '+(Number(v.i18)||0)+' · enfants 0-5 ans vus : '+((Number(v.i1)||0)+(Number(v.i2)||0))+' · tousseurs chroniques référés : '+(Number(v.i13)||0);
   };
   const detail=r=>{
     const v=r.valeurs||{};
@@ -3020,12 +3095,12 @@ function RapportsCommunautaires({user}){
     return <table style={{fontSize:11}}><tbody>{RAP_COM1.flatMap(g=>g[1]).map(([n,l])=><tr key={n}><td>{n}</td><td>{l}</td><td>{v['i'+n]==null?0:(typeof v['i'+n]==='object'?JSON.stringify(v['i'+n]):String(v['i'+n]))}</td></tr>)}</tbody></table>;
   };
   const carte=(r,actions)=><div key={r.id} className="consultation-item">
-    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{libMois(r.annee,r.mois)} — {r.village}</div><div>{r.a_temps===true&&<span className="badge badge-success" style={{marginRight:4}}>À temps</span>}{r.a_temps===false&&<span className="badge badge-hebdo" style={{marginRight:4}}>En retard</span>}{badge(r.statut)}</div></div>
+    <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}><div className="consultation-date">{libMois(r.annee,r.mois)} : {r.village}</div><div>{r.a_temps===true&&<span className="badge badge-success" style={{marginRight:4}}>À temps</span>}{r.a_temps===false&&<span className="badge badge-hebdo" style={{marginRight:4}}>En retard</span>}{badge(r.statut)}</div></div>
     <div style={{fontWeight:600,fontSize:13}}>{TYPES_RAP[r.type_rapport]} <span style={{fontWeight:400,color:'var(--text-muted)'}}>({r.type_rapport})</span></div>
     <div style={{fontSize:12}}>{resume(r)}</div>
     <details><summary style={{fontSize:12,cursor:'pointer'}}>Voir toutes les lignes</summary>{detail(r)}</details>
     {r.motif_retour&&<div className="alert alert-warning" style={{marginTop:4}}><div className="alert-content"><div className="alert-text">Retourné : {r.motif_retour}</div></div></div>}
-    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {nomRelais(r)}{r.valide_par?' • Traité par '+r.valide_par:''}</div>
+    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:4}}>Saisi par {nomRelais(r)}{r.valide_par?' · Traité par '+r.valide_par:''}</div>
     {actions}
   </div>;
 
@@ -3062,7 +3137,7 @@ function RapportsCommunautaires({user}){
 
   return(<div>
     <p className="page-title">📋 Rapports communautaires mensuels</p>
-    <p className="page-sub">{estAuteur?'Rapports mensuels du relais (modèles du guide SNIGS). Remis au chef de poste lors du suivi groupé, avant le 5 du mois suivant.':'Vérification des rapports des relais, puis suivi de leur complétude et de leur promptitude. Circuit : relais → chef de poste (avant le 5) → zone sanitaire (saisie DHIS2 avant le 15) → direction départementale (avant le 20).'}</p>
+    <p className="page-sub">{estAuteur?'Rapports mensuels du relais (modèles du guide SNIGS). Remis au chef de poste lors du suivi groupé, avant le 5 du mois suivant.':'Vérification des rapports des relais, puis suivi de leur complétude et de leur promptitude. Circuit : relais → chef de poste (avant le 5) → zone sanitaire (saisie DHIS2 avant le 20) → direction départementale (validation).'}</p>
     {loadErr&&<div className="alert alert-warning"><div className="alert-content"><div className="alert-text">{loadErr}</div></div></div>}
     <Msg/>
     {attente.length>0&&<div className="alert alert-info"><div className="alert-content"><div className="alert-text">⏳ {attente.length} rapport(s) en attente d’envoi sur cet appareil. <button className="btn btn-sm btn-outline" onClick={envoyerAttente}>Réessayer</button></div></div></div>}
@@ -3115,18 +3190,18 @@ function RapportsCommunautaires({user}){
 
     {!estAuteur&&tab==='qualite'&&<div className="card">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-        <div className="card-title">Qualité des données — {libMois(qa,qm)}</div>
+        <div className="card-title">Qualité des données : {libMois(qa,qm)}</div>
         <div style={{display:'flex',gap:6}}><select className="form-select" value={qm} onChange={e=>setQm(Number(e.target.value))}>{MOIS_FR.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select>
           <select className="form-select" value={qa} onChange={e=>setQa(Number(e.target.value))}>{anneeOpts.map(a=><option key={a} value={a}>{a}</option>)}</select>
           <button className="btn btn-outline btn-sm" onClick={exporterCSV}>⬇️ Rapports validés (CSV)</button></div>
       </div>
       {lignesQ.length===0?<div className="empty-state"><div className="empty-text">Aucun rapport pour ce mois</div></div>
         :<div className="table-wrap"><table><thead><tr><th>Zone sanitaire</th><th>Relais inscrits</th><th>COM1 reçus</th><th>COM3 reçus</th><th>Complétude COM1</th><th>Complétude COM3</th><th>Promptitude</th><th>Validés</th><th>Retournés</th></tr></thead>
-          <tbody>{lignesQ.map(l=><tr key={l.z}><td><strong>{zoneNom(l.z)}</strong></td><td>{l.nrel==null?'—':l.nrel}</td><td>{l.c1}</td><td>{l.c3}</td><td>{l.nrel==null?'—':fmtPct(l.c1,l.nrel)}</td><td>{l.nrel==null?'—':fmtPct(l.c3,l.nrel)}</td><td>{fmtPct(l.aT,l.n)}</td><td>{fmtPct(l.val,l.n)}</td><td>{l.ret}</td></tr>)}</tbody></table></div>}
+          <tbody>{lignesQ.map(l=><tr key={l.z}><td><strong>{zoneNom(l.z)}</strong></td><td>{l.nrel==null?'n/d':l.nrel}</td><td>{l.c1}</td><td>{l.c3}</td><td>{l.nrel==null?'n/d':fmtPct(l.c1,l.nrel)}</td><td>{l.nrel==null?'n/d':fmtPct(l.c3,l.nrel)}</td><td>{fmtPct(l.aT,l.n)}</td><td>{fmtPct(l.val,l.n)}</td><td>{l.ret}</td></tr>)}</tbody></table></div>}
       <div className="form-hint"><strong>Complétude</strong> = rapports reçus / rapports attendus (un par relais inscrit, par type de rapport). <strong>Promptitude</strong> = rapports remis avant le 5 du mois suivant / rapports reçus. <strong>Exactitude</strong> : voir « Retournés » et la cohérence contrôlée à la saisie (ex. « référés et reçus » ≤ « référés »). Définitions : Directives PIHI communautaire 2015.</div>
-      {Object.keys(perf).length>0&&<><div className="card-title" style={{marginTop:14}}>Performance des relais — {libMois(qa,qm)}</div>
+      {Object.keys(perf).length>0&&<><div className="card-title" style={{marginTop:14}}>Performance des relais : {libMois(qa,qm)}</div>
         <div className="table-wrap"><table><thead><tr><th>Relais / ASCQ</th><th>Zone</th><th>Rapports</th><th>À temps</th><th>Validés</th><th>Retournés</th><th>Enfants référés (SGD/SG) arrivés au CS</th></tr></thead>
-          <tbody>{Object.values(perf).map((p,i)=><tr key={i}><td>{p.nom}</td><td style={{fontSize:12}}>{zoneNom(p.zone)}</td><td>{p.n}</td><td>{p.aT}</td><td>{p.val}</td><td>{p.ret}</td><td>{p.ref>0?fmtPct(p.recu,p.ref)+' ('+p.recu+'/'+p.ref+')':'—'}</td></tr>)}</tbody></table></div>
+          <tbody>{Object.values(perf).map((p,i)=><tr key={i}><td>{p.nom}</td><td style={{fontSize:12}}>{zoneNom(p.zone)}</td><td>{p.n}</td><td>{p.aT}</td><td>{p.val}</td><td>{p.ret}</td><td>{p.ref>0?fmtPct(p.recu,p.ref)+' ('+p.recu+'/'+p.ref+')':'n/d'}</td></tr>)}</tbody></table></div>
         <div className="form-hint">Indicateur d’appui à la supervision (Directives PIHI 2015 : le chef de poste calcule des indicateurs de performance des relais). Ne l’utilisez pas seul pour une décision de motivation : la règle de paiement relève de la commune.</div></>}
     </div>}
   </div>);
@@ -3144,7 +3219,7 @@ const TRAITEMENTS=[
  {nom:'Référence et contre-référence',finalite:'Orientation du patient et retour d’information entre structures (Directives 2018)',donnees:'Identité, motif, signes, traitements donnés, évolution (données de santé)',personnes:'Patients référés',destinataires:'Structure émettrice et structure d’accueil',acces:'Émetteur ; personnel de la zone d’origine et de la zone de destination ; pilotage'}
 ];
 const MESURES=[
- ['Cloisonnement par zone et par rôle côté base (RLS Supabase)','fait'],['Comptes nominatifs ; mot de passe à changer à la première connexion','fait'],
+ ['Cloisonnement par zone et par rôle côté base (sécurité au niveau de la base)','fait'],['Comptes nominatifs ; mot de passe à changer à la première connexion','fait'],
  ['Journal des modifications (audit) sur les tables sensibles','fait'],['Chiffrement des échanges (HTTPS/TLS)','fait'],
  ['Consentement explicite enregistré sur chaque fiche de référence (art. 394)','fait'],
  ['Désignation d’un délégué à la protection des données (art. 430 : organisme public)','à faire'],['Déclaration préalable à l’APDP ou inscription au registre (art. 405)','à faire'],
@@ -3162,7 +3237,7 @@ function Conformite({user}){
   const charger=async()=>{
     if(!enligne||!admin)return;
     try{const{data,error}=await supaClient.from('incidents_securite').select('*').order('date_detection',{ascending:false}).limit(200);
-      if(error){setErr(/incidents_securite|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Registre non installé : exécutez 13_reference_rapports_conformite.sql dans Supabase.':(error.message||error.code));return;}
+      if(error){setErr(/incidents_securite|42P01|PGRST205/i.test(error.code+' '+(error.message||''))?'Ce service n’est pas encore activé. Contactez l’administrateur du système.':userErr(error));return;}
       setErr('');setInc(data||[]);}catch(e){setErr('Réseau indisponible.');}
   };
   useEffect(()=>{charger();},[]);
@@ -3178,7 +3253,7 @@ function Conformite({user}){
     const row={id:uuid(),date_detection:f.date_detection,nature:f.nature.trim(),categories:f.categories.trim(),nb_personnes:Number(f.nb_personnes),mesures:f.mesures.trim(),notif_apdp_le:f.notif_apdp_le||null,notif_personnes_le:f.notif_personnes_le||null,cree_par:user.supabase_id,cree_par_nom:user.nom};
     const{error}=await supaClient.from('incidents_securite').insert(row);
     setBusy(false);
-    if(error){setMsg({t:'danger',m:'Enregistrement impossible : '+(error.message||error.code)});return;}
+    if(error){setMsg({t:'danger',m:userErr(error)});return;}
     setF(vide);setMsg({t:'success',m:'Incident enregistré. N’oubliez pas la notification sans délai à l’APDP et aux personnes concernées (art. 427).'});charger();
   };
   const exporterRegistre=()=>{
@@ -3206,11 +3281,11 @@ function Conformite({user}){
 
     {tab==='textes'&&<div className="card"><div className="card-title">Articles à connaître (Code du numérique, version APDP)</div>
       <ul style={{fontSize:13,lineHeight:1.7,paddingLeft:18}}>
-        <li><strong>Art. 394</strong> — le traitement des données de santé est interdit par principe. Exceptions utiles ici : consentement explicite de la personne (retirable à tout moment) ; sauvegarde des intérêts vitaux lorsque la personne ne peut pas consentir ; mission d’intérêt public ou autorité publique ; médecine préventive et soins ; statistique publique.</li>
-        <li><strong>Art. 405</strong> — les traitements de données personnelles font l’objet d’une déclaration préalable à l’APDP, ou d’une inscription dans un registre tenu par la personne désignée par le responsable du traitement.</li>
-        <li><strong>Art. 426</strong> — mesures techniques et organisationnelles appropriées : pseudonymisation et chiffrement, confidentialité, intégrité, disponibilité, résilience, rétablissement après incident, tests réguliers.</li>
-        <li><strong>Art. 427</strong> — toute rupture de sécurité est notifiée sans délai à l’APDP et à la personne concernée ; le sous-traitant avertit sans délai le responsable du traitement.</li>
-        <li><strong>Art. 430</strong> — un délégué à la protection des données est désigné lorsque le traitement est effectué par une autorité publique ou un organisme public.</li>
+        <li><strong>Art. 394</strong> : le traitement des données de santé est interdit par principe. Exceptions utiles ici : consentement explicite de la personne (retirable à tout moment) ; sauvegarde des intérêts vitaux lorsque la personne ne peut pas consentir ; mission d’intérêt public ou autorité publique ; médecine préventive et soins ; statistique publique.</li>
+        <li><strong>Art. 405</strong> : les traitements de données personnelles font l’objet d’une déclaration préalable à l’APDP, ou d’une inscription dans un registre tenu par la personne désignée par le responsable du traitement.</li>
+        <li><strong>Art. 426</strong> : mesures techniques et organisationnelles appropriées : pseudonymisation et chiffrement, confidentialité, intégrité, disponibilité, résilience, rétablissement après incident, tests réguliers.</li>
+        <li><strong>Art. 427</strong> : toute rupture de sécurité est notifiée sans délai à l’APDP et à la personne concernée ; le sous-traitant avertit sans délai le responsable du traitement.</li>
+        <li><strong>Art. 430</strong> : un délégué à la protection des données est désigné lorsque le traitement est effectué par une autorité publique ou un organisme public.</li>
       </ul>
       <div className="form-hint">Sources : texte intégral du Code du numérique (version APDP) et présentation de l’APDP aux acteurs de la santé (Cotonou, 4 octobre 2022). Ce n’est pas un avis juridique.</div></div>}
 
@@ -3226,7 +3301,7 @@ function Conformite({user}){
         <div className="form-group"><label className="form-label">Personnes informées le</label><input className="form-input" type="date" value={f.notif_personnes_le} onChange={e=>setF(Object.assign({},f,{notif_personnes_le:e.target.value}))}/></div></div>
       <button className="btn btn-primary" disabled={busy} onClick={enregistrer}>Enregistrer l’incident</button>
       <div style={{marginTop:12}}>{inc.length===0?<div className="empty-state"><div className="empty-text">Aucun incident enregistré</div></div>
-        :inc.map(x=><div key={x.id} className="consultation-item"><div className="consultation-date">{fmtDate(x.date_detection)} — {x.nb_personnes} personne(s)</div><div style={{fontSize:13}}>{x.nature}</div><div style={{fontSize:12}}>Données : {x.categories} • Mesures : {x.mesures}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>APDP : {x.notif_apdp_le?fmtDate(x.notif_apdp_le):'non notifié'} • Personnes : {x.notif_personnes_le?fmtDate(x.notif_personnes_le):'non informées'} • Saisi par {x.cree_par_nom}</div></div>)}</div>
+        :inc.map(x=><div key={x.id} className="consultation-item"><div className="consultation-date">{fmtDate(x.date_detection)} : {x.nb_personnes} personne(s)</div><div style={{fontSize:13}}>{x.nature}</div><div style={{fontSize:12}}>Données : {x.categories} · Mesures : {x.mesures}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>APDP : {x.notif_apdp_le?fmtDate(x.notif_apdp_le):'non notifié'} · Personnes : {x.notif_personnes_le?fmtDate(x.notif_personnes_le):'non informées'} · Saisi par {x.cree_par_nom}</div></div>)}</div>
     </div>}
   </div>);
 }
@@ -3235,6 +3310,7 @@ function Conformite({user}){
 // APP PRINCIPALE
 // ═══════════════════════════════════════
 function App(){
+  useLangTick();
   const[user,setUser]=useState(null);
   const[tab,setTab]=useState('dashboard');
   const[online,setOnline]=useState(navigator.onLine);
@@ -3400,7 +3476,7 @@ function App(){
       {pwaPrompt&&(
         <div className="pwa-banner">
           <span style={{fontSize:20}}>📱</span>
-          <div style={{flex:1}}><strong>Installer SNISB Health Link</strong> comme application sur votre appareil — fonctionne sans Internet !</div>
+          <div style={{flex:1}}><strong>Installer SNISB Health Link</strong> comme application sur votre appareil, fonctionne sans Internet !</div>
           <button className="btn btn-sm" style={{background:'white',color:'var(--primary)',fontWeight:700}} onClick={installPwa}>Installer</button>
           <button className="btn-icon" style={{background:'rgba(255,255,255,0.2)'}} onClick={()=>setPwaPrompt(null)}>×</button>
         </div>
@@ -3412,7 +3488,7 @@ function App(){
       </div>
       {!online&&(
         <div className="offline-banner">
-          📵 Hors connexion — ce que vous saisissez reste sur l’appareil et part automatiquement au retour du réseau
+          📵 Hors connexion, ce que vous saisissez reste sur l’appareil et part automatiquement au retour du réseau
         </div>
       )}
     </div>
@@ -3427,7 +3503,7 @@ class ErrorBoundary extends React.Component{
       return React.createElement('div',{style:{padding:40,fontFamily:'sans-serif',textAlign:'center',background:'#fff',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}},
         React.createElement('div',{style:{fontSize:48,marginBottom:16}},'🏥'),
         React.createElement('h2',{style:{color:'#E74C3C',marginBottom:8}},'Erreur de chargement SNISB'),
-        React.createElement('p',{style:{color:'#666',marginBottom:16,fontSize:13}},this.state.error.message||'Erreur inconnue'),
+        React.createElement('p',{style:{color:'#666',marginBottom:16,fontSize:13}},'Une erreur inattendue est survenue. Rechargez la page ; vos données enregistrées ne sont pas perdues.'),
         React.createElement('button',{style:{background:'#00853E',color:'white',border:'none',padding:'12px 24px',borderRadius:8,cursor:'pointer',fontSize:14},onClick:()=>window.location.reload()},'🔄 Recharger')
       );
     }
@@ -3441,7 +3517,7 @@ class ErrorBoundary extends React.Component{
 // sans toucher à la logique des composants (post-traitement DOM sûr).
 // ═══════════════════════════════════════
 const EMOJI_TO_ICON = {
-  '🏥':'local_hospital','⚕':'local_hospital','📊':'bar_chart','👤':'person','👥':'group',
+  '🏥':'local_hospital','⚕':'local_hospital','🔑':'key','🖨':'print','♂':'male','♀':'female','👪':'family_restroom','🧬':'genetics','🤰':'pregnant_woman','👶':'child_care','🤱':'breastfeeding','🪪':'badge','📌':'push_pin','🏛':'account_balance','🏘':'holiday_village','✔':'check','⬇':'download','🔁':'repeat','📨':'forward_to_inbox','🛡':'shield','📊':'bar_chart','👤':'person','👥':'group',
   '👨':'medical_services','👩':'medical_services','🩺':'stethoscope','📋':'assignment',
   '🔔':'notifications','📤':'upload_file','🦠':'coronavirus','📚':'school','📓':'menu_book',
   '❤':'favorite','🚪':'logout','🔐':'lock','🔒':'lock','✅':'check_circle','❌':'cancel',

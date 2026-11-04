@@ -1,7 +1,7 @@
 // SNISB Health Link — Service Worker : ouverture hors connexion.
 // Pages : réseau d'abord (4 s), cache en secours -> jamais bloqué sur une ancienne version.
 // Bibliothèques (CDN) et polices : cache d'abord. Supabase et fonctions : jamais mis en cache.
-const VERSION='snisb-v22';
+const VERSION='snisb-v23';
 const CDN=[
   'https://unpkg.com/react@18/umd/react.development.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.development.js',
